@@ -44,6 +44,10 @@
 
   <ItemGroup>
     <MauiImage Include="Resources\Images\*" />
+    <MauiImage Update="Resources\Images\dice_one_solid.svg" BaseSize="24,24" />
+    <MauiImage Update="Resources\Images\dice_two_solid.svg" BaseSize="24,24" />
+    <MauiImage Update="Resources\Images\dice_three_solid.svg" BaseSize="24,24" />
+    <MauiImage Update="Resources\Images\dice_four_solid.svg" BaseSize="24,24" />
     <MauiImage Update="Resources\Images\dotnet_bot.svg" Color="#FFFFFF" BaseSize="168,208" />
     <MauiImage Update="Resources\Images\dotnet_bot_resized.svg" Color="#FFFFFF" BaseSize="20,20" />
     <MauiImage Include="Resources\Images\dotnet_bot.svg" Link="Resources\Images\small_dotnet_bot.svg" Color="#FFFFFF" BaseSize="64,64" />
