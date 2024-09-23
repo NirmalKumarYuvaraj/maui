@@ -124,7 +124,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items
 			}
 		}
 
-		void OnItemsVectorChanged(global::Windows.Foundation.Collections.IObservableVector<object> sender, global::Windows.Foundation.Collections.IVectorChangedEventArgs @event)
+		async void OnItemsVectorChanged(global::Windows.Foundation.Collections.IObservableVector<object> sender, global::Windows.Foundation.Collections.IVectorChangedEventArgs @event)
 		{
 			if (VirtualView is null)
 				return;
@@ -137,22 +137,22 @@ namespace Microsoft.Maui.Controls.Handlers.Items
 			if (itemsCount == 0)
 				return;
 
-			Application.Current.Dispatcher.Dispatch(() =>
+			//Hack: It takes time to realize the item.Thus, we are introducing a small delay and scroll avoiding exception.
+			if (VirtualView.ItemsUpdatingScrollMode == ItemsUpdatingScrollMode.KeepItemsInView)
 			{
-				if (VirtualView.ItemsUpdatingScrollMode == ItemsUpdatingScrollMode.KeepItemsInView)
-				{
-					var firstItem = items[0];
-					// Keeps the first item in the list displayed when new items are added.
-					ListViewBase.ScrollIntoView(firstItem);
-				}
+				var firstItem = items[0];
+				await Task.Delay(10);
+				// Keeps the first item in the list displayed when new items are added.
+				ListViewBase.ScrollIntoView(firstItem);
+			}
 
-				if (VirtualView.ItemsUpdatingScrollMode == ItemsUpdatingScrollMode.KeepLastItemInView)
-				{
-					var lastItem = items[items.Count - 1];
-					// Adjusts the scroll offset to keep the last item in the list displayed when new items are added.
-					ListViewBase.ScrollIntoView(lastItem);
-				}
-			});
+			if (VirtualView.ItemsUpdatingScrollMode == ItemsUpdatingScrollMode.KeepLastItemInView)
+			{
+				var lastItem = items[items.Count - 1];
+				await Task.Delay(10);
+				// Adjusts the scroll offset to keep the last item in the list displayed when new items are added.
+				ListViewBase.ScrollIntoView(lastItem);
+			}
 
 		}
 

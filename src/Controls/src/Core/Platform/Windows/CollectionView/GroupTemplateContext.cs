@@ -46,7 +46,6 @@ namespace Microsoft.Maui.Controls.Platform
 				listPlusFooter.Add(footerItemTemplateContext);
 
 				Items = listPlusFooter;
-				return;
 			}
 		}
 	}
