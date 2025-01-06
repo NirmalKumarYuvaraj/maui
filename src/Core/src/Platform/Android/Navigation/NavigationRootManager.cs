@@ -160,6 +160,19 @@ namespace Microsoft.Maui.Platform
 			}
 			else
 			{
+				var fragmentContainerView = _rootView?.FindViewById<AndroidX.Fragment.App.FragmentContainerView>(Resource.Id.navigationlayout_content);
+                 if(view.Background!=null)
+                 {
+                    var mauiColor = view.Background.ToColor();
+					if (mauiColor != null)
+					{
+						int red = (int)(mauiColor.Red * 255);
+						int green = (int)(mauiColor.Green * 255);
+						int blue = (int)(mauiColor.Blue * 255);
+						int alpha = (int)(mauiColor.Alpha * 255);
+						fragmentContainerView?.SetBackgroundColor(Android.Graphics.Color.Argb(alpha, red, green, blue));
+					}
+                 }
 
 				_pendingFragment =
 					FragmentManager
