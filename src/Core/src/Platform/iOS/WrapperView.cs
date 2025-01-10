@@ -156,6 +156,62 @@ namespace Microsoft.Maui.Platform
 			Disconnect();
 			base.Dispose();
 		}
+#pragma warning disable RS0016
+		public override bool PointInside(CGPoint point, UIEvent? uievent)
+		{
+			foreach (var subview in Subviews)
+			{
+				if (subview is not UIButton button)
+					continue;
+
+				// Create a path with rounded corners
+				var path = new CGPath();
+				var bounds = Bounds;
+
+				// Define corner radius points
+				var minX = bounds.GetMinX();
+				var minY = bounds.GetMinY();
+				var maxX = bounds.GetMaxX();
+				var maxY = bounds.GetMaxY();
+				var radius = button.Layer.CornerRadius;
+
+				// Start at top left
+				path.MoveToPoint(minX + radius, minY);
+
+				// Add top line
+				path.AddLineToPoint(maxX - radius, minY);
+
+				// Add top right corner
+				path.AddArc(maxX - radius, minY + radius, radius, -MathF.PI / 2, 0, false);
+
+				// Add right line
+				path.AddLineToPoint(maxX, maxY - radius);
+
+				// Add bottom right corner
+				path.AddArc(maxX - radius, maxY - radius, radius, 0, MathF.PI / 2, false);
+
+				// Add bottom line
+				path.AddLineToPoint(minX + radius, maxY);
+
+				// Add bottom left corner
+				path.AddArc(minX + radius, maxY - radius, radius, MathF.PI / 2, MathF.PI, false);
+
+				// Add left line
+				path.AddLineToPoint(minX, minY + radius);
+
+				// Add top left corner
+				path.AddArc(minX + radius, minY + radius, radius, MathF.PI, -MathF.PI / 2, false);
+
+				path.CloseSubpath();
+
+				// Check if touch point is inside the path
+				return path.ContainsPoint(point, false);
+			}
+
+			return base.PointInside(point, uievent);
+
+		}
+#pragma warning restore RS0016
 
 		public override CGSize SizeThatFits(CGSize size)
 		{

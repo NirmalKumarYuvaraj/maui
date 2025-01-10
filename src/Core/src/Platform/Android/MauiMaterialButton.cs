@@ -1,5 +1,6 @@
 ﻿using System;
 using Android.Content;
+using Android.Graphics;
 using Android.Graphics.Drawables;
 using Android.Runtime;
 using Android.Util;
@@ -90,6 +91,33 @@ namespace Microsoft.Maui.Platform
 				}
 			}
 		}
+
+#pragma warning disable RS0016
+		public override bool OnTouchEvent(MotionEvent? e)
+		{
+			if (e?.Action == MotionEventActions.Down || e?.Action == MotionEventActions.Move)
+			{
+				// Get the bounds of the button
+				var rect = new Rect();
+				GetDrawingRect(rect);
+
+				// Define a rounded rectangle path
+				var path = new Path();
+				float cornerRadius = CornerRadius * Resources!.DisplayMetrics!.Density; // Adjust for device density
+				path.AddRoundRect(new RectF(rect), cornerRadius, cornerRadius, Path.Direction.Cw!);
+
+				// Check if the touch point is inside the path
+				var touchPoint = new PointF(e.GetX(), e.GetY());
+				Region region = new Region();
+				region.SetPath(path, new Region(rect));
+				if (!region.Contains((int)touchPoint.X, (int)touchPoint.Y))
+				{
+					return false; // Ignore touch events outside the rounded corners
+				}
+			}
+			return base.OnTouchEvent(e);
+		}
+#pragma warning restore RS0016
 
 		void CalculateIconSize(int widthMeasureSpec, int heightMeasureSpec)
 		{
