@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using CoreGraphics;
 using Microsoft.Extensions.DependencyInjection;
 using ObjCRuntime;
@@ -38,24 +39,51 @@ namespace Microsoft.Maui.Platform
 
 		public static void UpdateThumbColor(this UISlider uiSlider, ISlider slider)
 		{
-			if (slider.ThumbColor != null)
+			if (slider.ThumbColor is null)
 			{
-				// Preserve the existing thumb image
-				var originalImage = uiSlider.CurrentThumbImage;
-
-				if (originalImage != null)
-				{
-					// Apply tint manually to the image
-					var tintedImage = originalImage.ApplyTint(slider.ThumbColor.ToPlatform());
-					uiSlider.SetThumbImage(tintedImage, UIControlState.Normal);
-					uiSlider.SetThumbImage(tintedImage, UIControlState.Highlighted); // Ensure tint stays when held
-				}
+				return; // Exit early if no color is set
 			}
+
+			var originalImage = uiSlider.CurrentThumbImage ?? CreateDefaultThumbImage(uiSlider);
+			if (originalImage is null)
+			{
+				uiSlider.SetThumbImage(null, UIControlState.Normal);
+				return;
+			}
+
+			var tintedImage = originalImage.ApplyTint(slider.ThumbColor.ToPlatform());
+
+			// Set the tinted image for different UI states
+			uiSlider.SetThumbImage(tintedImage, UIControlState.Normal);
+			uiSlider.SetThumbImage(tintedImage, UIControlState.Highlighted);
+		}
+
+		static UIImage CreateDefaultThumbImage(UISlider uiSlider)
+		{
+			var size = CalculateThumbSize(uiSlider);
+			UIGraphics.BeginImageContextWithOptions(size, false, 0);
+
+			UIColor.White.SetFill(); // Set the default thumb color
+			var rect = new CGRect(0, 0, size.Width, size.Height);
+			UIBezierPath.FromOval(rect).Fill();
+
+			var defaultThumb = UIGraphics.GetImageFromCurrentImageContext();
+			UIGraphics.EndImageContext();
+
+			return defaultThumb;
+		}
+
+		static CGSize CalculateThumbSize(UISlider uiSlider)
+		{
+			var trackRect = uiSlider.TrackRectForBounds(uiSlider.Bounds);
+			var thumbRect = uiSlider.ThumbRectForBounds(uiSlider.Bounds, trackRect, 0);
+			return thumbRect.Size;
 		}
 
 		static UIImage ApplyTint(this UIImage image, UIColor color)
 		{
 			UIGraphics.BeginImageContextWithOptions(image.Size, false, image.CurrentScale);
+
 			using (var context = UIGraphics.GetCurrentContext())
 			{
 				context.TranslateCTM(0, image.Size.Height);
@@ -64,13 +92,15 @@ namespace Microsoft.Maui.Platform
 
 				var rect = new CGRect(0, 0, image.Size.Width, image.Size.Height);
 				context.ClipToMask(rect, image.CGImage);
+
 				color.SetFill();
 				context.FillRect(rect);
-
-				var tintedImage = UIGraphics.GetImageFromCurrentImageContext();
-				UIGraphics.EndImageContext();
-				return tintedImage;
 			}
+
+			var tintedImage = UIGraphics.GetImageFromCurrentImageContext();
+			UIGraphics.EndImageContext();
+
+			return tintedImage;
 		}
 
 		public static async Task UpdateThumbImageSourceAsync(this UISlider uiSlider, ISlider slider, IImageSourceServiceProvider provider)
@@ -85,6 +115,7 @@ namespace Microsoft.Maui.Platform
 				var thumbImage = result?.Value;
 
 				uiSlider.SetThumbImage(thumbImage, UIControlState.Normal);
+				uiSlider.UpdateThumbColor(slider);
 			}
 			else
 			{
