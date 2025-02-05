@@ -501,6 +501,12 @@ namespace Microsoft.Maui.Controls
 
 			if (TitleView != null)
 				SetInheritedBindingContext(TitleView, BindingContext);
+
+			var shellTitleView = Shell.GetTitleView(this);
+			if (shellTitleView != null)
+			{
+				SetInheritedBindingContext(shellTitleView, BindingContext);
+			}
 		}
 
 
