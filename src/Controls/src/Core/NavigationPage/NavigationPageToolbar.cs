@@ -79,13 +79,6 @@ namespace Microsoft.Maui.Controls
 			}
 
 			_currentPage = cp;
-
-			FlyoutPage FlyoutPage = _currentPage.FindParentOfType<FlyoutPage>();
-			if (FlyoutPage?.Flyout == _currentPage)
-			{
-				return;
-			}
-
 			_currentNavigationPage = _currentPage.FindParentOfType<NavigationPage>();
 
 			foreach (var navPage in _navigationPagesStack)
