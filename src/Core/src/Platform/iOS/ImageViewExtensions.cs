@@ -90,8 +90,8 @@ namespace Microsoft.Maui.Platform
 			double widthRatio = constrainedWidth / imageSize.Width;
 			double heightRatio = constrainedHeight / imageSize.Height;
 
-			// In cases where the image must fit within its given constraints, 
-			// it should be scaled down based on the smallest dimension (scale factor) that allows it to fit.
+			// In cases where we the image must fit its given constraints, we must shrink based on the smallest dimension (scale factor)
+			// that can fit it
 			if (imageView.ContentMode == UIViewContentMode.ScaleAspectFit)
 			{
 				var scaleFactor = Math.Min(widthRatio, heightRatio);
