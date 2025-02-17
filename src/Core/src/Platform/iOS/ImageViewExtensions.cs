@@ -65,7 +65,7 @@ namespace Microsoft.Maui.Platform
 		/// Gets the size that fits on the screen for a <see cref="UIImageView"/> to be consistent cross-platform.
 		/// </summary>
 		/// <remarks>The default iOS implementation of SizeThatFits only returns the image's dimensions and ignores the constraints.</remarks>
-		/// <param name="imageView"></param>
+		/// <param name="imageView">The <see cref="UIImageView"/> to be measured.</param>
 		/// <param name="constraints">The specified size constraints.</param>
 		/// <param name="padding"></param>
 		/// <returns>The size where the image would fit depending on the aspect ratio.</returns>
