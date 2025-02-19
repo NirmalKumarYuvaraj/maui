@@ -1,6 +1,7 @@
 using System;
 using CoreGraphics;
 using Microsoft.Maui.Graphics;
+using Microsoft.Maui.Graphics.Platform;
 using UIKit;
 
 namespace Microsoft.Maui.Controls
@@ -22,6 +23,13 @@ namespace Microsoft.Maui.Controls
 			CGSize boundsSize = platformButton.ImageView.SizeThatFitsImage(
 				new CGSize(widthConstraint, heightConstraint),
 				Padding.IsNaN ? null : Padding);
+
+			// If we set the size to zero for measurement, it meets the size constraints as zero falls within the bounds. 
+			// so, we need to calculate the size based on the image dimensions.
+			if (boundsSize.AsSize().IsZero)
+			{
+				boundsSize = platformButton.SizeThatFits(new CGSize(widthConstraint, heightConstraint));
+			}
 
 			return new Size(boundsSize.Width, boundsSize.Height);
 		}
