@@ -4,12 +4,12 @@
 
 [.NET Multi-platform App UI (.NET MAUI)](https://dotnet.microsoft.com/en-us/apps/maui) is a cross-platform framework for creating mobile and desktop apps with C# and XAML. Using .NET MAUI, you can develop apps that can run on Android, iOS, iPadOS, macOS, and Windows from a single shared codebase.
 
-## Getting Started ##
+## Getting Started
 
-* [Install .NET MAUI](https://dot.net/maui)
-* [.NET MAUI Documentation](https://docs.microsoft.com/dotnet/maui)
-* [.NET MAUI Samples](https://github.com/dotnet/maui-samples)
-* [Development Guide](./.github/DEVELOPMENT.md)
+-   [Install .NET MAUI](https://dot.net/maui)
+-   [.NET MAUI Documentation](https://docs.microsoft.com/dotnet/maui)
+-   [.NET MAUI Samples](https://github.com/dotnet/maui-samples)
+-   [Development Guide](./.github/DEVELOPMENT.md)
 
 ## Overview
 
@@ -18,9 +18,10 @@
 ![.NET MAUI Weather App on all platforms](Assets/maui-weather-hero-sm.png)
 
 ## Current News
-* November 13, 2024 - [What's new in .NET MAUI for .NET 9](https://learn.microsoft.com/dotnet/maui/whats-new/dotnet-9)
-* November 12, 2024 - [Announcing .NET 9](https://devblogs.microsoft.com/dotnet/announcing-dotnet-9/#.net-maui-–-enhancing-multi-platform-app-development)
-* October 22, 2024 - [.NET MAUI Welcomes Syncfusion Open-source Contributions](https://devblogs.microsoft.com/dotnet/dotnet-maui-welcomes-syncfusion-open-source-contributions/)
+
+-   November 13, 2024 - [What's new in .NET MAUI for .NET 9](https://learn.microsoft.com/dotnet/maui/whats-new/dotnet-9)
+-   November 12, 2024 - [Announcing .NET 9](https://devblogs.microsoft.com/dotnet/announcing-dotnet-9/#.net-maui-–-enhancing-multi-platform-app-development)
+-   October 22, 2024 - [.NET MAUI Welcomes Syncfusion Open-source Contributions](https://devblogs.microsoft.com/dotnet/dotnet-maui-welcomes-syncfusion-open-source-contributions/)
 
 Follow the [.NET MAUI Blog](https://devblogs.microsoft.com/dotnet/category/net-maui/) and visit the [News](https://github.com/dotnet/maui/wiki/News) wiki page for more news and updates.
 
