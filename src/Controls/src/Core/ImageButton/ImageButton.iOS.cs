@@ -20,14 +20,11 @@ namespace Microsoft.Maui.Controls
 			if (Handler?.PlatformView is not UIButton platformButton || platformButton.ImageView is null)
 				return Size.Zero;
 
-			CGSize constraintSize = new CGSize(widthConstraint, heightConstraint);
-			if (platformButton.ImageView.Image is not null)
-			{
-				return platformButton.ImageView
-					.SizeThatFitsImage(constraintSize, Padding.IsNaN ? null : Padding).ToSize();
-			}
+			CGSize boundsSize = platformButton.ImageView.SizeThatFitsImage(
+				new CGSize(widthConstraint, heightConstraint),
+				Padding.IsNaN ? null : Padding);
 
-			return platformButton.SizeThatFits(constraintSize).ToSize();
+			return new Size(boundsSize.Width, boundsSize.Height);
 		}
 
 		/// <summary>
