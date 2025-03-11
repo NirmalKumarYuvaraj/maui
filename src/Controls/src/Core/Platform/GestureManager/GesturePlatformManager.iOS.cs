@@ -270,7 +270,7 @@ namespace Microsoft.Maui.Controls.Platform
 
 					if (view is not null)
 					{
-						var currentPoint = r.LocationInView(r.View);
+						var currentPoint = r.TranslationInView(r.View);
 						switch (r.State)
 						{
 							case UIGestureRecognizerState.Began:
