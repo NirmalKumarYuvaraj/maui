@@ -1,4 +1,5 @@
-﻿using Microsoft.Graphics.Canvas;
+﻿using System;
+using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Text;
 using Windows.UI.Text;
 

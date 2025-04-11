@@ -1,8 +1,9 @@
+using Microsoft.Maui.Graphics.Platform;
 using Xunit;
 
 namespace Microsoft.Maui.Graphics.DeviceTests;
 
-public partial class PlatfrormStringSizeSerivce
+public partial class PlatfrormStringSizeSerivceTest
 {
     [Theory]
     [InlineData(0, 1)]    // Edge case: 0 should become 1

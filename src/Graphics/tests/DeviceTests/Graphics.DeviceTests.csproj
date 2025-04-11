@@ -74,8 +74,5 @@
     <Compile Remove="**\*.Windows.cs" />
   </ItemGroup>
   <Import Project="$(MauiSrcDirectory)Maui.InTree.props" Condition=" '$(UseMaui)' != 'true' " />
-  <ItemGroup>
-    <Compile Include="Tests/PlatformStringSizeService/PlatfrormStringSizeSerivce.Windows.cs" />
-  </ItemGroup>
 
 </Project>
