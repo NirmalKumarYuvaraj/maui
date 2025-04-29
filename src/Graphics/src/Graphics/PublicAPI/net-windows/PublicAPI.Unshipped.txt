@@ -1,1 +1,5 @@
 #nullable enable
+~abstract Microsoft.Maui.Graphics.AbstractCanvas<TState>.Stroke.set -> void
+~Microsoft.Maui.Graphics.ICanvas.Stroke.set -> void
+~Microsoft.Maui.Graphics.PictureCanvas.Stroke.set -> void
+~Microsoft.Maui.Graphics.ScalingCanvas.Stroke.set -> void

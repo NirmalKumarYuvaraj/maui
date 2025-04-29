@@ -54,7 +54,6 @@ namespace Microsoft.Maui.Graphics
 			set { _commands.Add(canvas => canvas.StrokeColor = value); }
 		}
 
-#pragma warning disable RS0016
 		public Paint Stroke
 		{
 			set { _commands.Add(canvas => canvas.Stroke = value); }

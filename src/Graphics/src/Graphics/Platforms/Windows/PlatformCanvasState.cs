@@ -213,7 +213,6 @@ namespace Microsoft.Maui.Graphics.Platform
 				}
 			}
 		}
-#pragma warning disable RS0016
 		public Paint Stroke
 		{
 			set
