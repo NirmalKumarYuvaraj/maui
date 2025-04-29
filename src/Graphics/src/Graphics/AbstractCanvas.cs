@@ -98,6 +98,8 @@ namespace Microsoft.Maui.Graphics
 
 		public abstract float MiterLimit { set; }
 		public abstract Color StrokeColor { set; }
+#pragma warning disable RS0016
+		public abstract Paint Stroke { set; }
 		public abstract LineCap StrokeLineCap { set; }
 		public abstract LineJoin StrokeLineJoin { set; }
 

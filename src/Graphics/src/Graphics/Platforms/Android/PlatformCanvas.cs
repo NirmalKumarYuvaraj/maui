@@ -199,6 +199,9 @@ namespace Microsoft.Maui.Graphics.Platform
 			}
 		}
 
+#pragma warning disable RS0016
+		public override Paint Stroke { set => throw new NotImplementedException(); }
+
 		protected override void PlatformSetStrokeDashPattern(float[] strokePattern, float strokeDashOffset, float strokeSize)
 		{
 			CurrentState.SetStrokeDashPattern(strokePattern, strokeDashOffset, strokeSize);

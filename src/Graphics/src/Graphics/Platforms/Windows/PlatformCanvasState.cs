@@ -56,11 +56,12 @@ namespace Microsoft.Maui.Graphics.Platform
 		private bool _shadowColorValid;
 		private Color _sourceFillColor;
 		private Paint _sourceFillpaint;
+		private Paint _sourceStrokepaint;
 
 		private Color _sourceFontColor;
 		private Color _sourceShadowColor;
 		private Color _sourceStrokeColor;
-		private CanvasSolidColorBrush _strokeBrush;
+		private ICanvasBrush _strokeBrush;
 		private bool _strokeBrushValid;
 		private CanvasStrokeStyle _strokeStyle;
 		private float _miterLimit;
@@ -209,6 +210,20 @@ namespace Microsoft.Maui.Graphics.Platform
 				{
 					_sourceStrokeColor = finalValue;
 					_strokeBrushValid = false;
+				}
+			}
+		}
+#pragma warning disable RS0016
+		public Paint Stroke
+		{
+			set
+			{
+				var finalValue = value;
+
+				if (!finalValue.Equals(_sourceStrokepaint))
+				{
+					_sourceStrokepaint = finalValue;
+					_strokeBrushValid = true;
 				}
 			}
 		}
@@ -566,19 +581,73 @@ namespace Microsoft.Maui.Graphics.Platform
 		{
 			get
 			{
-				if (_strokeBrush == null || (!_strokeBrushValid && _parentState != null && _strokeBrush == _parentState._strokeBrush))
+				if (_strokeBrush == null || !_strokeBrushValid)
 				{
-					_strokeBrush = new CanvasSolidColorBrush(_owner.Session, _sourceStrokeColor.AsColor(Colors.Black, _alpha));
-					_strokeBrushValid = true;
-				}
-				else if (!_strokeBrushValid)
-				{
-					_strokeBrush.Color = _sourceStrokeColor.AsColor(Colors.Black, _alpha);
-					_strokeBrushValid = true;
+					if (_sourceStrokepaint != null)
+					{
+						if (_sourceStrokepaint is LinearGradientPaint linearGradientPaint)
+						{
+							var gradientStops = new CanvasGradientStop[linearGradientPaint.GradientStops.Length];
+							for (int i = 0; i < linearGradientPaint.GradientStops.Length; i++)
+							{
+								gradientStops[i] = new CanvasGradientStop()
+								{
+									Position = linearGradientPaint.GradientStops[i].Offset,
+									Color = linearGradientPaint.GradientStops[i].Color.AsColor(Colors.White, _alpha)
+								};
+							}
+
+							float x1 = (float)(linearGradientPaint.StartPoint.X * StrokeSize) + 10;
+							float y1 = (float)(linearGradientPaint.StartPoint.Y * StrokeSize) + 10;
+
+							float x2 = (float)(linearGradientPaint.EndPoint.X * StrokeSize) + 90;
+							float y2 = (float)(linearGradientPaint.EndPoint.Y * StrokeSize) + 100;
+
+							_linearGradientStartPoint.X = x1;
+							_linearGradientStartPoint.Y = y1;
+							_linearGradientEndPoint.X = x2;
+							_linearGradientEndPoint.Y = y2;
+
+							_strokeBrush = new CanvasLinearGradientBrush(_owner.Session, gradientStops);
+							((CanvasLinearGradientBrush)_strokeBrush).StartPoint = _linearGradientStartPoint;
+							((CanvasLinearGradientBrush)_strokeBrush).EndPoint = _linearGradientEndPoint;
+						}
+						else if (_sourceFillpaint is RadialGradientPaint radialGradientPaint)
+						{
+							//float radius = GeometryUtil.GetDistance(_gradientPoint1.X, _gradientPoint1.Y, _gradientPoint2.X, _gradientPoint2.Y);
+
+							var gradientStops = new CanvasGradientStop[radialGradientPaint.GradientStops.Length];
+							for (int i = 0; i < radialGradientPaint.GradientStops.Length; i++)
+							{
+								gradientStops[i] = new CanvasGradientStop
+								{
+									Position = radialGradientPaint.GradientStops[i].Offset,
+									Color = radialGradientPaint.GradientStops[i].Color.AsColor(Colors.White, _alpha)
+								};
+							}
+							_strokeBrush = new CanvasRadialGradientBrush(_owner.Session, gradientStops);
+							((CanvasRadialGradientBrush)_strokeBrush).Center = _radialGradientCenter;
+							((CanvasRadialGradientBrush)_strokeBrush).RadiusX = _radialGradientRadius;
+							((CanvasRadialGradientBrush)_strokeBrush).RadiusY = _radialGradientRadius;
+						}
+						_strokeBrushValid = true;
+					}
+					else
+					{
+						_strokeBrush = new CanvasSolidColorBrush(_owner.Session, WColors.White);
+						_strokeBrushValid = true;
+					}
 				}
 
 				return _strokeBrush;
 			}
+		}
+
+		public void SetFillBrush()
+		{
+			ReleaseStrokeBrush();
+
+
 		}
 
 		public CanvasStrokeStyle PlatformStrokeStyle
@@ -633,6 +702,18 @@ namespace Microsoft.Maui.Graphics.Platform
 					_fillBrush.Dispose();
 				}
 				_fillBrush = null;
+			}
+		}
+
+		private void ReleaseStrokeBrush()
+		{
+			if (_strokeBrush != null)
+			{
+				if (_parentState == null || _strokeBrush != _parentState._strokeBrush)
+				{
+					_strokeBrush.Dispose();
+				}
+				_strokeBrush = null;
 			}
 		}
 

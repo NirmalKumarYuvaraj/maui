@@ -28,6 +28,8 @@ namespace Microsoft.Maui.Graphics
 		/// </summary>
 		public Color StrokeColor { set; }
 
+#pragma warning disable RS0016
+		public Paint Stroke { set; }
 		/// <summary>
 		/// Sets the shape at the start and end of a line.
 		/// </summary>
