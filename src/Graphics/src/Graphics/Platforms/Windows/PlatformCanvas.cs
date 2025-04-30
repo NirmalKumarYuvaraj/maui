@@ -89,6 +89,7 @@ namespace Microsoft.Maui.Graphics.Platform
 		{
 			set => CurrentState.StrokeColor = value;
 		}
+#pragma warning disable RS0016
 		public override Paint Stroke
 		{
 			set => CurrentState.Stroke = value;

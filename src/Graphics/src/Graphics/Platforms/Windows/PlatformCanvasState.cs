@@ -26,51 +26,45 @@ namespace Microsoft.Maui.Graphics.Platform
 #endif
 		: CanvasState
 	{
-		private static readonly float[] _emptyFloatArray = Array.Empty<float>();
-
-		private readonly PlatformCanvas _owner;
-		private readonly PlatformCanvasState _parentState;
-
-		private float _alpha = 1;
-		private float[] _dashes;
-		private float _dashOffset;
-
-		private ICanvasBrush _fillBrush;
-		private bool _fillBrushValid;
-		private CanvasSolidColorBrush _fontBrush;
-		private bool _fontBrushValid;
-		private float _fontSize;
-		private Vector2 _linearGradientStartPoint;
-		private Vector2 _linearGradientEndPoint;
-		private Vector2 _radialGradientCenter;
-		private float _radialGradientRadius;
+		static readonly float[] _emptyFloatArray = Array.Empty<float>();
+		readonly PlatformCanvas _owner;
+		readonly PlatformCanvasState _parentState;
+		float _alpha = 1;
+		float[] _dashes;
+		float _dashOffset;
+		ICanvasBrush _fillBrush;
+		bool _fillBrushValid;
+		CanvasSolidColorBrush _fontBrush;
+		bool _fontBrushValid;
+		float _fontSize;
+		Vector2 _linearGradientStartPoint;
+		Vector2 _linearGradientEndPoint;
+		Vector2 _radialGradientCenter;
+		float _radialGradientRadius;
 		//private GradientStopCollection _gradientStopCollection;
-		private CanvasGeometry _layerBounds;
-		private CanvasGeometry _layerClipBounds;
-		private CanvasGeometry _layerMask;
-		private CanvasActiveLayer _layer;
-		private bool _needsStrokeStyle;
-		private float _scale;
-
-		private global::Windows.UI.Color _shadowColor;
-		private bool _shadowColorValid;
-		private Color _sourceFillColor;
-		private Paint _sourceFillpaint;
-		private Paint _sourceStrokepaint;
-
-		private Color _sourceFontColor;
-		private Color _sourceShadowColor;
-		private Color _sourceStrokeColor;
-		private ICanvasBrush _strokeBrush;
-		private bool _strokeBrushValid;
-		private CanvasStrokeStyle _strokeStyle;
-		private float _miterLimit;
-		private CanvasCapStyle _lineCap;
-		private CanvasLineJoin _lineJoin;
+		CanvasGeometry _layerBounds;
+		CanvasGeometry _layerClipBounds;
+		CanvasGeometry _layerMask;
+		CanvasActiveLayer _layer;
+		bool _needsStrokeStyle;
+		float _scale;
+		global::Windows.UI.Color _shadowColor;
+		bool _shadowColorValid;
+		Color _sourceFillColor;
+		Paint _sourceFillpaint;
+		Paint _sourceStrokepaint;
+		Color _sourceFontColor;
+		Color _sourceShadowColor;
+		Color _sourceStrokeColor;
+		ICanvasBrush _strokeBrush;
+		bool _strokeBrushValid;
+		CanvasStrokeStyle _strokeStyle;
+		float _miterLimit;
+		CanvasCapStyle _lineCap;
+		CanvasLineJoin _lineJoin;
 		//private CanvasStrokeStyleProperties strokeStyleProperties;
-
-		private int _layerCount = 0;
-		private readonly float _dpi = 96;
+		int _layerCount = 0;
+		readonly float _dpi = 96;
 
 		public IFont Font { get; set; }
 
@@ -208,11 +202,16 @@ namespace Microsoft.Maui.Graphics.Platform
 
 				if (!finalValue.Equals(_sourceStrokeColor))
 				{
+					ReleaseStrokeBrush();
 					_sourceStrokeColor = finalValue;
 					_strokeBrushValid = false;
+					_sourceStrokepaint = null;
 				}
 			}
 		}
+
+#pragma warning disable RS0016
+
 		public Paint Stroke
 		{
 			set
@@ -283,10 +282,12 @@ namespace Microsoft.Maui.Graphics.Platform
 
 		public void SetStrokeDashPattern(float[] pattern, float strokeDashOffset, float strokeSize)
 		{
-			if (pattern == null || pattern.Length == 0)
+			if (pattern is null || pattern.Length == 0)
 			{
 				if (_needsStrokeStyle == false)
+				{
 					return;
+				}
 				_dashes = null;
 			}
 			else
@@ -341,14 +342,14 @@ namespace Microsoft.Maui.Graphics.Platform
 		{
 			get
 			{
-				if (_fillBrush == null || !_fillBrushValid)
+				if (_fillBrush is null || !_fillBrushValid)
 				{
-					if (_sourceFillColor != null)
+					if (_sourceFillColor is not null)
 					{
 						_fillBrush = new CanvasSolidColorBrush(_owner.Session, _sourceFillColor.AsColor(_alpha));
 						_fillBrushValid = true;
 					}
-					else if (_sourceFillpaint != null)
+					else if (_sourceFillpaint is not null)
 					{
 						if (_sourceFillpaint is LinearGradientPaint linearGradientPaint)
 						{
@@ -495,8 +496,10 @@ namespace Microsoft.Maui.Graphics.Platform
 
 		public void ClipPath(PathF path, WindingMode windingMode)
 		{
-			if (_layerMask != null)
+			if (_layerMask is not null)
+			{
 				throw new Exception("Only one clip operation currently supported.");
+			}
 
 
 			/* Unmerged change from project 'Microsoft.Maui.Graphics.Win2D.WinUI.Desktop'
@@ -524,8 +527,10 @@ namespace Microsoft.Maui.Graphics.Platform
 
 		public void SubtractFromClip(float x, float y, float width, float height)
 		{
-			if (_layerMask != null)
+			if (_layerMask is not null)
+			{
 				throw new Exception("Only one subtraction currently supported.");
+			}
 
 
 			/* Unmerged change from project 'Microsoft.Maui.Graphics.Win2D.WinUI.Desktop'
@@ -567,10 +572,14 @@ namespace Microsoft.Maui.Graphics.Platform
 		{
 			get
 			{
-				if (_fontBrush == null || (!_fontBrushValid && _parentState != null && _fontBrush == _parentState._fontBrush))
+				if (_fontBrush is null || (!_fontBrushValid && _parentState is not null && _fontBrush == _parentState._fontBrush))
+				{
 					_fontBrush = new CanvasSolidColorBrush(_owner.Session, _sourceFontColor.AsColor(Colors.Black, _alpha));
+				}
 				else if (!_fontBrushValid)
+				{
 					_fontBrush.Color = _sourceFontColor.AsColor(Colors.Black, _alpha);
+				}
 
 				return _fontBrush;
 			}
@@ -580,9 +589,14 @@ namespace Microsoft.Maui.Graphics.Platform
 		{
 			get
 			{
-				if (_strokeBrush == null || !_strokeBrushValid)
+				if (_strokeBrush is null || !_strokeBrushValid)	
 				{
-					if (_sourceStrokepaint != null)
+					if (_sourceStrokeColor is not null)
+					{
+						_strokeBrush = new CanvasSolidColorBrush(_owner.Session, _sourceStrokeColor.AsColor(_alpha));
+						_strokeBrushValid = true;
+					}
+					else if (_sourceStrokepaint is not null)
 					{
 						if (_sourceStrokepaint is LinearGradientPaint linearGradientPaint)
 						{
@@ -596,11 +610,11 @@ namespace Microsoft.Maui.Graphics.Platform
 								};
 							}
 
-							float x1 = (float)(linearGradientPaint.StartPoint.X * StrokeSize) + 10;
-							float y1 = (float)(linearGradientPaint.StartPoint.Y * StrokeSize) + 10;
+							float x1 = (float)(linearGradientPaint.StartPoint.X);
+							float y1 = (float)(linearGradientPaint.StartPoint.Y);
 
-							float x2 = (float)(linearGradientPaint.EndPoint.X * StrokeSize) + 90;
-							float y2 = (float)(linearGradientPaint.EndPoint.Y * StrokeSize) + 100;
+							float x2 = (float)(linearGradientPaint.EndPoint.X);
+							float y2 = (float)(linearGradientPaint.EndPoint.Y);
 
 							_linearGradientStartPoint.X = x1;
 							_linearGradientStartPoint.Y = y1;
@@ -642,12 +656,6 @@ namespace Microsoft.Maui.Graphics.Platform
 			}
 		}
 
-		public void SetFillBrush()
-		{
-			ReleaseStrokeBrush();
-
-
-		}
 
 		public CanvasStrokeStyle PlatformStrokeStyle
 		{
@@ -655,12 +663,12 @@ namespace Microsoft.Maui.Graphics.Platform
 			{
 				if (_needsStrokeStyle)
 				{
-					if (_strokeStyle == null)
+					if (_strokeStyle is null)
 					{
 						_strokeStyle = new CanvasStrokeStyle();
 					}
 
-					if (_dashes != null)
+					if (_dashes is not null)
 					{
 						_strokeStyle.CustomDashStyle = _dashes;
 						_strokeStyle.DashCap = _lineCap;
@@ -684,7 +692,7 @@ namespace Microsoft.Maui.Graphics.Platform
 			}
 		}
 
-		private void InvalidateBrushes()
+		void InvalidateBrushes()
 		{
 			_strokeBrushValid = false;
 			_fillBrushValid = false;
@@ -692,11 +700,11 @@ namespace Microsoft.Maui.Graphics.Platform
 			_fontBrushValid = false;
 		}
 
-		private void ReleaseFillBrush()
+		void ReleaseFillBrush()
 		{
-			if (_fillBrush != null)
+			if (_fillBrush is not null)
 			{
-				if (_parentState == null || _fillBrush != _parentState._fillBrush)
+				if (_parentState is null || _fillBrush != _parentState._fillBrush)
 				{
 					_fillBrush.Dispose();
 				}
@@ -704,11 +712,11 @@ namespace Microsoft.Maui.Graphics.Platform
 			}
 		}
 
-		private void ReleaseStrokeBrush()
+		void ReleaseStrokeBrush()
 		{
-			if (_strokeBrush != null)
+			if (_strokeBrush is not null)
 			{
-				if (_parentState == null || _strokeBrush != _parentState._strokeBrush)
+				if (_parentState is null || _strokeBrush != _parentState._strokeBrush)
 				{
 					_strokeBrush.Dispose();
 				}
@@ -716,12 +724,12 @@ namespace Microsoft.Maui.Graphics.Platform
 			}
 		}
 
-		private void InvalidateStrokeStyle()
+		void InvalidateStrokeStyle()
 		{
-			if (_strokeStyle != null)
+			if (_strokeStyle is not null)
 			{
-				if (_parentState == null || _strokeStyle != _parentState._strokeStyle)
-				{
+				if (_parentState is null || _strokeStyle != _parentState._strokeStyle)
+				{	
 					_strokeStyle.Dispose();
 				}
 				_strokeStyle = null;
@@ -732,25 +740,25 @@ namespace Microsoft.Maui.Graphics.Platform
 		{
 			base.Dispose();
 
-			if (_layer != null)
+			if (_layer is not null)
 			{
 				_layer.Dispose();
 				_layer = null;
 			}
 
-			if (_layerMask != null)
+			if (_layerMask is not null)
 			{
 				_layerMask.Dispose();
 				_layerMask = null;
 			}
 
-			if (_layerBounds != null)
+			if (_layerBounds is not null)
 			{
 				_layerBounds.Dispose();
 				_layerBounds = null;
 			}
 
-			if (_layerClipBounds != null)
+			if (_layerClipBounds is not null)
 			{
 				_layerClipBounds.Dispose();
 				_layerClipBounds = null;
