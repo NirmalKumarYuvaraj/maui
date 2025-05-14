@@ -36,6 +36,7 @@ namespace Microsoft.Maui.Storage
 			if (OperatingSystem.IsIOSVersionAtLeast(11) || OperatingSystem.IsMacCatalystVersionAtLeast(13, 1))
 			{
 				documentPicker.DidPickDocumentAtUrls += (_, e) => GetFileResults(e.Urls, tcs);
+				documentPicker.WasCancelled += (_, _) => tcs.TrySetResult(Array.Empty<FileResult>());
 			}
 			else
 			{
