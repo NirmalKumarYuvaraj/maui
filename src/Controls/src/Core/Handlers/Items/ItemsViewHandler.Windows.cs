@@ -9,6 +9,7 @@ using Microsoft.Maui.Controls.Internals;
 using Microsoft.Maui.Controls.Platform;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Handlers;
+using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -204,7 +205,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items
 		{
 			bool isEmpty = (CollectionViewSource?.View?.Count ?? 0) == 0;
 
-			if (isEmpty)
+			if (isEmpty && (ItemsView.EmptyView is not null || ItemsView.EmptyViewTemplate is not null))
 			{
 				if (_formsEmptyView != null)
 				{
@@ -311,9 +312,11 @@ namespace Microsoft.Maui.Controls.Handlers.Items
 			}
 
 			var emptyView = Element.EmptyView;
+			var emptyViewTemplate = Element.EmptyViewTemplate;
 
-			if (emptyView == null)
+			if (emptyView is null && emptyViewTemplate is null)
 			{
+				UpdateEmptyViewVisibility();
 				return;
 			}
 
