@@ -4140,8 +4140,6 @@
 ~static readonly Microsoft.Maui.Controls.TimePicker.FormatProperty -> Microsoft.Maui.Controls.BindableProperty
 ~static readonly Microsoft.Maui.Controls.TimePicker.TextColorProperty -> Microsoft.Maui.Controls.BindableProperty
 ~static readonly Microsoft.Maui.Controls.TimePicker.TimeProperty -> Microsoft.Maui.Controls.BindableProperty
-~static readonly Microsoft.Maui.Controls.UriImageSource.CacheValidityProperty -> Microsoft.Maui.Controls.BindableProperty
-~static readonly Microsoft.Maui.Controls.UriImageSource.CachingEnabledProperty -> Microsoft.Maui.Controls.BindableProperty
 ~static readonly Microsoft.Maui.Controls.UriImageSource.UriProperty -> Microsoft.Maui.Controls.BindableProperty
 ~static readonly Microsoft.Maui.Controls.UrlWebViewSource.UrlProperty -> Microsoft.Maui.Controls.BindableProperty
 ~static readonly Microsoft.Maui.Controls.View.HorizontalOptionsProperty -> Microsoft.Maui.Controls.BindableProperty
@@ -7242,10 +7240,6 @@ Microsoft.Maui.Controls.TypeTypeConverter.TypeTypeConverter() -> void
 Microsoft.Maui.Controls.UnsolvableConstraintsException
 Microsoft.Maui.Controls.UnsolvableConstraintsException.UnsolvableConstraintsException() -> void
 Microsoft.Maui.Controls.UriImageSource
-Microsoft.Maui.Controls.UriImageSource.CacheValidity.get -> System.TimeSpan
-Microsoft.Maui.Controls.UriImageSource.CacheValidity.set -> void
-Microsoft.Maui.Controls.UriImageSource.CachingEnabled.get -> bool
-Microsoft.Maui.Controls.UriImageSource.CachingEnabled.set -> void
 Microsoft.Maui.Controls.UriImageSource.UriImageSource() -> void
 Microsoft.Maui.Controls.UriTypeConverter
 Microsoft.Maui.Controls.UriTypeConverter.UriTypeConverter() -> void

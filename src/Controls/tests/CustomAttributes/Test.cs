@@ -438,13 +438,13 @@ public static class Test
 		FromResource,
 		FromUri,
 		Cancel,
+		CachingEnabled,
+		CacheValidity,
 	}
 
 	public enum UriImageSource
 	{
 		Uri,
-		CachingEnabled,
-		CacheValidity,
 	}
 
 	public enum Keyboard

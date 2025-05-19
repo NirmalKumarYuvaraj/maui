@@ -31,7 +31,7 @@ namespace Microsoft.Maui
 						color,
 						fontImageSource.Glyph,
 						typeface,
-						textSize,
+						textSize, imageSource.CachingEnabled,
 						callback);
 
 					return callback.Result;
@@ -66,6 +66,7 @@ namespace Microsoft.Maui
 						fontImageSource.Glyph,
 						typeface,
 						textSize,
+						imageSource.CachingEnabled,
 						drawableCallback);
 
 					return drawableCallback.Result;

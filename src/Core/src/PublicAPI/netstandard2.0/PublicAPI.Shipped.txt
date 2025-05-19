@@ -1201,8 +1201,6 @@ Microsoft.Maui.ITransform.ScaleY.get -> double
 Microsoft.Maui.ITransform.TranslationX.get -> double
 Microsoft.Maui.ITransform.TranslationY.get -> double
 Microsoft.Maui.IUriImageSource
-Microsoft.Maui.IUriImageSource.CacheValidity.get -> System.TimeSpan
-Microsoft.Maui.IUriImageSource.CachingEnabled.get -> bool
 Microsoft.Maui.IUriImageSource.Uri.get -> System.Uri!
 Microsoft.Maui.IView
 Microsoft.Maui.IView.Arrange(Microsoft.Maui.Graphics.Rect bounds) -> Microsoft.Maui.Graphics.Size

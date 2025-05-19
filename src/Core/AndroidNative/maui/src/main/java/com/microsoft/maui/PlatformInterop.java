@@ -327,11 +327,11 @@ public class PlatformInterop {
         prepare(builder, target, cachingEnabled, callback);
     }
 
-    public static void loadImageFromFile(ImageView imageView, String file, ImageLoaderCallback callback) {
+    public static void loadImageFromFile(ImageView imageView, String file, boolean cachingEnabled, ImageLoaderCallback callback) {
         RequestBuilder<Drawable> builder = Glide
             .with(imageView)
             .load(file);
-        loadInto(builder, imageView, true, callback, file);
+        loadInto(builder, imageView, cachingEnabled , callback, file);
     }
 
     public static void loadImageFromUri(ImageView imageView, String uri, boolean cachingEnabled, ImageLoaderCallback callback) {
@@ -346,27 +346,27 @@ public class PlatformInterop {
         loadInto(builder, imageView, cachingEnabled, callback, androidUri);
     }
 
-    public static void loadImageFromStream(ImageView imageView, InputStream inputStream, ImageLoaderCallback callback) {
+    public static void loadImageFromStream(ImageView imageView, InputStream inputStream,boolean cachingEnabled, ImageLoaderCallback callback) {
         RequestBuilder<Drawable> builder = Glide
             .with(imageView)
             .load(inputStream);
-        loadInto(builder, imageView, false, callback, inputStream);
+        loadInto(builder, imageView, cachingEnabled, callback, inputStream);
     }
 
-    public static void loadImageFromFont(ImageView imageView, @ColorInt int color, String glyph, Typeface typeface, float textSize, ImageLoaderCallback callback) {
+    public static void loadImageFromFont(ImageView imageView, @ColorInt int color, String glyph, Typeface typeface, float textSize,boolean cachingEnabled, ImageLoaderCallback callback) {
         FontModel fontModel = new FontModel(color, glyph, textSize, typeface);
         RequestBuilder<Drawable> builder = Glide
             .with(imageView)
             .load(fontModel)
             .override(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL);
-        loadInto(builder, imageView, true, callback, fontModel);
+        loadInto(builder, imageView, cachingEnabled, callback, fontModel);
     }
 
-    public static void loadImageFromFile(Context context, String file, ImageLoaderCallback callback) {
+    public static void loadImageFromFile(Context context, String file,boolean cachingEnabled, ImageLoaderCallback callback) {
         RequestBuilder<Drawable> builder = Glide
             .with(context)
             .load(file);
-        load(builder, context, true, callback, file);
+        load(builder, context, cachingEnabled, callback, file);
     }
 
     public static void loadImageFromUri(Context context, String uri, boolean cachingEnabled, ImageLoaderCallback callback) {
@@ -381,20 +381,20 @@ public class PlatformInterop {
         load(builder, context, cachingEnabled, callback, androidUri);
     }
 
-    public static void loadImageFromStream(Context context, InputStream inputStream, ImageLoaderCallback callback) {
+    public static void loadImageFromStream(Context context, InputStream inputStream,boolean cachingEnabled, ImageLoaderCallback callback) {
         RequestBuilder<Drawable> builder = Glide
             .with(context)
             .load(inputStream);
-        load(builder, context, false, callback, inputStream);
+        load(builder, context, cachingEnabled, callback, inputStream);
     }
 
-    public static void loadImageFromFont(Context context, @ColorInt int color, String glyph, Typeface typeface, float textSize, ImageLoaderCallback callback) {
+    public static void loadImageFromFont(Context context, @ColorInt int color, String glyph, Typeface typeface, float textSize,boolean cachingEnabled, ImageLoaderCallback callback) {
         FontModel fontModel = new FontModel(color, glyph, textSize, typeface);
         RequestBuilder<Drawable> builder = Glide
             .with(context)
             .load(fontModel)
             .override(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL);
-        load(builder, context, true, callback, fontModel);
+        load(builder, context, cachingEnabled, callback, fontModel);
     }
 
     public static ColorStateList getColorStateListForToolbarStyleableAttribute(Context context, int resId, int index) {

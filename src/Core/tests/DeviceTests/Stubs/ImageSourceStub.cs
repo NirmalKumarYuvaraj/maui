@@ -9,6 +9,8 @@ namespace Microsoft.Maui.DeviceTests.Stubs
 	public abstract partial class ImageSourceStub : IImageSource
 	{
 		public bool IsEmpty { get; set; }
+		public TimeSpan CacheValidity { get; set; } = TimeSpan.FromDays(1);
+		public bool CachingEnabled { get; set; } = true;
 	}
 
 	public partial class FileImageSourceStub : ImageSourceStub, IFileImageSource
@@ -82,10 +84,6 @@ namespace Microsoft.Maui.DeviceTests.Stubs
 		}
 
 		public Uri Uri { get; set; }
-
-		public TimeSpan CacheValidity { get; set; } = TimeSpan.FromDays(1);
-
-		public bool CachingEnabled { get; set; } = true;
 	}
 
 	public partial class InvalidImageSourceStub : ImageSourceStub

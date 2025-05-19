@@ -18,30 +18,8 @@ namespace Microsoft.Maui.Controls
 			propertyChanged: (bindable, oldvalue, newvalue) => ((UriImageSource)bindable).OnUriChanged(),
 			validateValue: (bindable, value) => value == null || ((Uri)value).IsAbsoluteUri);
 
-		/// <summary>Bindable property for <see cref="CacheValidity"/>.</summary>
-		public static readonly BindableProperty CacheValidityProperty = BindableProperty.Create(
-			nameof(CacheValidity), typeof(TimeSpan), typeof(UriImageSource), TimeSpan.FromDays(1));
-
-		/// <summary>Bindable property for <see cref="CachingEnabled"/>.</summary>
-		public static readonly BindableProperty CachingEnabledProperty = BindableProperty.Create(
-			nameof(CachingEnabled), typeof(bool), typeof(UriImageSource), true);
-
 		/// <include file="../../docs/Microsoft.Maui.Controls/UriImageSource.xml" path="//Member[@MemberName='IsEmpty']/Docs/*" />
 		public override bool IsEmpty => Uri == null;
-
-		/// <include file="../../docs/Microsoft.Maui.Controls/UriImageSource.xml" path="//Member[@MemberName='CacheValidity']/Docs/*" />
-		public TimeSpan CacheValidity
-		{
-			get => (TimeSpan)GetValue(CacheValidityProperty);
-			set => SetValue(CacheValidityProperty, value);
-		}
-
-		/// <include file="../../docs/Microsoft.Maui.Controls/UriImageSource.xml" path="//Member[@MemberName='CachingEnabled']/Docs/*" />
-		public bool CachingEnabled
-		{
-			get => (bool)GetValue(CachingEnabledProperty);
-			set => SetValue(CachingEnabledProperty, value);
-		}
 
 		/// <include file="../../docs/Microsoft.Maui.Controls/UriImageSource.xml" path="//Member[@MemberName='Uri']/Docs/*" />
 		[System.ComponentModel.TypeConverter(typeof(UriTypeConverter))]

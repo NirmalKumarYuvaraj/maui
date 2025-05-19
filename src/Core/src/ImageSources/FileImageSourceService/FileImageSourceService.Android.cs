@@ -33,7 +33,7 @@ namespace Microsoft.Maui
 
 					var callback = new ImageLoaderCallback();
 
-					PlatformInterop.LoadImageFromFile(imageView, file, callback);
+					PlatformInterop.LoadImageFromFile(imageView, file, imageSource.CachingEnabled, callback);
 
 					return callback.Result;
 				}
@@ -69,7 +69,7 @@ namespace Microsoft.Maui
 
 					var callback = new ImageLoaderResultCallback();
 
-					PlatformInterop.LoadImageFromFile(context, file, callback);
+					PlatformInterop.LoadImageFromFile(context, file, imageSource.CachingEnabled, callback);
 
 					return callback.Result;
 				}

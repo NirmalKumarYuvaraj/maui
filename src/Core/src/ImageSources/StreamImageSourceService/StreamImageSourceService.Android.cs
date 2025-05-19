@@ -25,7 +25,7 @@ namespace Microsoft.Maui
 
 					var callback = new ImageLoaderCallback();
 
-					PlatformInterop.LoadImageFromStream(imageView, stream, callback);
+					PlatformInterop.LoadImageFromStream(imageView, stream, imageSource.CachingEnabled, callback);
 
 					var result = await callback.Result;
 
@@ -62,7 +62,7 @@ namespace Microsoft.Maui
 
 					var drawableCallback = new ImageLoaderResultCallback();
 
-					PlatformInterop.LoadImageFromStream(context, stream, drawableCallback);
+					PlatformInterop.LoadImageFromStream(context, stream, imageSource.CachingEnabled, drawableCallback);
 
 					var result = await drawableCallback.Result.ConfigureAwait(false);
 

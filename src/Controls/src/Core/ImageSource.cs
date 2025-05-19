@@ -4,6 +4,7 @@ using System.IO;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+#pragma warning disable RS0016
 
 namespace Microsoft.Maui.Controls
 {
@@ -20,6 +21,14 @@ namespace Microsoft.Maui.Controls
 
 		internal readonly MergedStyle _mergedStyle;
 
+		/// <summary>Bindable property for <see cref="CacheValidity"/>.</summary>
+		public static readonly BindableProperty CacheValidityProperty = BindableProperty.Create(
+			nameof(CacheValidity), typeof(TimeSpan), typeof(ImageSource), TimeSpan.FromDays(1));
+
+		/// <summary>Bindable property for <see cref="CachingEnabled"/>.</summary>
+		public static readonly BindableProperty CachingEnabledProperty = BindableProperty.Create(
+			nameof(CachingEnabled), typeof(bool), typeof(ImageSource), true);
+
 		protected ImageSource()
 		{
 			_mergedStyle = new MergedStyle(GetType(), this);
@@ -29,7 +38,7 @@ namespace Microsoft.Maui.Controls
 		public virtual bool IsEmpty => false;
 
 		public static bool IsNullOrEmpty(ImageSource imageSource) =>
-			imageSource == null || imageSource.IsEmpty;
+			imageSource is null || imageSource.IsEmpty;
 
 		private protected CancellationTokenSource CancellationTokenSource
 		{
@@ -37,23 +46,44 @@ namespace Microsoft.Maui.Controls
 			private set
 			{
 				if (_cancellationTokenSource == value)
+				{
 					return;
-				if (_cancellationTokenSource != null)
+				}
+
+				if (_cancellationTokenSource is not null)
+				{
 					_cancellationTokenSource.Cancel();
+				}
 				_cancellationTokenSource = value;
 			}
 		}
 
+		/// <include file="../../docs/Microsoft.Maui.Controls/UriImageSource.xml" path="//Member[@MemberName='CacheValidity']/Docs/*" />
+		public TimeSpan CacheValidity
+		{
+			get => (TimeSpan)GetValue(CacheValidityProperty);
+			set => SetValue(CacheValidityProperty, value);
+		}
+
+		/// <include file="../../docs/Microsoft.Maui.Controls/UriImageSource.xml" path="//Member[@MemberName='CachingEnabled']/Docs/*" />
+		public bool CachingEnabled
+		{
+			get => (bool)GetValue(CachingEnabledProperty);
+			set => SetValue(CachingEnabledProperty, value);
+		}
+
 		bool IsLoading
 		{
-			get { return _cancellationTokenSource != null; }
+			get { return _cancellationTokenSource is not null; }
 		}
 
 		/// <include file="../../docs/Microsoft.Maui.Controls/ImageSource.xml" path="//Member[@MemberName='Cancel']/Docs/*" />
 		public virtual Task<bool> Cancel()
 		{
 			if (!IsLoading)
+			{
 				return Task.FromResult(false);
+			}
 
 			TaskCompletionSource<bool> original = Interlocked.CompareExchange(ref _completionSource, new TaskCompletionSource<bool>(), null);
 			if (original is null)
@@ -101,7 +131,10 @@ namespace Microsoft.Maui.Controls
 		public static ImageSource FromUri(Uri uri)
 		{
 			if (!uri.IsAbsoluteUri)
+			{
 				throw new ArgumentException("uri is relative");
+			}
+
 			return new UriImageSource { Uri = uri };
 		}
 
@@ -113,22 +146,31 @@ namespace Microsoft.Maui.Controls
 
 		public static implicit operator ImageSource(Uri uri)
 		{
-			if (uri == null)
+			if (uri is null)
+			{
 				return null;
+			}
 
 			if (!uri.IsAbsoluteUri)
+			{
 				throw new ArgumentException("uri is relative");
+			}
+
 			return FromUri(uri);
 		}
 
 		private protected async Task OnLoadingCompleted(bool cancelled)
 		{
-			if (!IsLoading || _completionSource == null)
+			if (!IsLoading || _completionSource is null)
+			{
 				return;
+			}
 
 			TaskCompletionSource<bool> tcs = Interlocked.Exchange(ref _completionSource, null);
-			if (tcs != null)
+			if (tcs is not null)
+			{
 				tcs.SetResult(cancelled);
+			}
 
 			await _cancellationTokenSourceLock.WaitAsync();
 			try
