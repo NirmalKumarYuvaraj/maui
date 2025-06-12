@@ -497,7 +497,10 @@ namespace Microsoft.Maui.Graphics.Platform
 
 			_layerMask = _layerBounds.CombineWith(clipGeometry, Matrix3x2.Identity, CanvasGeometryCombine.Intersect);
 
-			_layer = _owner.Session.CreateLayer(1, _layerMask);
+			using (var layer = _owner.Session.CreateLayer(1, _layerMask))
+			{
+				_layer = layer;
+			}
 			_layerCount++;
 		}
 
@@ -513,29 +516,18 @@ namespace Microsoft.Maui.Graphics.Platform
 			if (_layerMask != null)
 				throw new Exception("Only one subtraction currently supported.");
 
-
-			/* Unmerged change from project 'Microsoft.Maui.Graphics.Win2D.WinUI.Desktop'
-			Before:
-						var layerRect = new Rect(0, 0, _owner.CanvasSize.Width, _owner.CanvasSize.Height);
-			After:
-						var layerRect = new global::Windows.Foundation.Rect(0, 0, _owner.CanvasSize.Width, _owner.CanvasSize.Height);
-			*/
 			var layerRect = new WRect(0, 0, _owner.CanvasSize.Width, _owner.CanvasSize.Height);
 			_layerBounds = CanvasGeometry.CreateRectangle(_owner.Session, layerRect);
 
-
-			/* Unmerged change from project 'Microsoft.Maui.Graphics.Win2D.WinUI.Desktop'
-			Before:
-						var boundsToSubtract = new Rect(x, y, width, height);
-			After:
-						var boundsToSubtract = new global::Windows.Foundation.Rect(x, y, width, height);
-			*/
 			var boundsToSubtract = new WRect(x, y, width, height);
 			_layerClipBounds = CanvasGeometry.CreateRectangle(_owner.Session, boundsToSubtract);
 
 			_layerMask = _layerBounds.CombineWith(_layerClipBounds, Matrix3x2.Identity, CanvasGeometryCombine.Exclude);
 
-			_layer = _owner.Session.CreateLayer(1, _layerMask);
+			using (var layer = _owner.Session.CreateLayer(1, _layerMask))
+			{
+				_layer = layer;
+			}
 			_layerCount++;
 		}
 		public void SaveRenderTargetState()
