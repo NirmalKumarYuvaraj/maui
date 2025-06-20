@@ -88,7 +88,12 @@ namespace Microsoft.Maui.Controls
 					};
 				}
 
-				result = ContentCache ?? (Page)template.CreateContent(content, this);
+				var templateContent = ContentCache ?? template.CreateContent(content, this);
+				if (templateContent is not Page page)
+				{
+					throw new InvalidOperationException($"The content template for {nameof(ShellContent)} with Title:'{Title}', Route:'{Route}' created an object of type '{templateContent?.GetType().Name ?? "null"}', but Shell requires a ContentPage or other Page-derived type, not a ContentView or other View type.");
+				}
+				result = page;
 				ContentCache = result;
 			}
 

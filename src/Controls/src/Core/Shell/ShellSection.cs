@@ -497,14 +497,20 @@ namespace Microsoft.Maui.Controls
 
 		Page GetOrCreateFromRoute(string route, ShellRouteParameters queryData, IServiceProvider services, bool isLast, bool isPopping)
 		{
-			var content = Routing.GetOrCreateContent(route, services) as Page;
-			if (content == null)
+			var content = Routing.GetOrCreateContent(route, services);
+			if (content is not Page page)
 			{
+				if (content != null)
+				{
+					throw new ArgumentException($"The route '{route}' is registered to type '{content.GetType().Name}', which is not a Page. Shell navigation requires the target to be a ContentPage or other Page-derived type, not a ContentView or other View type.");
+				}
+
 				Application.Current?.FindMauiContext()?.CreateLogger<ShellSection>()?.LogWarning("Failed to Create Content For: {route}", route);
+				return null;
 			}
 
-			ShellNavigationManager.ApplyQueryAttributes(content, queryData, isLast, isPopping);
-			return content;
+			ShellNavigationManager.ApplyQueryAttributes(page, queryData, isLast, isPopping);
+			return page;
 		}
 
 		internal async Task GoToAsync(ShellNavigationRequest request, ShellRouteParameters queryData, IServiceProvider services, bool? animate, bool isRelativePopping)
