@@ -281,6 +281,16 @@ namespace Microsoft.Maui.Controls
 
 		public static void ApplyQueryAttributes(Element element, ShellRouteParameters query, bool isLastItem, bool isPopping)
 		{
+			// Validate that we have a valid element for navigation
+			if (element == null)
+				return;
+
+			// // If this is not a Page-derived element and we're trying to navigate to it, throw a clear error
+			if (isLastItem && element is not Page)
+			{
+				throw new InvalidOperationException($"Cannot navigate to '{element.GetType().Name}'. Shell navigation requires the target to be a ContentPage or other Page-derived type, not a ContentView or other View type.");
+			}
+
 			string prefix = "";
 			if (!isLastItem)
 			{
