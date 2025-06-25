@@ -37,7 +37,7 @@ namespace Microsoft.Maui.Platform
 
 				// If the view was hidden and is now becoming visible, ensure it gets redrawn
 				// This fixes the issue where BoxViews in initially invisible parents don't render
-				if (wasHidden && !value)
+				if (wasHidden && !value && Window != null)
 				{
 					InvalidateDrawable();
 				}
