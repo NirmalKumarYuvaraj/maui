@@ -81,7 +81,7 @@ namespace Microsoft.Maui.Handlers
 			// Handle partial dimension specifications for shapes
 			// When Width or Height is not explicitly set, we should use the constraint
 			// rather than defaulting to 0, which would make shapes invisible in layout scenarios
-			
+
 			if (double.IsNaN(VirtualView.Width) && !double.IsInfinity(widthConstraint) && widthConstraint > 0)
 			{
 				// If no explicit width but we have a valid width constraint, use it
