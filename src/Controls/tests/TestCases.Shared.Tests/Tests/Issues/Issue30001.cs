@@ -16,11 +16,11 @@ namespace Microsoft.Maui.TestCases.Tests.Issues
 		{
 			_ = App.WaitForElement("TestLabel");
 			_ = App.WaitForElement("TestRectangle");
-			
+
 			// Verify that the rectangle has non-zero dimensions
 			var rectangle = App.FindElement("TestRectangle");
 			var rectBounds = rectangle.GetRect();
-			
+
 			Assert.That(rectBounds.Width, Is.GreaterThan(0), "Rectangle should have width greater than 0");
 			Assert.That(rectBounds.Height, Is.GreaterThan(0), "Rectangle should have height greater than 0");
 		}

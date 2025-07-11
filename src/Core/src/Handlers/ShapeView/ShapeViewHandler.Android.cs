@@ -80,7 +80,7 @@ namespace Microsoft.Maui.Handlers
 
 			// Ensure Rectangle shapes have reasonable minimum dimensions when not explicitly set
 			// This prevents shapes from being invisible while maintaining proper layout behavior
-			
+
 			if (double.IsNaN(VirtualView.Width) && result.Width <= 0)
 			{
 				// If no explicit width and base measurement returned 0 or negative, use a small default
