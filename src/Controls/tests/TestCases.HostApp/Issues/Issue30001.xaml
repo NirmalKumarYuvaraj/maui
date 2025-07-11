@@ -17,8 +17,7 @@
                     Grid.Column="0"
                     Grid.Row="0">
             <ScrollView x:Name="ScrollView"
-                        HorizontalOptions="Start"
-                        VerticalOptions="Start">
+                        HorizontalOptions="Start">
                 <VerticalStackLayout HorizontalOptions="Start"
                                      HeightRequest="200">
                 </VerticalStackLayout>
