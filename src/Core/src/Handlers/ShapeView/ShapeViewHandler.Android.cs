@@ -74,6 +74,5 @@ namespace Microsoft.Maui.Handlers
 			handler.PlatformView?.InvalidateShape(shapeView);
 		}
 
-
 	}
 }
