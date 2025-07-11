@@ -80,13 +80,8 @@ namespace Microsoft.Maui.Handlers
 
 		static int AdjustSpecForAlignment(int measureSpec, Primitives.LayoutAlignment alignment)
 		{
-			// Only adjust for Fill alignment when the parent explicitly wants the ScrollView to fill
-			// This makes Android behavior more consistent with iOS where ScrollViews size to content by default
-			if (alignment == Primitives.LayoutAlignment.Fill && measureSpec.GetMode() == MeasureSpecMode.Exactly)
-			{
-				return measureSpec;
-			}
-
+			// Remove Fill alignment forcing to make Android ScrollView behavior consistent with iOS
+			// where ScrollViews size to content by default instead of expanding to fill available space
 			return measureSpec;
 		}
 
