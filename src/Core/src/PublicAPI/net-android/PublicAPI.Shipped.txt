@@ -2283,7 +2283,6 @@ override Microsoft.Maui.Handlers.SearchBarHandler.ConnectHandler(AndroidX.AppCom
 override Microsoft.Maui.Handlers.SearchBarHandler.CreatePlatformView() -> AndroidX.AppCompat.Widget.SearchView!
 override Microsoft.Maui.Handlers.SearchBarHandler.DisconnectHandler(AndroidX.AppCompat.Widget.SearchView! platformView) -> void
 override Microsoft.Maui.Handlers.ShapeViewHandler.CreatePlatformView() -> Microsoft.Maui.Platform.MauiShapeView!
-override Microsoft.Maui.Handlers.ShapeViewHandler.GetDesiredSize(double widthConstraint, double heightConstraint) -> Microsoft.Maui.Graphics.Size
 override Microsoft.Maui.Handlers.ShapeViewHandler.NeedsContainer.get -> bool
 override Microsoft.Maui.Handlers.SliderHandler.ConnectHandler(Android.Widget.SeekBar! platformView) -> void
 override Microsoft.Maui.Handlers.SliderHandler.CreatePlatformView() -> Android.Widget.SeekBar!
