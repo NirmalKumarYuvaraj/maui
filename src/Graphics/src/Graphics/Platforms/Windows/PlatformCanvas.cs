@@ -137,7 +137,7 @@ namespace Microsoft.Maui.Graphics.Platform
 
 		public override BlendMode BlendMode
 		{
-			set { }
+			set => CurrentState.BlendMode = value;
 		}
 
 		public override void FillPath(PathF path, WindingMode windingMode)
@@ -255,42 +255,42 @@ namespace Microsoft.Maui.Graphics.Platform
 			try
 			{
 #endif
-				var textFormat = (CurrentState.Font ?? Graphics.Font.Default).ToCanvasTextFormat(CurrentState.FontSize);
-				textFormat.VerticalAlignment = CanvasVerticalAlignment.Top;
+			var textFormat = (CurrentState.Font ?? Graphics.Font.Default).ToCanvasTextFormat(CurrentState.FontSize);
+			textFormat.VerticalAlignment = CanvasVerticalAlignment.Top;
 
-				switch (horizontalAlignment)
-				{
-					case HorizontalAlignment.Left:
-						_rect.X = x;
-						_rect.Width = CanvasSize.Width;
-						textFormat.HorizontalAlignment = CanvasHorizontalAlignment.Left;
-						break;
-					case HorizontalAlignment.Right:
-						_rect.X = x - CanvasSize.Width;
-						_rect.Width = CanvasSize.Width;
-						textFormat.HorizontalAlignment = CanvasHorizontalAlignment.Right;
-						break;
-					default:
-						_rect.X = x - _canvasSize.Width;
-						_rect.Width = _canvasSize.Width * 2;
-						textFormat.HorizontalAlignment = CanvasHorizontalAlignment.Center;
-						break;
-				}
+			switch (horizontalAlignment)
+			{
+				case HorizontalAlignment.Left:
+					_rect.X = x;
+					_rect.Width = CanvasSize.Width;
+					textFormat.HorizontalAlignment = CanvasHorizontalAlignment.Left;
+					break;
+				case HorizontalAlignment.Right:
+					_rect.X = x - CanvasSize.Width;
+					_rect.Width = CanvasSize.Width;
+					textFormat.HorizontalAlignment = CanvasHorizontalAlignment.Right;
+					break;
+				default:
+					_rect.X = x - _canvasSize.Width;
+					_rect.Width = _canvasSize.Width * 2;
+					textFormat.HorizontalAlignment = CanvasHorizontalAlignment.Center;
+					break;
+			}
 
-				_rect.Y = y - CurrentState.FontSize;
-				_rect.Height = CurrentState.FontSize * 2;
+			_rect.Y = y - CurrentState.FontSize;
+			_rect.Height = CurrentState.FontSize * 2;
 
-				_point1.X = (float)_rect.X;
-				_point1.Y = (float)_rect.Y;
+			_point1.X = (float)_rect.X;
+			_point1.Y = (float)_rect.Y;
 
-				var textLayout = new CanvasTextLayout(
-					_session,
-					value,
-					textFormat,
-					(float)_rect.Width,
-					(float)_rect.Height);
+			var textLayout = new CanvasTextLayout(
+				_session,
+				value,
+				textFormat,
+				(float)_rect.Width,
+				(float)_rect.Height);
 
-				Draw(ctx => ctx.DrawTextLayout(textLayout, _point1, CurrentState.PlatformFontBrush));
+			Draw(ctx => ctx.DrawTextLayout(textLayout, _point1, CurrentState.PlatformFontBrush));
 
 #if DEBUG
 
@@ -740,7 +740,17 @@ namespace Microsoft.Maui.Graphics.Platform
 			}
 			else
 			{
-				drawingAction(_session);
+				// Set the blend mode for this drawing operation
+				var previousComposite = _session.Composite;
+				try
+				{
+					_session.Composite = CurrentState.ConvertToCanvasComposite(CurrentState.BlendMode);
+					drawingAction(_session);
+				}
+				finally
+				{
+					_session.Composite = previousComposite;
+				}
 			}
 		}
 
@@ -807,6 +817,7 @@ namespace Microsoft.Maui.Graphics.Platform
 				{
 					imageSession.Clear(WColors.Transparent);
 					imageSession.Transform = CurrentState.Matrix.Translate(CurrentState.ShadowOffset.X, CurrentState.ShadowOffset.Y);
+					imageSession.Composite = CurrentState.ConvertToCanvasComposite(CurrentState.BlendMode);
 					drawingAction(imageSession);
 				}
 
@@ -818,7 +829,16 @@ namespace Microsoft.Maui.Graphics.Platform
 				_shadowEffect.ShadowColor = CurrentState.ShadowColor;
 
 				_session.Transform = Matrix3x2.Identity;
-				_session.DrawImage(_shadowEffect, 0, 0);
+				var previousComposite = _session.Composite;
+				try
+				{
+					_session.Composite = CurrentState.ConvertToCanvasComposite(CurrentState.BlendMode);
+					_session.DrawImage(_shadowEffect, 0, 0);
+				}
+				finally
+				{
+					_session.Composite = previousComposite;
+				}
 				_session.Transform = CurrentState.Matrix;
 			}
 		}
@@ -832,6 +852,7 @@ namespace Microsoft.Maui.Graphics.Platform
 				{
 					imageSession.Clear(WColors.Transparent);
 					imageSession.Transform = CurrentState.Matrix;
+					imageSession.Composite = CurrentState.ConvertToCanvasComposite(CurrentState.BlendMode);
 					drawingAction(imageSession);
 				}
 
@@ -843,7 +864,16 @@ namespace Microsoft.Maui.Graphics.Platform
 				_blurEffect.Optimization = EffectOptimization.Speed;
 
 				_session.Transform = Matrix3x2.Identity;
-				_session.DrawImage(_blurEffect, 0, 0);
+				var previousComposite = _session.Composite;
+				try
+				{
+					_session.Composite = CurrentState.ConvertToCanvasComposite(CurrentState.BlendMode);
+					_session.DrawImage(_blurEffect, 0, 0);
+				}
+				finally
+				{
+					_session.Composite = previousComposite;
+				}
 				_session.Transform = CurrentState.Matrix;
 			}
 		}

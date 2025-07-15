@@ -1,3 +1,6 @@
 #nullable enable
+Microsoft.Maui.Graphics.Platform.PlatformCanvasState.BlendMode.get -> Microsoft.Maui.Graphics.BlendMode
+Microsoft.Maui.Graphics.Platform.PlatformCanvasState.BlendMode.set -> void
+Microsoft.Maui.Graphics.Platform.PlatformCanvasState.ConvertToCanvasComposite(Microsoft.Maui.Graphics.BlendMode blendMode) -> Microsoft.Graphics.Canvas.CanvasComposite
 ~virtual Microsoft.Maui.Graphics.DrawingCommand.Invoke(Microsoft.Maui.Graphics.ICanvas canvas) -> void
 ~virtual Microsoft.Maui.Graphics.LayoutLine.Invoke(Microsoft.Maui.Graphics.PointF aPoint, Microsoft.Maui.Graphics.ITextAttributes aTextual, string aText, float aAscent, float aDescent, float aLeading) -> void

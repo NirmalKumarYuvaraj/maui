@@ -100,103 +100,7 @@ namespace Microsoft.Maui.Graphics.Platform
 
 		public override BlendMode BlendMode
 		{
-			set
-			{
-				/* todo: implement this
-				CGBlendMode vBlendMode = CGBlendMode.Normal;
-
-				switch (value)
-				{
-					case BlendMode.Clear:
-						vBlendMode = CGBlendMode.Clear;
-						break;
-					case BlendMode.Color:
-						vBlendMode = CGBlendMode.Color;
-						break;
-					case BlendMode.ColorBurn:
-						vBlendMode = CGBlendMode.ColorBurn;
-						break;
-					case BlendMode.ColorDodge:
-						vBlendMode = CGBlendMode.ColorDodge;
-						break;
-					case BlendMode.Copy:
-						vBlendMode = CGBlendMode.Copy;
-						break;
-					case BlendMode.Darken:
-						vBlendMode = CGBlendMode.Darken;
-						break;
-					case BlendMode.DestinationAtop:
-						vBlendMode = CGBlendMode.DestinationAtop;
-						break;
-					case BlendMode.DestinationIn:
-						vBlendMode = CGBlendMode.DestinationIn;
-						break;
-					case BlendMode.DestinationOut:
-						vBlendMode = CGBlendMode.DestinationOut;
-						break;
-					case BlendMode.DestinationOver:
-						vBlendMode = CGBlendMode.DestinationOver;
-						break;
-					case BlendMode.Difference:
-						vBlendMode = CGBlendMode.Difference;
-						break;
-					case BlendMode.Exclusion:
-						vBlendMode = CGBlendMode.Exclusion;
-						break;
-					case BlendMode.HardLight:
-						vBlendMode = CGBlendMode.HardLight;
-						break;
-					case BlendMode.Hue:
-						vBlendMode = CGBlendMode.Hue;
-						break;
-					case BlendMode.Lighten:
-						vBlendMode = CGBlendMode.Lighten;
-						break;
-					case BlendMode.Luminosity:
-						vBlendMode = CGBlendMode.Luminosity;
-						break;
-					case BlendMode.Multiply:
-						vBlendMode = CGBlendMode.Multiply;
-						break;
-					case BlendMode.Normal:
-						vBlendMode = CGBlendMode.Normal;
-						break;
-					case BlendMode.Overlay:
-						vBlendMode = CGBlendMode.Overlay;
-						break;
-					case BlendMode.PlusDarker:
-						vBlendMode = CGBlendMode.PlusDarker;
-						break;
-					case BlendMode.PlusLighter:
-						vBlendMode = CGBlendMode.PlusLighter;
-						break;
-					case BlendMode.Saturation:
-						vBlendMode = CGBlendMode.Saturation;
-						break;
-					case BlendMode.Screen:
-						vBlendMode = CGBlendMode.Screen;
-						break;
-					case BlendMode.SoftLight:
-						vBlendMode = CGBlendMode.SoftLight;
-						break;
-					case BlendMode.SourceAtop:
-						vBlendMode = CGBlendMode.SourceAtop;
-						break;
-					case BlendMode.SourceIn:
-						vBlendMode = CGBlendMode.SourceIn;
-						break;
-					case BlendMode.SourceOut:
-						vBlendMode = CGBlendMode.SourceOut;
-						break;
-					case BlendMode.XOR:
-						vBlendMode = CGBlendMode.XOR;
-						break;
-				}
-
-				canvas.SetBlendMode(vBlendMode);*/
-
-				//CurrentState.FillPaint.SetXfermode(new
-			}
+			set => CurrentState.BlendMode = value;
 		}
 
 		protected override void PlatformSetStrokeDashPattern(float[] strokePattern, float strokeDashOffset, float strokeSize)
@@ -668,22 +572,16 @@ namespace Microsoft.Maui.Graphics.Platform
 		{
 			base.ResetState();
 
-			if (_shader != null)
-			{
-				_shader.Dispose();
-				_shader = null;
-			}
+			_shader?.Dispose();
+			_shader = null;
 
 			_stateService.Reset(CurrentState);
 		}
 
 		public override bool RestoreState()
 		{
-			if (_shader != null)
-			{
-				_shader.Dispose();
-				_shader = null;
-			}
+			_shader?.Dispose();
+			_shader = null;
 
 			return base.RestoreState();
 		}

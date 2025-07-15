@@ -2,4 +2,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Maui.Controls.Sample.MainPage"
              xmlns:local="clr-namespace:Maui.Controls.Sample">
+
+    <ContentPage.Resources>
+        <local:BlendModesDrawable x:Key="drawable"/>
+    </ContentPage.Resources>
+    <VerticalStackLayout Margin="15">
+        <GraphicsView Drawable="{StaticResource drawable}"
+                      HeightRequest="500"
+                      WidthRequest="400"/>
+    </VerticalStackLayout>
 </ContentPage>

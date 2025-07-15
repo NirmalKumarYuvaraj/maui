@@ -141,6 +141,8 @@ namespace Microsoft.Maui.Graphics.Platform
 
 			IsBlurred = prototype.IsBlurred;
 			BlurRadius = prototype.BlurRadius;
+
+			_blendMode = prototype._blendMode;
 		}
 
 		public void SetToDefaults()
@@ -646,6 +648,50 @@ namespace Microsoft.Maui.Graphics.Platform
 				}
 				_strokeStyle = null;
 			}
+		}
+
+		private BlendMode _blendMode = BlendMode.Normal;
+
+		public BlendMode BlendMode
+		{
+			get => _blendMode;
+			set => _blendMode = value;
+		}
+
+		public global::Microsoft.Graphics.Canvas.CanvasComposite ConvertToCanvasComposite(BlendMode blendMode)
+		{
+			return blendMode switch
+			{
+				BlendMode.Normal => global::Microsoft.Graphics.Canvas.CanvasComposite.SourceOver,
+				BlendMode.Multiply => global::Microsoft.Graphics.Canvas.CanvasComposite.Multiply,
+				BlendMode.Screen => global::Microsoft.Graphics.Canvas.CanvasComposite.Screen,
+				BlendMode.Overlay => global::Microsoft.Graphics.Canvas.CanvasComposite.Overlay,
+				BlendMode.Darken => global::Microsoft.Graphics.Canvas.CanvasComposite.Darken,
+				BlendMode.Lighten => global::Microsoft.Graphics.Canvas.CanvasComposite.Lighten,
+				BlendMode.ColorDodge => global::Microsoft.Graphics.Canvas.CanvasComposite.ColorDodge,
+				BlendMode.ColorBurn => global::Microsoft.Graphics.Canvas.CanvasComposite.ColorBurn,
+				BlendMode.SoftLight => global::Microsoft.Graphics.Canvas.CanvasComposite.SoftLight,
+				BlendMode.HardLight => global::Microsoft.Graphics.Canvas.CanvasComposite.HardLight,
+				BlendMode.Difference => global::Microsoft.Graphics.Canvas.CanvasComposite.Difference,
+				BlendMode.Exclusion => global::Microsoft.Graphics.Canvas.CanvasComposite.Exclusion,
+				BlendMode.Hue => global::Microsoft.Graphics.Canvas.CanvasComposite.Hue,
+				BlendMode.Saturation => global::Microsoft.Graphics.Canvas.CanvasComposite.Saturation,
+				BlendMode.Color => global::Microsoft.Graphics.Canvas.CanvasComposite.Color,
+				BlendMode.Luminosity => global::Microsoft.Graphics.Canvas.CanvasComposite.Luminosity,
+				BlendMode.Clear => global::Microsoft.Graphics.Canvas.CanvasComposite.DestinationOut, // Closest equivalent
+				BlendMode.Copy => global::Microsoft.Graphics.Canvas.CanvasComposite.Copy,
+				BlendMode.SourceIn => global::Microsoft.Graphics.Canvas.CanvasComposite.SourceIn,
+				BlendMode.SourceOut => global::Microsoft.Graphics.Canvas.CanvasComposite.SourceOut,
+				BlendMode.SourceAtop => global::Microsoft.Graphics.Canvas.CanvasComposite.SourceAtop,
+				BlendMode.DestinationOver => global::Microsoft.Graphics.Canvas.CanvasComposite.DestinationOver,
+				BlendMode.DestinationIn => global::Microsoft.Graphics.Canvas.CanvasComposite.DestinationIn,
+				BlendMode.DestinationOut => global::Microsoft.Graphics.Canvas.CanvasComposite.DestinationOut,
+				BlendMode.DestinationAtop => global::Microsoft.Graphics.Canvas.CanvasComposite.DestinationAtop,
+				BlendMode.Xor => global::Microsoft.Graphics.Canvas.CanvasComposite.Xor,
+				BlendMode.PlusDarker => global::Microsoft.Graphics.Canvas.CanvasComposite.Add, // Closest equivalent
+				BlendMode.PlusLighter => global::Microsoft.Graphics.Canvas.CanvasComposite.Add, // Closest equivalent
+				_ => global::Microsoft.Graphics.Canvas.CanvasComposite.SourceOver
+			};
 		}
 
 		public override void Dispose()

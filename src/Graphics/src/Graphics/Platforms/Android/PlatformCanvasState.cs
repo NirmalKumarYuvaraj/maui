@@ -28,6 +28,8 @@ namespace Microsoft.Maui.Graphics.Platform
 		private Color _fillColor = Colors.White;
 		private Color _fontColor = Colors.Black;
 
+		private BlendMode _blendMode = BlendMode.Normal;
+
 		public PlatformCanvasState()
 		{
 		}
@@ -56,6 +58,8 @@ namespace Microsoft.Maui.Graphics.Platform
 			_shadowX = prototype._shadowX;
 			_shadowY = prototype._shadowY;
 			_shadowBlur = prototype._shadowBlur;
+
+			_blendMode = prototype._blendMode;
 		}
 
 		public Color StrokeColor
@@ -77,6 +81,19 @@ namespace Microsoft.Maui.Graphics.Platform
 			{
 				_fontColor = value;
 				FontPaint.Color = value != null ? _fontColor.AsColor() : global::Android.Graphics.Color.Black;
+			}
+		}
+
+		public BlendMode BlendMode
+		{
+			get => _blendMode;
+			set
+			{
+				if (_blendMode != value)
+				{
+					_blendMode = value;
+					SetBlendModeOnPaints(value);
+				}
 			}
 		}
 
@@ -150,11 +167,8 @@ namespace Microsoft.Maui.Graphics.Platform
 		{
 			if (aRadius != _blurRadius)
 			{
-				if (_blurFilter != null)
-				{
-					_blurFilter.Dispose();
-					_blurFilter = null;
-				}
+				_blurFilter?.Dispose();
+				_blurFilter = null;
 
 				if (aRadius > 0)
 				{
@@ -327,23 +341,14 @@ namespace Microsoft.Maui.Graphics.Platform
 
 		public override void Dispose()
 		{
-			if (_fontPaint != null)
-			{
-				_fontPaint.Dispose();
-				_fontPaint = null;
-			}
+			_fontPaint?.Dispose();
+			_fontPaint = null;
 
-			if (_strokePaint != null)
-			{
-				_strokePaint.Dispose();
-				_strokePaint = null;
-			}
+			_strokePaint?.Dispose();
+			_strokePaint = null;
 
-			if (_fillPaint != null)
-			{
-				_fillPaint.Dispose();
-				_fillPaint = null;
-			}
+			_fillPaint?.Dispose();
+			_fillPaint = null;
 
 			base.Dispose();
 		}
@@ -401,6 +406,52 @@ namespace Microsoft.Maui.Graphics.Platform
 
 			StrokePaint.StrokeWidth = StrokeSize * _scaleX;
 			FontPaint.TextSize = _fontSize * _scaleX;
+		}
+
+		private void SetBlendModeOnPaints(BlendMode blendMode)
+		{
+			var porterDuffMode = ConvertToPorterDuffMode(blendMode);
+			var xfermode = porterDuffMode != PorterDuff.Mode.SrcOver ? new PorterDuffXfermode(porterDuffMode) : null;
+
+			StrokePaint.SetXfermode(xfermode);
+			FillPaint.SetXfermode(xfermode);
+			FontPaint.SetXfermode(xfermode);
+		}
+
+		private PorterDuff.Mode ConvertToPorterDuffMode(BlendMode blendMode)
+		{
+			return blendMode switch
+			{
+				BlendMode.Normal => PorterDuff.Mode.SrcOver,
+				BlendMode.Multiply => PorterDuff.Mode.Multiply,
+				BlendMode.Screen => PorterDuff.Mode.Screen,
+				BlendMode.Overlay => PorterDuff.Mode.Overlay,
+				BlendMode.Darken => PorterDuff.Mode.Darken,
+				BlendMode.Lighten => PorterDuff.Mode.Lighten,
+				BlendMode.ColorDodge => PorterDuff.Mode.SrcOver, // Fallback to normal
+				BlendMode.ColorBurn => PorterDuff.Mode.SrcOver, // Fallback to normal
+				BlendMode.SoftLight => PorterDuff.Mode.SrcOver, // Fallback to normal
+				BlendMode.HardLight => PorterDuff.Mode.SrcOver, // Fallback to normal
+				BlendMode.Difference => PorterDuff.Mode.SrcOver, // Fallback to normal
+				BlendMode.Exclusion => PorterDuff.Mode.SrcOver, // Fallback to normal
+				BlendMode.Hue => PorterDuff.Mode.SrcOver, // Fallback to normal
+				BlendMode.Saturation => PorterDuff.Mode.SrcOver, // Fallback to normal
+				BlendMode.Color => PorterDuff.Mode.SrcOver, // Fallback to normal
+				BlendMode.Luminosity => PorterDuff.Mode.SrcOver, // Fallback to normal
+				BlendMode.Clear => PorterDuff.Mode.Clear,
+				BlendMode.Copy => PorterDuff.Mode.Src,
+				BlendMode.SourceIn => PorterDuff.Mode.SrcIn,
+				BlendMode.SourceOut => PorterDuff.Mode.SrcOut,
+				BlendMode.SourceAtop => PorterDuff.Mode.SrcAtop,
+				BlendMode.DestinationOver => PorterDuff.Mode.DstOver,
+				BlendMode.DestinationIn => PorterDuff.Mode.DstIn,
+				BlendMode.DestinationOut => PorterDuff.Mode.DstOut,
+				BlendMode.DestinationAtop => PorterDuff.Mode.DstAtop,
+				BlendMode.Xor => PorterDuff.Mode.Xor,
+				BlendMode.PlusDarker => PorterDuff.Mode.Add, // Approximate
+				BlendMode.PlusLighter => PorterDuff.Mode.Add, // Approximate
+				_ => PorterDuff.Mode.SrcOver
+			};
 		}
 
 		public void Reset(global::Android.Graphics.Paint aFontPaint, global::Android.Graphics.Paint aFillPaint, global::Android.Graphics.Paint aStrokePaint)
