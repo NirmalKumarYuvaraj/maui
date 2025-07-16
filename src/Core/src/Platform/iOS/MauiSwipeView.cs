@@ -1145,20 +1145,20 @@ namespace Microsoft.Maui.Platform
 		{
 			// Use hit testing to find the deepest child view at the point
 			var hitView = parent.HitTest(point, null);
-			
+
 			// If we found a view that's not the parent itself and it has gesture recognizers
 			if (hitView != null && hitView != parent && HasGestureRecognizers(hitView))
 			{
 				// For iOS, the best approach is to simulate the touch using SendActionsForControlEvents
 				// or by directly calling the gesture recognizer's target action
-				
+
 				// First, try control events (for UIControl subclasses)
 				if (hitView is UIControl control)
 				{
 					control.SendActionsForControlEvents(UIControlEvent.TouchUpInside);
 					return true;
 				}
-				
+
 				// For other views with gesture recognizers, try to trigger them
 				if (TriggerGestureRecognizers(hitView))
 					return true;
@@ -1180,7 +1180,7 @@ namespace Microsoft.Maui.Platform
 
 			// For UITapGestureRecognizer, we can use a simpler approach
 			// by leveraging the fact that MAUI gesture recognizers often use UIControl events
-			
+
 			// Try to find and invoke tap gesture recognizers
 			foreach (var recognizer in view.GestureRecognizers)
 			{
@@ -1188,7 +1188,7 @@ namespace Microsoft.Maui.Platform
 				{
 					// Instead of using reflection, let's use the standard iOS approach
 					// by simulating a programmatic touch through the responder chain
-					
+
 					// Call the recognizer's action selector if we can access it
 					if (tapRecognizer.WeakTarget?.Target is NSObject target)
 					{
@@ -1199,7 +1199,7 @@ namespace Microsoft.Maui.Platform
 							target.PerformSelector(selector, tapRecognizer);
 							return true;
 						}
-						
+
 						// Try common MAUI gesture handler selectors
 						var commonSelectors = new[]
 						{
@@ -1207,7 +1207,7 @@ namespace Microsoft.Maui.Platform
 							"tapGestureRecognized:",
 							"handleGesture:"
 						};
-						
+
 						foreach (var selectorName in commonSelectors)
 						{
 							var testSelector = new ObjCRuntime.Selector(selectorName);

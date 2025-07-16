@@ -1376,7 +1376,7 @@ namespace Microsoft.Maui.Platform
 							// Dispatch touch events to the child
 							var downHandled = child.DispatchTouchEvent(downEvent);
 							var upHandled = child.DispatchTouchEvent(upEvent);
-							
+
 							// If either event was handled, consider this child as handling the gesture
 							return downHandled || upHandled;
 						}
@@ -1397,7 +1397,7 @@ namespace Microsoft.Maui.Platform
 			// Check if the view has click listeners or other gesture-related properties
 			// This covers TapGestureRecognizer and other common gestures
 			bool hasContextClickable = false;
-			
+
 			// ContextClickable is only available on API 23+
 #pragma warning disable CA1416 // This is guarded by a platform version check
 			if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.M)
@@ -1405,7 +1405,7 @@ namespace Microsoft.Maui.Platform
 				hasContextClickable = view.ContextClickable;
 			}
 #pragma warning restore CA1416
-			
+
 			return view.HasOnClickListeners || view.Clickable || view.LongClickable || hasContextClickable;
 		}
 

@@ -19,7 +19,7 @@ public class Issue19630 : _IssuesUITest
 	{
 		// Wait for the page to load
 		App.WaitForElement("StatusLabel");
-		
+
 		// Initial status should show waiting
 		var initialStatus = App.FindElement("StatusLabel").GetText();
 		Assert.That(initialStatus, Does.Contain("Waiting"));
@@ -40,7 +40,7 @@ public class Issue19630 : _IssuesUITest
 
 		// Check if the status was updated (this should work but might fail due to the bug)
 		var statusAfterEdit = App.FindElement("StatusLabel").GetText();
-		Assert.That(statusAfterEdit, Does.Contain("Edit tapped"), 
+		Assert.That(statusAfterEdit, Does.Contain("Edit tapped"),
 			"TapGestureRecognizer on Edit label in SwipeItemView should work");
 
 		// Reset by swiping back
@@ -56,7 +56,7 @@ public class Issue19630 : _IssuesUITest
 		System.Threading.Thread.Sleep(500);
 
 		var statusAfterDelete = App.FindElement("StatusLabel").GetText();
-		Assert.That(statusAfterDelete, Does.Contain("Delete tapped"), 
+		Assert.That(statusAfterDelete, Does.Contain("Delete tapped"),
 			"TapGestureRecognizer on Delete label in SwipeItemView should work");
 	}
 
@@ -79,7 +79,7 @@ public class Issue19630 : _IssuesUITest
 		System.Threading.Thread.Sleep(500);
 
 		var status = App.FindElement("StatusLabel").GetText();
-		Assert.That(status, Does.Contain("Working button tapped"), 
+		Assert.That(status, Does.Contain("Working button tapped"),
 			"Regular SwipeItem should continue to work");
 	}
 }
