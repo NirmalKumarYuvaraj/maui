@@ -1,0 +1,74 @@
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Windows.Input;
+
+namespace Maui.Controls.Sample.Issues;
+
+[Issue(IssueTracker.Github, 19630, "TapGestureRecognizer in SwipeItemView not working", PlatformAffected.Android | PlatformAffected.iOS)]
+public partial class Issue19630 : ContentPage
+{
+	public Issue19630()
+	{
+		InitializeComponent();
+		BindingContext = new Issue19630ViewModel(StatusLabel);
+	}
+}
+
+public class Issue19630ViewModel : INotifyPropertyChanged
+{
+	private readonly Label _statusLabel;
+
+	public Issue19630ViewModel(Label statusLabel)
+	{
+		_statusLabel = statusLabel;
+		TestItems = new ObservableCollection<TestItem>
+		{
+			new TestItem { Name = "Item 1" },
+			new TestItem { Name = "Item 2" },
+			new TestItem { Name = "Item 3" }
+		};
+
+		EditCommand = new Command<TestItem>(OnEdit);
+		DeleteCommand = new Command<TestItem>(OnDelete);
+		WorkingCommand = new Command<TestItem>(OnWorking);
+	}
+
+	public ObservableCollection<TestItem> TestItems { get; }
+
+	public ICommand EditCommand { get; }
+	public ICommand DeleteCommand { get; }
+	public ICommand WorkingCommand { get; }
+
+	private void OnEdit(TestItem item)
+	{
+		UpdateStatus($"Edit tapped for {item.Name}");
+	}
+
+	private void OnDelete(TestItem item)
+	{
+		UpdateStatus($"Delete tapped for {item.Name}");
+	}
+
+	private void OnWorking(TestItem item)
+	{
+		UpdateStatus($"Working button tapped for {item.Name}");
+	}
+
+	private void UpdateStatus(string message)
+	{
+		_statusLabel.Text = $"Status: {message}";
+	}
+
+	public event PropertyChangedEventHandler PropertyChanged;
+
+	protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+	{
+		PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+	}
+}
+
+public class TestItem
+{
+	public string Name { get; set; }
+}
