@@ -13,6 +13,20 @@ public partial class Issue19630 : ContentPage
 		InitializeComponent();
 		BindingContext = new Issue19630ViewModel(StatusLabel);
 	}
+
+	private void OnEditLabelTapped(object sender, EventArgs e)
+	{
+		// This helps us verify that touch events are reaching the gesture recognizer
+		StatusLabel.Text = "Status: Edit label tapped (touch handling works!)";
+		System.Diagnostics.Debug.WriteLine("Edit label tapped - touch handling is working!");
+	}
+
+	private void OnDeleteLabelTapped(object sender, EventArgs e)
+	{
+		// This helps us verify that touch events are reaching the gesture recognizer
+		StatusLabel.Text = "Status: Delete label tapped (touch handling works!)";
+		System.Diagnostics.Debug.WriteLine("Delete label tapped - touch handling is working!");
+	}
 }
 
 public class Issue19630ViewModel : INotifyPropertyChanged
@@ -42,17 +56,20 @@ public class Issue19630ViewModel : INotifyPropertyChanged
 
 	private void OnEdit(TestItem item)
 	{
-		UpdateStatus($"Edit tapped for {item.Name}");
+		System.Diagnostics.Debug.WriteLine($"Edit command executed for {item.Name}");
+		UpdateStatus($"Edit command executed for {item.Name}");
 	}
 
 	private void OnDelete(TestItem item)
 	{
-		UpdateStatus($"Delete tapped for {item.Name}");
+		System.Diagnostics.Debug.WriteLine($"Delete command executed for {item.Name}");
+		UpdateStatus($"Delete command executed for {item.Name}");
 	}
 
 	private void OnWorking(TestItem item)
 	{
-		UpdateStatus($"Working button tapped for {item.Name}");
+		System.Diagnostics.Debug.WriteLine($"Working command executed for {item.Name}");
+		UpdateStatus($"Working command executed for {item.Name}");
 	}
 
 	private void UpdateStatus(string message)
