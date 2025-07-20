@@ -1039,10 +1039,21 @@ namespace Microsoft.Maui.Platform
 
 					if (swipeItemRect.Contains(point))
 					{
-						MauiSwipeView.ExecuteSwipeItem(swipeItem);
+						// For SwipeItemView, try to delegate touch to child elements first
+						if (swipeItem is ISwipeItemView && TryHandleChildGestures(point, swipeItemRect, swipeItem))
+						{
+							// Child gesture handled the touch, close swipe if needed
+							if (swipeItems.SwipeBehaviorOnInvoked != SwipeBehaviorOnInvoked.RemainOpen)
+								ResetSwipe();
+						}
+						else
+						{
+							// No child handled it, execute the swipe item command
+							MauiSwipeView.ExecuteSwipeItem(swipeItem);
 
-						if (swipeItems.SwipeBehaviorOnInvoked != SwipeBehaviorOnInvoked.RemainOpen)
-							ResetSwipe();
+							if (swipeItems.SwipeBehaviorOnInvoked != SwipeBehaviorOnInvoked.RemainOpen)
+								ResetSwipe();
+						}
 
 						break;
 					}
@@ -1108,6 +1119,103 @@ namespace Microsoft.Maui.Platform
 
 			if (isEnabled)
 				item.OnInvoked();
+		}
+
+		bool TryHandleChildGestures(CGPoint point, CGRect swipeItemRect, ISwipeItem swipeItem)
+		{
+			// Find the platform view for this SwipeItemView
+			var swipeItemView = _swipeItems.FirstOrDefault(kvp => kvp.Key == swipeItem);
+			if (swipeItemView.Value is not UIView platformView)
+				return false;
+
+			// Convert point to be relative to the swipe item view
+			var relativePoint = new CGPoint(point.X - swipeItemRect.X, point.Y - swipeItemRect.Y);
+
+			// Try to find a child view that can handle the touch
+			return TryDispatchTouchToChild(platformView, relativePoint);
+		}
+
+		bool TryDispatchTouchToChild(UIView parent, CGPoint point)
+		{
+			// Use hit testing to find the deepest child view at the point
+			var hitView = parent.HitTest(point, null);
+
+			// If we found a view that's not the parent itself and it has gesture recognizers
+			if (hitView != null && hitView != parent && HasGestureRecognizers(hitView))
+			{
+				// For iOS, the best approach is to simulate the touch using SendActionsForControlEvents
+				// or by directly calling the gesture recognizer's target action
+
+				// First, try control events (for UIControl subclasses)
+				if (hitView is UIControl control)
+				{
+					control.SendActionsForControlEvents(UIControlEvent.TouchUpInside);
+					return true;
+				}
+
+				// For other views with gesture recognizers, try to trigger them
+				if (TriggerGestureRecognizers(hitView))
+					return true;
+			}
+
+			return false;
+		}
+
+		bool HasGestureRecognizers(UIView view)
+		{
+			// Check if the view has gesture recognizers or is a control
+			return view.GestureRecognizers?.Length > 0 || view is UIControl;
+		}
+
+		bool TriggerGestureRecognizers(UIView view)
+		{
+			if (view.GestureRecognizers == null)
+				return false;
+
+			// For UITapGestureRecognizer, we can use a simpler approach
+			// by leveraging the fact that MAUI gesture recognizers often use UIControl events
+
+			// Try to find and invoke tap gesture recognizers
+			foreach (var recognizer in view.GestureRecognizers)
+			{
+				if (recognizer is UITapGestureRecognizer tapRecognizer && recognizer.Enabled)
+				{
+					// Instead of using reflection, let's use the standard iOS approach
+					// by simulating a programmatic touch through the responder chain
+
+					// Call the recognizer's action selector if we can access it
+					if (tapRecognizer.WeakTarget?.Target is NSObject target)
+					{
+						// Try to invoke the action using Objective-C runtime
+						var selector = new ObjCRuntime.Selector("handleTap:");
+						if (target.RespondsToSelector(selector))
+						{
+							target.PerformSelector(selector, tapRecognizer);
+							return true;
+						}
+
+						// Try common MAUI gesture handler selectors
+						var commonSelectors = new[]
+						{
+							"gestureRecognized:",
+							"tapGestureRecognized:",
+							"handleGesture:"
+						};
+
+						foreach (var selectorName in commonSelectors)
+						{
+							var testSelector = new ObjCRuntime.Selector(selectorName);
+							if (target.RespondsToSelector(testSelector))
+							{
+								target.PerformSelector(testSelector, tapRecognizer);
+								return true;
+							}
+						}
+					}
+				}
+			}
+
+			return false;
 		}
 
 		void UpdateIsOpen(bool isOpen)
