@@ -125,16 +125,16 @@ namespace Microsoft.Maui.DeviceTests
 				await platformImageView.AttachAndRun(() =>
 				{
 					Assert.NotNull(platformImageView.Image);
-					
+
 					// Test that GetOrientedImage returns a valid image
 					var orientedImage = platformImageView.GetOrientedImage();
 					Assert.NotNull(orientedImage);
-					
+
 					// The oriented image should have the same size or similar dimensions
 					// depending on orientation corrections applied
 					Assert.True(orientedImage.Size.Width > 0);
 					Assert.True(orientedImage.Size.Height > 0);
-					
+
 					// The oriented image should have UIImageOrientation.Up after normalization
 					Assert.Equal(UIImageOrientation.Up, orientedImage.Orientation);
 				});
