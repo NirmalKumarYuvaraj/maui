@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.DeviceTests.Stubs;
+using Microsoft.Maui.Platform;
 using UIKit;
 using Xunit;
 
@@ -104,5 +105,59 @@ namespace Microsoft.Maui.DeviceTests
 				UIViewContentMode.Center => Aspect.Center,
 				_ => throw new ArgumentOutOfRangeException("Aspect")
 			};
+
+		[Fact]
+		public Task GetOrientedImageReturnsValidImage()
+		{
+			var image = new TStub
+			{
+				Source = new FileImageSourceStub("dotnet_bot.png"),
+			};
+
+			return InvokeOnMainThreadAsync(async () =>
+			{
+				var handler = CreateHandler(image);
+
+				await image.WaitUntilLoaded();
+
+				var platformImageView = GetPlatformImageView(handler);
+
+				await platformImageView.AttachAndRun(() =>
+				{
+					Assert.NotNull(platformImageView.Image);
+					
+					// Test that GetOrientedImage returns a valid image
+					var orientedImage = platformImageView.GetOrientedImage();
+					Assert.NotNull(orientedImage);
+					
+					// The oriented image should have the same size or similar dimensions
+					// depending on orientation corrections applied
+					Assert.True(orientedImage.Size.Width > 0);
+					Assert.True(orientedImage.Size.Height > 0);
+					
+					// The oriented image should have UIImageOrientation.Up after normalization
+					Assert.Equal(UIImageOrientation.Up, orientedImage.Orientation);
+				});
+			});
+		}
+
+		[Fact]
+		public Task GetOrientedImageHandlesNullImage()
+		{
+			var image = new TStub();
+
+			return InvokeOnMainThreadAsync(() =>
+			{
+				var handler = CreateHandler(image);
+				var platformImageView = GetPlatformImageView(handler);
+
+				return platformImageView.AttachAndRun(() =>
+				{
+					// When there's no image, GetOrientedImage should return null
+					var orientedImage = platformImageView.GetOrientedImage();
+					Assert.Null(orientedImage);
+				});
+			});
+		}
 	}
 }
