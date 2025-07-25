@@ -17,35 +17,40 @@ namespace Microsoft.Maui.Controls
 		/// <include file="../../docs/Microsoft.Maui.Controls/FontAttributes.xml" path="//Member[@MemberName='Italic']/Docs/*" />
 		Italic = 1 << 1
 	}
-
+#nullable enable
 	/// <include file="../../docs/Microsoft.Maui.Controls/FontAttributesConverter.xml" path="Type[@FullName='Microsoft.Maui.Controls.FontAttributesConverter']/Docs/*" />
 	public sealed class FontAttributesConverter : TypeConverter
 	{
-		public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
+		public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType)
 			=> sourceType == typeof(string);
 
-		public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType)
+		public override bool CanConvertTo(ITypeDescriptorContext? context, Type? destinationType)
 			=> destinationType == typeof(string);
 
-		public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value)
+		public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value)
 		{
-			var strValue = value?.ToString();
+			var strValue = value?.ToString() ?? string.Empty;
 
-			if (string.IsNullOrEmpty(strValue))
+			if (string.IsNullOrEmpty(strValue) || string.IsNullOrWhiteSpace(strValue))
+			{
 				return FontAttributes.None;
+			}
 
 			FontAttributes attributes = FontAttributes.None;
 			strValue = strValue.Trim();
 			if (strValue.IndexOf(",", StringComparison.Ordinal) != -1)
 			{ //Xaml
 				foreach (var part in strValue.Split(','))
+				{
 					attributes |= ParseSingleAttribute(part, strValue);
-
+				}
 			}
 			else
 			{ //CSS or single value
 				foreach (var part in strValue.Split(' '))
+				{
 					attributes |= ParseSingleAttribute(part, strValue);
+				}
 			}
 			return attributes;
 		}
@@ -63,7 +68,7 @@ namespace Microsoft.Maui.Controls
 			throw new InvalidOperationException(string.Format("Cannot convert \"{0}\" into {1}", originalvalue, typeof(FontAttributes)));
 		}
 
-		public override object ConvertTo(ITypeDescriptorContext context, CultureInfo culture, object value, Type destinationType)
+		public override object? ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture, object? value, Type destinationType)
 		{
 			if (value is not FontAttributes attr)
 				throw new NotSupportedException();
