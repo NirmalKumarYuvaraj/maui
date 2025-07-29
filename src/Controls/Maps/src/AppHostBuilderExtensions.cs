@@ -66,14 +66,15 @@ namespace Microsoft.Maui.Controls.Hosting
 		/// <exception cref="NotImplementedException">Thrown on Windows because the maps control currently is not implemented for Windows.</exception>
 		public static IMauiHandlersCollection AddMauiMaps(this IMauiHandlersCollection handlersCollection)
 		{
-#if __ANDROID__ || __IOS__
+#if __ANDROID__ || __IOS__ 
 			handlersCollection.AddHandler<Map, MapHandler>();
 			handlersCollection.AddHandler<Pin, MapPinHandler>();
 			handlersCollection.AddHandler<MapElement, MapElementHandler>();
 #endif
 
 #if WINDOWS
-			throw new NotImplementedException(".NET MAUI Maps is currently not implemented for Windows. For more information, please see: https://aka.ms/maui-maps-no-windows");
+			handlersCollection.AddHandler<Map, MapHandler>();
+			return handlersCollection;
 #else
 			return handlersCollection;
 #endif
