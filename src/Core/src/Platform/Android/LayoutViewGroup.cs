@@ -19,6 +19,10 @@ namespace Microsoft.Maui.Platform
 		SafeAreaPadding _safeArea = SafeAreaPadding.Empty;
 		bool _safeAreaInvalidated = true;
 
+		// Keyboard tracking
+		SafeAreaPadding _keyboardInsets = SafeAreaPadding.Empty;
+		bool _isKeyboardShowing;
+
 		public bool InputTransparent { get; set; }
 
 		public LayoutViewGroup(Context context) : base(context)
@@ -56,7 +60,57 @@ namespace Microsoft.Maui.Platform
 		void SetupWindowInsetsHandling()
 		{
 			ViewCompat.SetOnApplyWindowInsetsListener(this, new WindowInsetsListener(this));
+		}
 
+		// This method should be called when SafeAreaRegions change at runtime
+		internal void InvalidateSafeArea()
+		{
+			_safeAreaInvalidated = true;
+			RequestLayout();
+		}
+
+		bool ShouldSubscribeToKeyboardNotifications()
+		{
+			// Only subscribe if any edge has SoftInput regions (matching iOS behavior)
+			if (CrossPlatformLayout is ISafeAreaView2 safeAreaPage)
+			{
+				for (int edge = 0; edge < 4; edge++)
+				{
+					var region = safeAreaPage.GetSafeAreaRegionsForEdge(edge);
+					if (SafeAreaEdges.IsSoftInput(region))
+					{
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+		static void UpdateKeyboardSubscription()
+		{
+			// Update keyboard subscription based on current SafeAreaEdges settings (matching iOS behavior)
+			// For Android, this is handled automatically through WindowInsetsListener
+			// This method exists for API compatibility with iOS pattern
+		}
+
+		static void SubscribeToKeyboardNotifications()
+		{
+			// Keyboard handling is already integrated into WindowInsetsListener
+			// This method exists for API compatibility with iOS pattern
+		}
+
+		static void UnsubscribeFromKeyboardNotifications()
+		{
+			// Keyboard handling is already integrated into WindowInsetsListener  
+			// This method exists for API compatibility with iOS pattern
+		}
+
+		void OnKeyboardChanged(SafeAreaPadding keyboardInsets, bool isShowing)
+		{
+			_keyboardInsets = keyboardInsets;
+			_isKeyboardShowing = isShowing;
+			_safeAreaInvalidated = true;
+			RequestLayout();
 		}
 
 		public bool ClipsToBounds { get; set; }
@@ -82,7 +136,17 @@ namespace Microsoft.Maui.Platform
 			if (HasSafeAreaHandlingParent())
 				return false;
 
-			return CrossPlatformLayout is ISafeAreaView2;
+			var respondsToSafeArea = CrossPlatformLayout is ISafeAreaView2;
+
+			// If we respond to safe area, ensure safe area is up to date
+			// This handles cases where SafeAreaRegions changed at runtime
+			if (respondsToSafeArea)
+			{
+				// Force a safe area validation to ensure we have current settings
+				_safeAreaInvalidated = true;
+			}
+
+			return respondsToSafeArea;
 		}
 
 		bool HasSafeAreaHandlingParent()
@@ -139,30 +203,25 @@ namespace Microsoft.Maui.Platform
 			return SafeAreaRegions.None;
 		}
 
-		static double GetSafeAreaForEdge(SafeAreaRegions safeAreaRegion, double originalSafeArea, double keyboardInset)
+		static double GetSafeAreaForEdge(SafeAreaRegions safeAreaRegion, double originalSafeArea)
 		{
-			// Edge-to-edge content - no safe area padding
-			if (safeAreaRegion == SafeAreaRegions.None)
+			// Edge-to-edge content - no safe area padding (Default behaves like None)
+			if (safeAreaRegion == SafeAreaRegions.None || safeAreaRegion == SafeAreaRegions.Default)
 				return 0;
 
-			// SoftInput region - always pad for keyboard/soft input
-			if (SafeAreaEdges.IsSoftInput(safeAreaRegion))
-			{
-				return Math.Max(originalSafeArea, keyboardInset);
-			}
+			// All should respect all safe area insets
+			if (safeAreaRegion == SafeAreaRegions.All)
+				return originalSafeArea;
 
 			// Container region - content flows under keyboard but stays out of bars/notch
 			if (SafeAreaEdges.IsContainer(safeAreaRegion))
-			{
-				// For now, treat Container same as Default (can be enhanced later for keyboard-specific behavior)
 				return originalSafeArea;
-			}
 
-			// All other regions respect safe area in some form
-			// This includes:
-			// - Default: Platform default behavior
-			// - All: Obey all safe area insets  
-			// - Any combination of the above flags
+			// SoftInput region - handled separately in GetAdjustedSafeAreaInsets for keyboard-specific logic
+			if (SafeAreaEdges.IsSoftInput(safeAreaRegion))
+				return originalSafeArea;
+
+			// Any other combination of flags - respect safe area
 			return originalSafeArea;
 		}
 
@@ -188,15 +247,43 @@ namespace Microsoft.Maui.Platform
 				return SafeAreaPadding.Empty;
 
 			var baseSafeArea = windowInsets.ToSafeAreaInsets(_context);
-			var keyboardInsets = windowInsets.GetKeyboardInsets(_context);
+
+			// Check if keyboard-aware safe area adjustments are needed (matching iOS logic)
+			if (CrossPlatformLayout is ISafeAreaView2 safeAreaPage && _isKeyboardShowing)
+			{
+				// Check if any edge has SafeAreaRegions.SoftInput set
+				var needsKeyboardAdjustment = false;
+				for (int edge = 0; edge < 4; edge++)
+				{
+					var safeAreaRegion = safeAreaPage.GetSafeAreaRegionsForEdge(edge);
+					if (SafeAreaEdges.IsSoftInput(safeAreaRegion))
+					{
+						needsKeyboardAdjustment = true;
+						break;
+					}
+				}
+
+				if (needsKeyboardAdjustment)
+				{
+					// For SafeAreaRegions.SoftInput: Always pad so content doesn't go under the keyboard
+					// Bottom edge is most commonly affected by keyboard
+					var bottomEdgeRegion = safeAreaPage.GetSafeAreaRegionsForEdge(3); // 3 = bottom edge
+					if (SafeAreaEdges.IsSoftInput(bottomEdgeRegion))
+					{
+						// Use the larger of the current bottom safe area or the keyboard height
+						var adjustedBottom = Math.Max(baseSafeArea.Bottom, _keyboardInsets.Bottom);
+						baseSafeArea = new SafeAreaPadding(baseSafeArea.Left, baseSafeArea.Right, baseSafeArea.Top, adjustedBottom);
+					}
+				}
+			}
 
 			// Apply safe area selectively per edge based on SafeAreaRegions
 			if (CrossPlatformLayout is ISafeAreaView2)
 			{
-				var left = GetSafeAreaForEdge(GetSafeAreaRegionForEdge(0), baseSafeArea.Left, keyboardInsets.Left);
-				var top = GetSafeAreaForEdge(GetSafeAreaRegionForEdge(1), baseSafeArea.Top, keyboardInsets.Top);
-				var right = GetSafeAreaForEdge(GetSafeAreaRegionForEdge(2), baseSafeArea.Right, keyboardInsets.Right);
-				var bottom = GetSafeAreaForEdge(GetSafeAreaRegionForEdge(3), baseSafeArea.Bottom, keyboardInsets.Bottom);
+				var left = GetSafeAreaForEdge(GetSafeAreaRegionForEdge(0), baseSafeArea.Left);
+				var top = GetSafeAreaForEdge(GetSafeAreaRegionForEdge(1), baseSafeArea.Top);
+				var right = GetSafeAreaForEdge(GetSafeAreaRegionForEdge(2), baseSafeArea.Right);
+				var bottom = GetSafeAreaForEdge(GetSafeAreaRegionForEdge(3), baseSafeArea.Bottom);
 
 				return new SafeAreaPadding(left, right, top, bottom);
 			}
@@ -322,6 +409,22 @@ namespace Microsoft.Maui.Platform
 			public WindowInsetsCompat? OnApplyWindowInsets(View? v, WindowInsetsCompat? insets)
 			{
 				_owner._safeAreaInvalidated = true;
+
+				// Track keyboard state (matching iOS approach)
+				if (insets != null)
+				{
+					var keyboardInsets = insets.GetKeyboardInsets(_owner._context);
+					var wasKeyboardShowing = _owner._isKeyboardShowing;
+					_owner._isKeyboardShowing = !keyboardInsets.IsEmpty;
+					_owner._keyboardInsets = keyboardInsets;
+
+					// If keyboard state changed, trigger layout update
+					if (wasKeyboardShowing != _owner._isKeyboardShowing)
+					{
+						_owner.RequestLayout();
+					}
+				}
+
 				_owner.RequestLayout();
 				return insets;
 			}
