@@ -55,12 +55,8 @@ namespace Microsoft.Maui.Platform
 
 		void SetupWindowInsetsHandling()
 		{
-			ViewCompat.SetOnApplyWindowInsetsListener(this, (view, insets) =>
-			{
-				_safeAreaInvalidated = true;
-				RequestLayout();
-				return insets;
-			});
+			ViewCompat.SetOnApplyWindowInsetsListener(this, new WindowInsetsListener(this));
+
 		}
 
 		public bool ClipsToBounds { get; set; }
@@ -82,7 +78,49 @@ namespace Microsoft.Maui.Platform
 
 		bool RespondsToSafeArea()
 		{
+			// Don't apply safe area if a parent has already handled it
+			if (HasSafeAreaHandlingParent())
+				return false;
+
 			return CrossPlatformLayout is ISafeAreaView2;
+		}
+
+		bool HasSafeAreaHandlingParent()
+		{
+			// Walk up the view hierarchy to check if any parent is handling safe area
+			var parent = Parent;
+			while (parent != null)
+			{
+				// Check if parent is a ContentViewGroup or LayoutViewGroup that responds to safe area
+				if (parent is ContentViewGroup parentContentGroup &&
+					parentContentGroup.CrossPlatformLayout is ISafeAreaView2 parentLayout)
+				{
+					// Check if the parent actually wants to handle safe area (not all edges are None)
+					for (int edge = 0; edge < 4; edge++)
+					{
+						if (parentLayout.GetSafeAreaRegionsForEdge(edge) != SafeAreaRegions.None)
+							return true;
+					}
+				}
+				else if (parent is LayoutViewGroup parentLayoutGroup &&
+						 parentLayoutGroup.CrossPlatformLayout is ISafeAreaView2 parentLayoutView)
+				{
+					// Check if the parent actually wants to handle safe area (not all edges are None)
+					for (int edge = 0; edge < 4; edge++)
+					{
+						if (parentLayoutView.GetSafeAreaRegionsForEdge(edge) != SafeAreaRegions.None)
+							return true;
+					}
+				}
+
+				// Move up to next parent - need to check if it's a View first
+				if (parent is View parentView)
+					parent = parentView.Parent;
+				else
+					break;
+			}
+
+			return false;
 		}
 
 		SafeAreaRegions GetSafeAreaRegionForEdge(int edge)
@@ -131,7 +169,7 @@ namespace Microsoft.Maui.Platform
 		Graphics.Rect AdjustForSafeArea(Graphics.Rect bounds)
 		{
 			ValidateSafeArea();
-			
+
 			if (_safeArea.IsEmpty)
 				return bounds;
 
@@ -270,6 +308,23 @@ namespace Microsoft.Maui.Platform
 			}
 
 			return null;
+		}
+
+		class WindowInsetsListener : Java.Lang.Object, AndroidX.Core.View.IOnApplyWindowInsetsListener
+		{
+			private readonly LayoutViewGroup _owner;
+
+			public WindowInsetsListener(LayoutViewGroup owner)
+			{
+				_owner = owner;
+			}
+
+			public WindowInsetsCompat? OnApplyWindowInsets(View? v, WindowInsetsCompat? insets)
+			{
+				_owner._safeAreaInvalidated = true;
+				_owner.RequestLayout();
+				return insets;
+			}
 		}
 	}
 }
