@@ -84,19 +84,30 @@ namespace Microsoft.Maui.Platform
 		{
 			// Don't apply safe area if a parent has already handled it
 			if (HasSafeAreaHandlingParent())
+			{
 				return false;
+			}
 
 			var respondsToSafeArea = CrossPlatformLayout is ISafeAreaView2;
 
-			// If we respond to safe area, ensure safe area is up to date
-			// This handles cases where SafeAreaRegions changed at runtime
-			if (respondsToSafeArea)
+			// If we respond to safe area, check if any edge actually needs safe area handling
+			if (respondsToSafeArea && CrossPlatformLayout is ISafeAreaView2 safeAreaLayout)
 			{
-				// Force a safe area validation to ensure we have current settings
-				_safeAreaInvalidated = true;
+				// Check if any edge has a region other than None or Default
+				for (int edge = 0; edge < 4; edge++)
+				{
+					var region = safeAreaLayout.GetSafeAreaRegionsForEdge(edge);
+					if (region == SafeAreaRegions.All)
+					{
+						_safeAreaInvalidated = true;
+						return true;
+					}
+				}
+
+				return false;
 			}
 
-			return respondsToSafeArea;
+			return false;
 		}
 
 		bool HasSafeAreaHandlingParent()

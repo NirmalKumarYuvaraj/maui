@@ -69,50 +69,6 @@ namespace Microsoft.Maui.Platform
 			RequestLayout();
 		}
 
-		bool ShouldSubscribeToKeyboardNotifications()
-		{
-			// Only subscribe if any edge has SoftInput regions (matching iOS behavior)
-			if (CrossPlatformLayout is ISafeAreaView2 safeAreaPage)
-			{
-				for (int edge = 0; edge < 4; edge++)
-				{
-					var region = safeAreaPage.GetSafeAreaRegionsForEdge(edge);
-					if (SafeAreaEdges.IsSoftInput(region))
-					{
-						return true;
-					}
-				}
-			}
-			return false;
-		}
-
-		static void UpdateKeyboardSubscription()
-		{
-			// Update keyboard subscription based on current SafeAreaEdges settings (matching iOS behavior)
-			// For Android, this is handled automatically through WindowInsetsListener
-			// This method exists for API compatibility with iOS pattern
-		}
-
-		static void SubscribeToKeyboardNotifications()
-		{
-			// Keyboard handling is already integrated into WindowInsetsListener
-			// This method exists for API compatibility with iOS pattern
-		}
-
-		static void UnsubscribeFromKeyboardNotifications()
-		{
-			// Keyboard handling is already integrated into WindowInsetsListener  
-			// This method exists for API compatibility with iOS pattern
-		}
-
-		void OnKeyboardChanged(SafeAreaPadding keyboardInsets, bool isShowing)
-		{
-			_keyboardInsets = keyboardInsets;
-			_isKeyboardShowing = isShowing;
-			_safeAreaInvalidated = true;
-			RequestLayout();
-		}
-
 		public bool ClipsToBounds { get; set; }
 
 		public ICrossPlatformLayout? CrossPlatformLayout
@@ -134,19 +90,30 @@ namespace Microsoft.Maui.Platform
 		{
 			// Don't apply safe area if a parent has already handled it
 			if (HasSafeAreaHandlingParent())
+			{
 				return false;
+			}
 
 			var respondsToSafeArea = CrossPlatformLayout is ISafeAreaView2;
 
-			// If we respond to safe area, ensure safe area is up to date
-			// This handles cases where SafeAreaRegions changed at runtime
-			if (respondsToSafeArea)
+			// If we respond to safe area, check if any edge actually needs safe area handling
+			if (respondsToSafeArea && CrossPlatformLayout is ISafeAreaView2 safeAreaLayout)
 			{
-				// Force a safe area validation to ensure we have current settings
-				_safeAreaInvalidated = true;
+				// Check if any edge has a region other than None or Default
+				for (int edge = 0; edge < 4; edge++)
+				{
+					var region = safeAreaLayout.GetSafeAreaRegionsForEdge(edge);
+					if (region == SafeAreaRegions.All)
+					{
+						_safeAreaInvalidated = true;
+						return true;
+					}
+				}
+
+				return false;
 			}
 
-			return respondsToSafeArea;
+			return false;
 		}
 
 		bool HasSafeAreaHandlingParent()
