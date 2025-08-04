@@ -58,13 +58,6 @@ namespace Microsoft.Maui.Platform
 			ViewCompat.SetOnApplyWindowInsetsListener(this, new WindowInsetsListener(this));
 		}
 
-		// This method should be called when SafeAreaRegions change at runtime
-		internal void InvalidateSafeArea()
-		{
-			_safeAreaInvalidated = true;
-			RequestLayout();
-		}
-
 		public ICrossPlatformLayout? CrossPlatformLayout
 		{
 			get; set;
@@ -88,10 +81,8 @@ namespace Microsoft.Maui.Platform
 				return false;
 			}
 
-			var respondsToSafeArea = CrossPlatformLayout is ISafeAreaView2;
-
 			// If we respond to safe area, check if any edge actually needs safe area handling
-			if (respondsToSafeArea && CrossPlatformLayout is ISafeAreaView2 safeAreaLayout)
+			if (CrossPlatformLayout is ISafeAreaView2 safeAreaLayout)
 			{
 				// Check if any edge has a region other than None or Default
 				for (int edge = 0; edge < 4; edge++)
