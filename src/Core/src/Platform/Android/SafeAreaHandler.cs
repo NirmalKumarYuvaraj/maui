@@ -106,7 +106,13 @@ namespace Microsoft.Maui.Platform
             for (int edge = 0; edge < 4; edge++)
             {
                 var region = safeAreaLayout.GetSafeAreaRegionsForEdge(edge);
-                if (region == SafeAreaRegions.All)
+                if (SafeAreaEdges.IsContainer(region))
+                {
+                    _safeAreaInvalidated = true;
+                    return true;
+                }
+
+                if (SafeAreaEdges.IsSoftInput(region))
                 {
                     _safeAreaInvalidated = true;
                     return true;
