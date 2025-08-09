@@ -3,11 +3,15 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading.Tasks;
 using Android.Content;
+using Android.Content.Res;
+using Android.Graphics;
 using Android.Graphics.Drawables;
 using Android.OS;
+using Android.Util;
 using Android.Views;
 using Android.Views.Animations;
 using AndroidX.Activity;
+using AndroidX.Core.View;
 using AndroidX.Fragment.App;
 using Microsoft.Maui.LifecycleEvents;
 using AAnimation = Android.Views.Animations.Animation;
@@ -243,13 +247,54 @@ namespace Microsoft.Maui.Controls.Platform
 				{
 					var navigationBarColor = mainActivityWindow.NavigationBarColor;
 					var statusBarColor = mainActivityWindow.StatusBarColor;
+
+					// If the main activity has edge-to-edge (transparent bars), 
+					// use theme-appropriate colors instead of copying black/transparent
+					if (navigationBarColor == 0 || statusBarColor == 0)
+					{
+						// For edge-to-edge modals, use theme-based colors
+						var context = RequireContext();
+						var typedValue = new TypedValue();
+
+						// Get theme-appropriate status bar color
+						if (context.Theme?.ResolveAttribute(global::Android.Resource.Attribute.ColorPrimaryDark, typedValue, true) == true)
+						{
+							statusBarColor = typedValue.Data;
+						}
+						else
+						{
+							// Fallback for status bar
+							statusBarColor = AColor.ParseColor("#2196F3").ToArgb(); // Material blue
+						}
+
+						// For navigation bar, use a dark color that works well
+						navigationBarColor = AColor.Black.ToArgb();
+					}
+
 #pragma warning disable CA1422
 					dialog.Window.SetNavigationBarColor(new AColor(navigationBarColor));
 					dialog.Window.SetStatusBarColor(new AColor(statusBarColor));
 #pragma warning restore CA1422
+					System.Diagnostics.Debug.WriteLine($"Modal bar colors - nav: {navigationBarColor:X8}, status: {statusBarColor:X8}");
 				}
 
+				// Configure edge-to-edge for modal dialog
+				ConfigureEdgeToEdgeModal(dialog.Window);
+
 				return dialog;
+			}
+
+			static void ConfigureEdgeToEdgeModal(global::Android.Views.Window window)
+			{
+				// Enable edge-to-edge for the modal dialog window
+				WindowCompat.SetDecorFitsSystemWindows(window, false);
+
+				// Apply window insets to the modal dialog's decor view
+				var decorView = window.DecorView;
+				if (decorView != null)
+				{
+					ViewCompat.SetOnApplyWindowInsetsListener(decorView, new EdgeToEdgeWindowInsetsListener());
+				}
 			}
 
 			void OnPageHandlerChanged(object? sender, EventArgs e)
@@ -314,6 +359,9 @@ namespace Microsoft.Maui.Controls.Platform
 				
 				ViewCompat.SetOnApplyWindowInsetsListener(rootView, new WindowHandler.WindowsListener());
 
+				// Synchronize AppBarLayout with toolbar background after the view is created
+				SynchronizeModalAppBarLayoutBackground(rootView);
+
 				if (IsAnimated)
 				{
 					_ = new GenericGlobalLayoutListener((listener, view) =>
@@ -328,6 +376,122 @@ namespace Microsoft.Maui.Controls.Platform
 					}, _navigationRootManager.RootView);
 				}
 				return rootView;
+			}
+
+			void SynchronizeModalAppBarLayoutBackground(AView rootView)
+			{
+				// Find the AppBarLayout in the modal's navigation structure
+				var appBarLayout = FindAppBarLayoutInView(rootView);
+				if (appBarLayout == null)
+					return;
+
+				// Find the toolbar element to get the background settings
+				var toolbarElement = FindToolbarElement(_modal);
+				if (toolbarElement == null)
+					return;
+
+				// Apply the toolbar's background to the AppBarLayout
+				ApplyToolbarBackgroundToAppBarLayout(appBarLayout, toolbarElement);
+
+				// Listen for future changes to the toolbar background
+				toolbarElement.PropertyChanged += OnModalToolbarPropertyChanged;
+			}
+
+			void OnModalToolbarPropertyChanged(object? sender, PropertyChangedEventArgs e)
+			{
+				if (e.PropertyName == nameof(Toolbar.BarBackground) && sender is Toolbar toolbar)
+				{
+					// Re-synchronize when the toolbar background changes
+					if (_navigationRootManager?.RootView is not null)
+					{
+						var appBarLayout = FindAppBarLayoutInView(_navigationRootManager.RootView);
+						if (appBarLayout != null)
+						{
+							ApplyToolbarBackgroundToAppBarLayout(appBarLayout, toolbar);
+						}
+					}
+				}
+			}
+
+			Google.Android.Material.AppBar.AppBarLayout? FindAppBarLayoutInView(AView view)
+			{
+				// First check if the view itself is an AppBarLayout
+				if (view is Google.Android.Material.AppBar.AppBarLayout appBarLayout)
+					return appBarLayout;
+
+				// Search in the view hierarchy
+				if (view is ViewGroup viewGroup)
+				{
+					for (int i = 0; i < viewGroup.ChildCount; i++)
+					{
+						var child = viewGroup.GetChildAt(i);
+						if (child != null)
+						{
+							var result = FindAppBarLayoutInView(child);
+							if (result != null)
+								return result;
+						}
+					}
+				}
+
+				// Also try to find by ID as a fallback
+				if (view is ViewGroup rootGroup)
+				{
+					var appBarById = rootGroup.FindViewById<Google.Android.Material.AppBar.AppBarLayout>(Resource.Id.navigationlayout_appbar);
+					if (appBarById != null)
+						return appBarById;
+				}
+
+				return null;
+			}
+
+			Toolbar? FindToolbarElement(Page page)
+			{
+				// Check if the page itself has a toolbar
+				if (page.Toolbar != null)
+					return page.Toolbar;
+
+				// If it's a NavigationPage, check its toolbar
+				if (page is NavigationPage navPage && navPage.Toolbar != null)
+					return navPage.Toolbar;
+
+				// For other page types that might contain navigation pages
+				if (page is FlyoutPage flyoutPage)
+				{
+					var detailToolbar = FindToolbarElement(flyoutPage.Detail);
+					if (detailToolbar != null)
+						return detailToolbar;
+				}
+
+				return null;
+			}
+
+			void ApplyToolbarBackgroundToAppBarLayout(Google.Android.Material.AppBar.AppBarLayout appBarLayout, Toolbar toolbar)
+			{
+				var barBackground = toolbar.BarBackground;
+
+				if (barBackground == null)
+				{
+					// Reset to default theme background
+					appBarLayout.BackgroundTintMode = null;
+					appBarLayout.BackgroundTintList = null;
+					appBarLayout.Background = null;
+				}
+				else if (barBackground is SolidColorBrush solidBrush)
+				{
+					// Apply solid color
+					var color = solidBrush.Color;
+					if (color != null)
+					{
+						appBarLayout.BackgroundTintMode = PorterDuff.Mode.Src;
+						appBarLayout.BackgroundTintList = ColorStateList.ValueOf(color.ToPlatform());
+					}
+				}
+				else
+				{
+					// For other brush types, use the extension method
+					appBarLayout.UpdateBackground(barBackground);
+				}
 			}
 			void OnAnimationEnded(object? sender, AAnimation.AnimationEndEventArgs e)
 			{
@@ -362,6 +526,13 @@ namespace Microsoft.Maui.Controls.Platform
 			{
 				_modal.PropertyChanged -= OnModalPagePropertyChanged;
 				_modal.HandlerChanged -= OnPageHandlerChanged;
+
+				// Unsubscribe from toolbar background changes
+				var toolbarElement = FindToolbarElement(_modal);
+				if (toolbarElement != null)
+				{
+					toolbarElement.PropertyChanged -= OnModalToolbarPropertyChanged;
+				}
 
 				if (_modal.Toolbar?.Handler is not null)
 				{
