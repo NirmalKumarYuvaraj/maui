@@ -113,14 +113,9 @@ namespace Microsoft.Maui.Platform
 
 			var destination = _context.ToCrossPlatformRectInReferenceFrame(left, top, right, bottom);
 
-			// Check if this is the ScrollView padding shim
-			var isScrollViewPaddingShim = this.Tag?.ToString() == "MAUIContentInsetPanel";
-			var parentName = this.Parent?.GetType().Name ?? "null";
-
 			// Apply safe area adjustments if needed
 			if (_safeAreaHandler.RespondsToSafeArea())
 			{
-				var originalDestination = destination;
 				destination = _safeAreaHandler.AdjustForSafeArea(destination);
 			}
 

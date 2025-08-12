@@ -9,7 +9,6 @@ using Microsoft.Maui.Graphics;
 using ARect = Android.Graphics.Rect;
 using Rectangle = Microsoft.Maui.Graphics.Rect;
 using Size = Microsoft.Maui.Graphics.Size;
-using System.Diagnostics;
 
 namespace Microsoft.Maui.Platform
 {
@@ -130,8 +129,7 @@ namespace Microsoft.Maui.Platform
 			// Apply safe area adjustments if needed
 			if (_safeAreaHandler.RespondsToSafeArea())
 			{
-				var adjustedDestination = _safeAreaHandler.AdjustForSafeArea(destination);
-				destination = adjustedDestination;
+				destination = _safeAreaHandler.AdjustForSafeArea(destination);
 			}
 
 			CrossPlatformArrange(destination);
