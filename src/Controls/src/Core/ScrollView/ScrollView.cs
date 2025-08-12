@@ -505,11 +505,53 @@ namespace Microsoft.Maui.Controls
 			base.OnSizeAllocated(width, height);
 		}
 
+		/// <summary>
+		/// Checks if this ScrollView is inside a parent that handles safe area constraints.
+		/// This is used to determine whether content should be constrained to bounds or allowed to overflow.
+		/// </summary>
+		private bool IsInsideSafeAreaParent()
+		{
+			// Walk up the parent hierarchy to check for safe area handling
+			Element parent = this.Parent;
+			int depth = 0;
+
+			while (parent != null && depth++ < 10) // Limit depth to prevent infinite loops
+			{
+				if (parent is ISafeAreaView2 safeAreaView)
+				{
+					// Check if any edge has safe area regions defined
+					for (int edge = 0; edge < 4; edge++)
+					{
+						var region = safeAreaView.GetSafeAreaRegionsForEdge(edge);
+						if (region != SafeAreaRegions.None)
+						{
+							return true;
+						}
+					}
+				}
+				parent = parent.Parent;
+			}
+
+			return false;
+		}
+
 		Size ICrossPlatformLayout.CrossPlatformArrange(Rect bounds)
 		{
 			if (this is IScrollView scrollView)
 			{
-				return scrollView.ArrangeContentUnbounded(bounds);
+				// Check if we're inside a safe area handling parent
+				if (IsInsideSafeAreaParent())
+				{
+					// When inside a safe area parent, respect the bounds constraints
+					// instead of using ArrangeContentUnbounded to prevent content overflow
+					scrollView.ArrangeContent(bounds);
+					return bounds.Size;
+				}
+				else
+				{
+					// Normal behavior: allow content to exceed bounds for scrollable content
+					return scrollView.ArrangeContentUnbounded(bounds);
+				}
 			}
 
 			return bounds.Size;

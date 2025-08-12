@@ -233,8 +233,54 @@ namespace Microsoft.Maui.Platform
 				hScrollViewHeight = _isBidirectional ? Math.Max(hScrollViewHeight, scrollViewContentHeight) : hScrollViewHeight;
 				_hScrollView.Layout(0, 0, hScrollViewWidth, hScrollViewHeight);
 			}
-		}
+			else if (_content is not null)
+			{
+				// Handle vertical scrolling case - content is directly in MauiScrollView
+				var availableHeight = bottom - top;
+				var availableWidth = right - left;
 
+				// Check if we're in a safe area context with keyboard showing
+				var rootView = this.RootView;
+				var windowInsets = rootView != null ? AndroidX.Core.View.ViewCompat.GetRootWindowInsets(rootView) : null;
+				var isKeyboardShowing = windowInsets?.IsVisible(AndroidX.Core.View.WindowInsetsCompat.Type.Ime()) == true;
+
+				// Check if we have a safe area handling ancestor
+				bool hasSafeAreaAncestor = false;
+				var parent = this.Parent;
+				int depth = 0;
+				while (parent != null && depth < 10)
+				{
+					if (parent is ICrossPlatformLayoutBacking backing &&
+						backing.CrossPlatformLayout is ISafeAreaView2 safeAreaLayout)
+					{
+						for (int edge = 0; edge < 4; edge++)
+						{
+							var region = safeAreaLayout.GetSafeAreaRegionsForEdge(edge);
+							if (region == SafeAreaRegions.SoftInput && edge == 3) // Bottom edge SoftInput
+							{
+								hasSafeAreaAncestor = true;
+								break;
+							}
+						}
+						if (hasSafeAreaAncestor)
+							break;
+					}
+					parent = parent is View pv ? pv.Parent : null;
+					depth++;
+				}
+
+				// If we're in a safe area context with keyboard, ensure content respects available space
+				if (isKeyboardShowing && hasSafeAreaAncestor)
+				{
+					// Don't let content expand beyond available space when keyboard is showing
+					_content.Layout(0, 0, availableWidth, availableHeight);
+				}
+				else
+				{
+					// Normal behavior - content can be larger for scrolling
+				}
+			}
+		}
 		public void ScrollTo(int x, int y, bool instant, Action finished)
 		{
 			if (instant)

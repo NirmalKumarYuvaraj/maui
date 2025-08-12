@@ -1,6 +1,7 @@
 ﻿using Android.Views;
 using Microsoft.Maui.Graphics;
 using static Microsoft.Maui.Layouts.LayoutExtensions;
+using System.Diagnostics;
 
 namespace Microsoft.Maui.Handlers
 {
@@ -262,7 +263,43 @@ namespace Microsoft.Maui.Handlers
 			return contentSize.AdjustForFill(new Rect(0, 0, widthConstraint, heightConstraint), scrollView.PresentedContent);
 		}
 
-		Size ICrossPlatformLayout.CrossPlatformArrange(Rect bounds) =>
-			(VirtualView as ICrossPlatformLayout)?.CrossPlatformArrange(bounds) ?? Size.Zero;
+		Size ICrossPlatformLayout.CrossPlatformArrange(Rect bounds)
+		{
+			// Check if we're inside a parent with safe area constraints
+			// If the parent Grid has applied safe area and constrained our height,
+			// we should respect those constraints rather than using our natural content size
+			if (VirtualView != null && PlatformView?.Parent != null)
+			{
+				var parentView = PlatformView.Parent;
+				var isInsideSafeAreaParent = false;
+				int depth = 0;
+
+				// Walk up the parent hierarchy to see if there's a safe area constraint
+				while (parentView != null && depth++ < 5)
+				{
+					if (parentView is ICrossPlatformLayoutBacking backing &&
+						backing.CrossPlatformLayout is ISafeAreaView2 safeAreaView)
+					{
+						// Check if any edge has safe area regions defined
+						for (int edge = 0; edge < 4; edge++)
+						{
+							var region = safeAreaView.GetSafeAreaRegionsForEdge(edge);
+							if (region != SafeAreaRegions.None)
+							{
+								isInsideSafeAreaParent = true;
+								break;
+							}
+						}
+						if (isInsideSafeAreaParent)
+							break;
+					}
+
+					parentView = parentView is View pv ? pv.Parent : null;
+				}
+
+			}
+
+			return (VirtualView as ICrossPlatformLayout)?.CrossPlatformArrange(bounds) ?? Size.Zero;
+		}
 	}
 }
