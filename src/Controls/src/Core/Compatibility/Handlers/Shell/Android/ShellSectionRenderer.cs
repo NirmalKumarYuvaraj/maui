@@ -3,8 +3,10 @@ using System;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
+using Android.Graphics;
 using Android.OS;
 using Android.Runtime;
+using Android.Util;
 using Android.Views;
 using AndroidX.AppCompat.App;
 using AndroidX.AppCompat.Widget;
@@ -13,8 +15,8 @@ using AndroidX.Core.View;
 using AndroidX.Fragment.App;
 using AndroidX.ViewPager.Widget;
 using AndroidX.ViewPager2.Widget;
+using Google.Android.Material.AppBar;
 using Google.Android.Material.Tabs;
-using Microsoft.Extensions.Logging;
 using AToolbar = AndroidX.AppCompat.Widget.Toolbar;
 using AView = Android.Views.View;
 
@@ -101,7 +103,32 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			var context = Context;
 			var root = PlatformInterop.CreateShellCoordinatorLayout(context);
 			var appbar = PlatformInterop.CreateShellAppBar(context, Resource.Attribute.appBarLayoutStyle, root);
-			ViewCompat.SetOnApplyWindowInsetsListener(appbar, new WindowsListener());
+
+			// Configure edge-to-edge support and status bar color coordination
+			var isEdgeToEdgeEnabled = OperatingSystem.IsAndroidVersionAtLeast(36);
+
+			if (isEdgeToEdgeEnabled)
+			{
+				// In edge-to-edge mode, make status bar color match app bar color
+				SetStatusBarColorToMatchAppBar(appbar);
+
+				// Instead of removing the background, set it to the same color as status bar
+				var appBarColor = GetAppBarBackgroundColor();
+				if (appBarColor.HasValue)
+				{
+					var color = appBarColor.Value;
+					var colorInt = (int)((uint)(color.A << 24) | (uint)(color.R << 16) | (uint)(color.G << 8) | (uint)color.B);
+					var colorDrawable = new global::Android.Graphics.Drawables.ColorDrawable(new Color(colorInt));
+					appbar.SetBackground(colorDrawable);
+				}
+				else
+				{
+					appbar.SetBackground(null);
+				}
+			}
+
+			ViewCompat.SetOnApplyWindowInsetsListener(appbar, new WindowsListener(this));
+
 			int actionBarHeight = context.GetActionBarHeight();
 
 			var shellToolbar = new Toolbar(shellSection);
@@ -164,19 +191,217 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 		// - Do not extend; add new logic to the forthcoming implementation instead.
 		internal class WindowsListener : Java.Lang.Object, IOnApplyWindowInsetsListener
 		{
+			readonly ShellSectionRenderer _renderer;
+
+			public WindowsListener()
+			{
+			}
+
+			public WindowsListener(ShellSectionRenderer renderer)
+			{
+				_renderer = renderer;
+			}
+
 			public WindowInsetsCompat OnApplyWindowInsets(AView v, WindowInsetsCompat insets)
 			{
 				if (insets == null || v == null)
 					return insets;
 
+				// Get system bar and display cutout insets
 				var systemBars = insets.GetInsets(WindowInsetsCompat.Type.SystemBars());
 				var displayCutout = insets.GetInsets(WindowInsetsCompat.Type.DisplayCutout());
+
 				var topInset = Math.Max(systemBars?.Top ?? 0, displayCutout?.Top ?? 0);
 
 				v.SetPadding(0, topInset, 0, 0);
 
+				// Apply status bar color after insets are processed - this might be the correct timing
+				var isEdgeToEdgeEnabled = OperatingSystem.IsAndroidVersionAtLeast(36);
+				if (_renderer != null && isEdgeToEdgeEnabled)
+				{
+					_renderer.ApplyStatusBarColorAfterInsets();
+				}
+
 				return WindowInsetsCompat.Consumed;
 			}
+		}
+
+		void ApplyStatusBarColorAfterInsets()
+		{
+			if (!OperatingSystem.IsAndroidVersionAtLeast(36))
+			{
+				return;
+			}
+
+			try
+			{
+				var activity = Context as AndroidX.AppCompat.App.AppCompatActivity;
+				if (activity?.Window == null)
+				{
+					return;
+				}
+
+				var window = activity.Window;
+
+				// Get the app bar color again
+				var appBarColor = GetAppBarBackgroundColor();
+				if (appBarColor.HasValue)
+				{
+					var color = appBarColor.Value;
+					var colorInt = (int)((uint)(color.A << 24) | (uint)(color.R << 16) | (uint)(color.G << 8) | (uint)color.B);
+
+					// Force the status bar color application - this is our most aggressive attempt
+					var androidColor = new Color(colorInt);
+					window.SetStatusBarColor(androidColor);
+
+					// Also set the navigation bar color to match for consistency
+					window.SetNavigationBarColor(androidColor);
+
+					// Apply multiple times with delays to override system interference
+					window.DecorView.Post(() =>
+					{
+						window.SetStatusBarColor(androidColor);
+						window.SetNavigationBarColor(androidColor);
+					});
+
+					// Also try applying after a longer delay
+					window.DecorView.PostDelayed(() =>
+					{
+						window.SetStatusBarColor(androidColor);
+					}, 100); // 100ms delay
+
+					// Ensure the correct appearance
+					var windowInsetsController = WindowCompat.GetInsetsController(window, window.DecorView);
+					if (windowInsetsController != null)
+					{
+						var luminance = GetColorLuminance(appBarColor.Value);
+						var shouldUseLightStatusBar = luminance > 0.5;
+						windowInsetsController.AppearanceLightStatusBars = shouldUseLightStatusBar;
+						windowInsetsController.AppearanceLightNavigationBars = shouldUseLightStatusBar;
+					}
+				}
+			}
+			catch
+			{
+				// Silent failure - status bar coordination is not critical
+			}
+		}
+
+		void SetStatusBarColorToMatchAppBar(AppBarLayout appbar)
+		{
+			if (!OperatingSystem.IsAndroidVersionAtLeast(36))
+			{
+				return;
+			}
+
+			try
+			{
+				var activity = Context as AndroidX.AppCompat.App.AppCompatActivity;
+
+				if (activity?.Window == null)
+				{
+					return;
+				}
+
+				// Ensure the window is set up for status bar color changes
+				var window = activity.Window;
+
+				// Force clear any conflicting flags that might prevent status bar color changes
+				window.ClearFlags(WindowManagerFlags.TranslucentStatus | WindowManagerFlags.TranslucentNavigation);
+				// Ensure FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS is set for status bar color to work
+				window.AddFlags(WindowManagerFlags.DrawsSystemBarBackgrounds);
+
+				// Also clear system UI visibility flags that might interfere
+				window.DecorView.SystemUiFlags = SystemUiFlags.Visible;
+
+				// Get the app bar's background color
+				var appBarColor = GetAppBarBackgroundColor();
+
+				if (appBarColor.HasValue)
+				{
+					// Extract the color value as int for SetStatusBarColor
+					var color = appBarColor.Value;
+					var colorInt = (int)((uint)(color.A << 24) | (uint)(color.R << 16) | (uint)(color.G << 8) | (uint)color.B);
+
+					// Force the status bar color application multiple times to override system defaults
+					var androidColor = new Color(colorInt);
+					activity.Window.SetStatusBarColor(androidColor);
+
+					// Apply again after a short delay to override any system interference
+					activity.Window.DecorView.Post(() =>
+					{
+						activity.Window.SetStatusBarColor(androidColor);
+					});
+
+					// Configure status bar content style based on the app bar color
+					var windowInsetsController = WindowCompat.GetInsetsController(activity.Window, activity.Window.DecorView);
+					if (windowInsetsController != null)
+					{
+						var luminance = GetColorLuminance(appBarColor.Value);
+
+						var shouldUseLightStatusBar = luminance > 0.5;
+						windowInsetsController.AppearanceLightStatusBars = shouldUseLightStatusBar;
+					}
+				}
+			}
+			catch
+			{
+				// Log but don't crash - status bar coordination is not critical
+			}
+		}
+
+		Color? GetAppBarBackgroundColor()
+		{
+			try
+			{
+				// First try to get color from Shell's background color
+				var shell = ShellContext?.Shell;
+
+				if (shell?.BackgroundColor != null)
+				{
+					var shellPlatformColor = shell.BackgroundColor.ToPlatform();
+					return shellPlatformColor;
+				}
+
+				// Fallback: Get the colorPrimary from the current theme (what the app bar uses by default)
+				var context = Context;
+
+				if (context == null)
+				{
+					return null;
+				}
+
+				var typedValue = new TypedValue();
+				var resolved = context.Theme.ResolveAttribute(Resource.Attribute.colorPrimary, typedValue, true);
+
+				if (resolved)
+				{
+					var themeColor = new Color(typedValue.Data);
+					return themeColor;
+				}
+			}
+			catch
+			{
+				// Silent failure
+			}
+
+			return null;
+		}
+
+		double GetColorLuminance(Color color)
+		{
+			// Calculate relative luminance using the standard formula
+			double r = color.R / 255.0;
+			double g = color.G / 255.0;
+			double b = color.B / 255.0;
+
+			// Apply gamma correction
+			r = (r <= 0.03928) ? r / 12.92 : Math.Pow((r + 0.055) / 1.055, 2.4);
+			g = (g <= 0.03928) ? g / 12.92 : Math.Pow((g + 0.055) / 1.055, 2.4);
+			b = (b <= 0.03928) ? b / 12.92 : Math.Pow((b + 0.055) / 1.055, 2.4);
+
+			// Calculate luminance
+			return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 		}
 
 		void OnShellContentPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -299,9 +524,6 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			{
 				// It's very unlikely this will happen but just in case there's a scenario
 				// where we might hit an infinite loop we're adding an exit strategy
-				MauiContext.CreateLogger<ShellSectionRenderer>()
-					.LogWarning("ViewPager2 stuck in layout, unable to NotifyDataSetChanged;");
-
 				return;
 			}
 
@@ -365,12 +587,74 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 		{
 			_toolbarAppearanceTracker.ResetAppearance(_toolbar, _toolbarTracker);
 			_tabLayoutAppearanceTracker.ResetAppearance(_tablayout);
+
+			// Update status bar color when appearance resets
+			if (OperatingSystem.IsAndroidVersionAtLeast(36))
+			{
+				UpdateStatusBarColorForCurrentAppearance();
+			}
 		}
 
 		protected virtual void SetAppearance(ShellAppearance appearance)
 		{
 			_toolbarAppearanceTracker.SetAppearance(_toolbar, _toolbarTracker, appearance);
 			_tabLayoutAppearanceTracker.SetAppearance(_tablayout, appearance);
+
+			// Update status bar color when appearance changes
+			if (OperatingSystem.IsAndroidVersionAtLeast(36))
+			{
+				UpdateStatusBarColorForCurrentAppearance();
+			}
+		}
+
+		void UpdateStatusBarColorForCurrentAppearance()
+		{
+			try
+			{
+				var activity = Context as AndroidX.AppCompat.App.AppCompatActivity;
+				if (activity?.Window == null)
+				{
+					return;
+				}
+
+				// Ensure the window is set up for status bar color changes
+				var window = activity.Window;
+				window.ClearFlags(WindowManagerFlags.TranslucentStatus);
+				window.AddFlags(WindowManagerFlags.DrawsSystemBarBackgrounds);
+
+				// Get the current app bar color after appearance changes
+				var appBarColor = GetAppBarBackgroundColor();
+				if (appBarColor.HasValue)
+				{
+					// Extract the color value as int for SetStatusBarColor
+					var color = appBarColor.Value;
+					var colorInt = (int)((uint)(color.A << 24) | (uint)(color.R << 16) | (uint)(color.G << 8) | (uint)color.B);
+
+					// Force the status bar color application
+					var androidColor = new Color(colorInt);
+					activity.Window.SetStatusBarColor(androidColor);
+
+					// Apply again with delay to override system interference
+					activity.Window.DecorView.Post(() =>
+					{
+						activity.Window.SetStatusBarColor(androidColor);
+					});
+
+					// Update status bar content style
+					var windowInsetsController = WindowCompat.GetInsetsController(activity.Window, activity.Window.DecorView);
+					if (windowInsetsController != null)
+					{
+						var luminance = GetColorLuminance(appBarColor.Value);
+
+						var shouldUseLightStatusBar = luminance > 0.5;
+						windowInsetsController.AppearanceLightStatusBars = shouldUseLightStatusBar;
+					}
+				}
+			}
+			catch
+			{
+				// Silent failure
+			}
 		}
 
 		void HookEvents()
