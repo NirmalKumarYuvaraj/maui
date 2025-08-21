@@ -192,9 +192,12 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 				return base.GetDesiredSize(widthConstraint, heightConstraint);
 			}
 
-			// Our target size is the smaller of it and the constraints
-			var width = contentSize.Width <= widthConstraint ? contentSize.Width : widthConstraint;
-			var height = contentSize.Height <= heightConstraint ? contentSize.Height : heightConstraint;
+			// ISSUE FIX: Don't use infinite constraints for size calculation
+			// When the heightConstraint is infinite, we should respect the parent's available space
+			// The Grid passes the available constraint, but we were ignoring it due to infinity check
+			var width = double.IsInfinity(widthConstraint) ? contentSize.Width : Math.Min(contentSize.Width, widthConstraint);
+			var height = double.IsInfinity(heightConstraint) ? contentSize.Height : Math.Min(contentSize.Height, heightConstraint);
+
 
 			IView virtualView = VirtualView;
 

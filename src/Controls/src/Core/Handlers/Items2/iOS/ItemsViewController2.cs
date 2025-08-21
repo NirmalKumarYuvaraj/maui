@@ -422,7 +422,44 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 				return _emptyUIView.Frame.Size.ToSize();
 			}
 
-			return CollectionView.CollectionViewLayout.CollectionViewContentSize.ToSize();
+			var contentSize = CollectionView.CollectionViewLayout.CollectionViewContentSize.ToSize();
+
+
+			// ISSUE FIX: For UICollectionViewCompositionalLayout, calculate corrected content size
+			// based on actual measured cell sizes instead of layout estimates
+			if (ItemsViewLayout is UICollectionViewCompositionalLayout compositionalLayout)
+			{
+				return CalculateCorrectedContentSize(contentSize, compositionalLayout);
+			}
+
+			return contentSize;
+		}
+
+		Size CalculateCorrectedContentSize(Size originalSize, UICollectionViewCompositionalLayout layout)
+		{
+			// For horizontal grid layouts, check if we can calculate a better height based on actual cell measurements
+			if (layout.Configuration?.ScrollDirection == UICollectionViewScrollDirection.Horizontal)
+			{
+				var visibleCells = CollectionView?.VisibleCells;
+				if (visibleCells?.Length > 0)
+				{
+					// Get the first templated cell to determine actual row height
+					var firstTemplatedCell = visibleCells.OfType<TemplatedCell2>().ToList()[0];
+					if (firstTemplatedCell != null && firstTemplatedCell.MeasuredSize.Height > 0)
+					{
+						var actualRowHeight = firstTemplatedCell.MeasuredSize.Height;
+
+						// For HorizontalGrid with span (rows), calculate corrected height
+						if (ItemsView is CollectionView cv && cv.ItemsLayout is GridItemsLayout gridLayout)
+						{
+							var correctedHeight = gridLayout.Span * actualRowHeight;
+							return new Size(originalSize.Width, correctedHeight);
+						}
+					}
+				}
+			}
+
+			return originalSize;
 		}
 
 		internal void UpdateView(object view, DataTemplate viewTemplate, ref UIView uiView, ref VisualElement formsElement)

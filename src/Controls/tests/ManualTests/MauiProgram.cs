@@ -5,21 +5,27 @@ namespace Microsoft.Maui.ManualTests;
 
 public static class MauiProgram
 {
-	public static MauiApp CreateMauiApp()
-	{
-		var builder = MauiApp.CreateBuilder();
-		builder
-			.UseMauiApp<App>()
-			.ConfigureFonts(fonts =>
-			{
-				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
-				fonts.AddFont("Lobster-Regular.ttf", "Lobster");
+    public static MauiApp CreateMauiApp()
+    {
+        var builder = MauiApp.CreateBuilder();
+        builder
+            .UseMauiApp<App>()
+#if IOS || MACCATALYST
+				.ConfigureMauiHandlers(handlers =>
+				{
+					handlers.AddHandler<Microsoft.Maui.Controls.CollectionView, Microsoft.Maui.Controls.Handlers.Items2.CollectionViewHandler2>();
+				})
+#endif
+            .ConfigureFonts(fonts =>
+            {
+                fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                fonts.AddFont("Lobster-Regular.ttf", "Lobster");
                 fonts.AddFont("ionicons.ttf", "Ionicons");
                 fonts.AddFont("pe-icon-set-weather.ttf", "Weather");
                 fonts.AddFont("feather.ttf", "Feather");
                 fonts.AddFont("icomoon.ttf", "Icomoon");
-                
+
                 if (OperatingSystem.IsIOS() || OperatingSystem.IsMacCatalyst())
                 {
                     fonts.AddFont("SF-Pro-Text-Thin.otf", "DefaultLightest");
@@ -79,9 +85,9 @@ public static class MauiProgram
             });
 
 #if DEBUG
-		builder.Logging.AddDebug();
+        builder.Logging.AddDebug();
 #endif
 
-		return builder.Build();
-	}
+        return builder.Build();
+    }
 }

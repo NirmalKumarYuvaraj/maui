@@ -42,6 +42,9 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 		internal bool MeasureInvalidated => _measureInvalidated;
 
+		// Expose measured size for content size calculations
+		internal Size MeasuredSize => _measuredSize;
+
 		// Flags changes confined to the header/footer, preventing unnecessary recycling and revalidation of templated cells.
 		internal bool isHeaderOrFooterChanged = false;
 
@@ -100,10 +103,12 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 				}
 
 				var preferredSize = preferredAttributes.Size;
-				// Use measured size only when unconstrained
+
+				// ISSUE FIX: Use measured size when unconstrained OR when content is smaller than layout estimate
+				// This prevents cells from being larger than their content requires
 				var size = new Size(
-					double.IsPositiveInfinity(constraints.Width) ? _measuredSize.Width : preferredSize.Width,
-					double.IsPositiveInfinity(constraints.Height) ? _measuredSize.Height : preferredSize.Height
+					double.IsPositiveInfinity(constraints.Width) ? _measuredSize.Width : Math.Min(_measuredSize.Width, preferredSize.Width),
+					double.IsPositiveInfinity(constraints.Height) ? _measuredSize.Height : Math.Min(_measuredSize.Height, preferredSize.Height)
 				);
 
 				preferredAttributes.Frame = new CGRect(preferredAttributes.Frame.Location, size);
@@ -141,9 +146,10 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 				_needsArrange = false;
 
-				// We now have to apply the new bounds size to the virtual view
-				// which will automatically set the frame on the platform view too.
-				var frame = new Rect(Point.Zero, boundsSize);
+				// ISSUE FIX: Use measured size instead of bounds size for arrangement
+				// This ensures content is arranged to its actual measured dimensions, not the layout's allocated space
+				var arrangeSize = _measuredSize != Size.Zero ? _measuredSize : boundsSize;
+				var frame = new Rect(Point.Zero, arrangeSize);
 				virtualView.Arrange(frame);
 			}
 		}
