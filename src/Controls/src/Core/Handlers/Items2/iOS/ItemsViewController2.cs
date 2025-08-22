@@ -443,8 +443,8 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 				var visibleCells = CollectionView?.VisibleCells;
 				if (visibleCells?.Length > 0)
 				{
-					// Get the first templated cell to determine actual row height
-					var firstTemplatedCell = visibleCells.OfType<TemplatedCell2>().ToList()[0];
+					var templatedCells = visibleCells.OfType<TemplatedCell2>().ToList();
+					var firstTemplatedCell = templatedCells.FirstOrDefault();
 					if (firstTemplatedCell != null && firstTemplatedCell.MeasuredSize.Height > 0)
 					{
 						var actualRowHeight = firstTemplatedCell.MeasuredSize.Height;

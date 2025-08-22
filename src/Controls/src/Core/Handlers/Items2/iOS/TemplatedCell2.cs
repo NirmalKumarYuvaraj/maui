@@ -104,12 +104,26 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 				var preferredSize = preferredAttributes.Size;
 
-				// ISSUE FIX: Use measured size when unconstrained OR when content is smaller than layout estimate
-				// This prevents cells from being larger than their content requires
-				var size = new Size(
-					double.IsPositiveInfinity(constraints.Width) ? _measuredSize.Width : Math.Min(_measuredSize.Width, preferredSize.Width),
-					double.IsPositiveInfinity(constraints.Height) ? _measuredSize.Height : Math.Min(_measuredSize.Height, preferredSize.Height)
-				);
+				// Updated sizing logic:
+				// - Along the scroll direction we allow the measured dimension to dictate size (shrink-to-fit)
+				// - Across the scroll direction we keep the provided preferred dimension (fill)
+				//   This fixes vertical list scenarios where cells were shrinking to content width instead of filling
+				//   (e.g. Vertical single-span grid/list)
+				var isVertical = ScrollDirection == UICollectionViewScrollDirection.Vertical;
+
+				var finalWidth = isVertical
+					? preferredSize.Width
+					: double.IsPositiveInfinity(constraints.Width)
+						? _measuredSize.Width
+						: Math.Min(_measuredSize.Width, preferredSize.Width);
+
+				var finalHeight = isVertical
+					? double.IsPositiveInfinity(constraints.Height)
+						? _measuredSize.Height
+						: Math.Min(_measuredSize.Height, preferredSize.Height)
+					: preferredSize.Height;
+
+				var size = new Size(finalWidth, finalHeight);
 
 				preferredAttributes.Frame = new CGRect(preferredAttributes.Frame.Location, size);
 				preferredAttributes.ZIndex = 2;
@@ -145,10 +159,9 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 				}
 
 				_needsArrange = false;
-
-				// ISSUE FIX: Use measured size instead of bounds size for arrangement
-				// This ensures content is arranged to its actual measured dimensions, not the layout's allocated space
-				var arrangeSize = _measuredSize != Size.Zero ? _measuredSize : boundsSize;
+				var arrangeSize = ScrollDirection == UICollectionViewScrollDirection.Vertical
+					? new Size(boundsSize.Width, Math.Max(_measuredSize.Height, boundsSize.Height))
+					: new Size(Math.Max(_measuredSize.Width, boundsSize.Width), boundsSize.Height);
 				var frame = new Rect(Point.Zero, arrangeSize);
 				virtualView.Arrange(frame);
 			}
