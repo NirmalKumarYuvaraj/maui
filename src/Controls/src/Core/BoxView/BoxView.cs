@@ -2,6 +2,7 @@
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Diagnostics;
 using Microsoft.Maui.Graphics;
 
 namespace Microsoft.Maui.Controls
@@ -57,7 +58,9 @@ namespace Microsoft.Maui.Controls
 		[Obsolete("Use MeasureOverride instead")]
 		protected override SizeRequest OnMeasure(double widthConstraint, double heightConstraint)
 		{
-			return new SizeRequest(new Size(40, 40));
+			var result = new SizeRequest(new Size(40, 40));
+			System.Diagnostics.Debug.WriteLine($"[BoxView.Measure] id={GetHashCode()} Constraints=({widthConstraint},{heightConstraint}) Result={result.Request} CornerRadius={CornerRadius} Color={Color}", "MAUI-Layout");
+			return result;
 		}
 
 #nullable enable
@@ -65,6 +68,10 @@ namespace Microsoft.Maui.Controls
 		protected override void OnPropertyChanged([CallerMemberName] string? propertyName = null)
 		{
 			base.OnPropertyChanged(propertyName);
+			if (propertyName == WidthProperty.PropertyName || propertyName == HeightProperty.PropertyName || propertyName == ColorProperty.PropertyName || propertyName == CornerRadiusProperty.PropertyName || propertyName == BackgroundColorProperty.PropertyName)
+			{
+				System.Diagnostics.Debug.WriteLine($"[BoxView.PropertyChanged] id={GetHashCode()} Property={propertyName} Frame={Frame} DesiredSize={DesiredSize} CornerRadius={CornerRadius} Color={Color}", "MAUI-Layout");
+			}
 
 			if (propertyName == BackgroundColorProperty.PropertyName ||
 				propertyName == ColorProperty.PropertyName ||
@@ -96,6 +103,7 @@ namespace Microsoft.Maui.Controls
 
 		PathF IShape.PathForBounds(Rect bounds)
 		{
+			System.Diagnostics.Debug.WriteLine($"[BoxView.PathForBounds] id={GetHashCode()} Bounds={bounds} CornerRadius={CornerRadius}", "MAUI-Layout");
 			var path = new PathF();
 
 			path.AppendRoundedRectangle(
@@ -107,6 +115,7 @@ namespace Microsoft.Maui.Controls
 
 			return path;
 		}
+#nullable enable
 #nullable disable
 
 	}

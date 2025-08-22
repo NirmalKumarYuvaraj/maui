@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Primitives;
@@ -11,6 +12,7 @@ namespace Microsoft.Maui.Layouts
 		public static Size ComputeDesiredSize(this IView view, double widthConstraint, double heightConstraint)
 		{
 			_ = view ?? throw new ArgumentNullException(nameof(view));
+			System.Diagnostics.Debug.WriteLine($"[LayoutExtensions.ComputeDesiredSize] view={view.GetType().Name}#{view.GetHashCode()} Constraints=({widthConstraint},{heightConstraint}) Margin={view.Margin}", "MAUI-Layout");
 
 			if (view.Handler == null)
 			{
@@ -27,13 +29,16 @@ namespace Microsoft.Maui.Layouts
 			var measureWithoutMargins = view.Handler.GetDesiredSize(widthConstraint, heightConstraint);
 
 			// Account for the margins when reporting the desired size value
-			return new Size(measureWithoutMargins.Width + margin.HorizontalThickness,
+			var result = new Size(measureWithoutMargins.Width + margin.HorizontalThickness,
 				measureWithoutMargins.Height + margin.VerticalThickness);
+			System.Diagnostics.Debug.WriteLine($"[LayoutExtensions.ComputeDesiredSize] view={view.GetType().Name}#{view.GetHashCode()} Result={result} MeasureCore={measureWithoutMargins}", "MAUI-Layout");
+			return result;
 		}
 
 		public static Rect ComputeFrame(this IView view, Rect bounds)
 		{
 			Thickness margin = view.Margin;
+			System.Diagnostics.Debug.WriteLine($"[LayoutExtensions.ComputeFrame] view={view.GetType().Name}#{view.GetHashCode()} Bounds={bounds} Desired={view.DesiredSize} Margin={margin} HAlign={view.HorizontalLayoutAlignment} VAlign={view.VerticalLayoutAlignment}", "MAUI-Layout");
 
 			// We need to determine the width the element wants to consume; normally that's the element's DesiredSize.Width
 			var consumedWidth = view.DesiredSize.Width;
@@ -66,7 +71,9 @@ namespace Microsoft.Maui.Layouts
 			var frameX = AlignHorizontal(view, bounds, margin);
 			var frameY = AlignVertical(view, bounds, margin);
 
-			return new Rect(frameX, frameY, frameWidth, frameHeight);
+			var frame = new Rect(frameX, frameY, frameWidth, frameHeight);
+			System.Diagnostics.Debug.WriteLine($"[LayoutExtensions.ComputeFrame] view={view.GetType().Name}#{view.GetHashCode()} Frame={frame}", "MAUI-Layout");
+			return frame;
 		}
 
 		static double AlignHorizontal(IView view, Rect bounds, Thickness margin)
@@ -84,7 +91,9 @@ namespace Microsoft.Maui.Layouts
 				desiredWidth = IsExplicitSet(view.Width) ? desiredWidth : Math.Min(bounds.Width, view.MaximumWidth);
 			}
 
-			return AlignHorizontal(bounds.X, margin.Left, margin.Right, bounds.Width, desiredWidth, alignment);
+			var x = AlignHorizontal(bounds.X, margin.Left, margin.Right, bounds.Width, desiredWidth, alignment);
+			System.Diagnostics.Debug.WriteLine($"[LayoutExtensions.AlignHorizontal] view={view.GetType().Name}#{view.GetHashCode()} Alignment={alignment} DesiredWidth={desiredWidth} ResultX={x}", "MAUI-Layout");
+			return x;
 		}
 
 		static double AlignHorizontal(double startX, double startMargin, double endMargin, double boundsWidth,
@@ -134,6 +143,7 @@ namespace Microsoft.Maui.Layouts
 					break;
 			}
 
+			System.Diagnostics.Debug.WriteLine($"[LayoutExtensions.AlignVertical] view={view.GetType().Name}#{view.GetHashCode()} Alignment={alignment} DesiredHeight={desiredHeight} ResultY={frameY}", "MAUI-Layout");
 			return frameY;
 		}
 
@@ -145,6 +155,7 @@ namespace Microsoft.Maui.Layouts
 		public static Size MeasureContent(this IContentView contentView, Thickness inset, double widthConstraint, double heightConstraint)
 		{
 			var content = contentView.PresentedContent;
+			System.Diagnostics.Debug.WriteLine($"[LayoutExtensions.MeasureContent] view={contentView.GetType().Name}#{contentView.GetHashCode()} Content={(content as IView)?.GetType().Name} Inset={inset} Constraints=({widthConstraint},{heightConstraint})", "MAUI-Layout");
 
 			if (Dimension.IsExplicitSet(contentView.Width))
 			{
@@ -164,7 +175,9 @@ namespace Microsoft.Maui.Layouts
 					heightConstraint - inset.VerticalThickness);
 			}
 
-			return new Size(contentSize.Width + inset.HorizontalThickness, contentSize.Height + inset.VerticalThickness);
+			var total = new Size(contentSize.Width + inset.HorizontalThickness, contentSize.Height + inset.VerticalThickness);
+			System.Diagnostics.Debug.WriteLine($"[LayoutExtensions.MeasureContent] view={contentView.GetType().Name}#{contentView.GetHashCode()} Result={total} ContentCore={contentSize}", "MAUI-Layout");
+			return total;
 		}
 
 		public static void ArrangeContent(this IContentView contentView, Rect bounds)
@@ -173,6 +186,7 @@ namespace Microsoft.Maui.Layouts
 			{
 				return;
 			}
+			System.Diagnostics.Debug.WriteLine($"[LayoutExtensions.ArrangeContent] view={contentView.GetType().Name}#{contentView.GetHashCode()} Bounds={bounds} Padding={contentView.Padding}", "MAUI-Layout");
 
 			var padding = contentView.Padding;
 
@@ -180,10 +194,13 @@ namespace Microsoft.Maui.Layouts
 				bounds.Width - padding.HorizontalThickness, bounds.Height - padding.VerticalThickness);
 
 			_ = contentView.PresentedContent.Arrange(targetBounds);
+			if (contentView.PresentedContent is IView cv)
+				System.Diagnostics.Debug.WriteLine($"[LayoutExtensions.ArrangeContent] ContentFrame={cv.Frame} TargetBounds={targetBounds}", "MAUI-Layout");
 		}
 
 		public static Size AdjustForFill(this Size size, Rect bounds, IView view)
 		{
+			var original = size;
 			if (view.HorizontalLayoutAlignment == LayoutAlignment.Fill)
 			{
 				size.Width = Math.Max(bounds.Width, size.Width);
@@ -194,6 +211,7 @@ namespace Microsoft.Maui.Layouts
 				size.Height = Math.Max(bounds.Height, size.Height);
 			}
 
+			System.Diagnostics.Debug.WriteLine($"[LayoutExtensions.AdjustForFill] view={view.GetType().Name}#{view.GetHashCode()} Original={original} Adjusted={size} Bounds={bounds}", "MAUI-Layout");
 			return size;
 		}
 
@@ -210,6 +228,7 @@ namespace Microsoft.Maui.Layouts
 		public static Size ArrangeContentUnbounded(this IContentView contentView, Rect bounds)
 		{
 			var presentedContent = contentView.PresentedContent;
+			System.Diagnostics.Debug.WriteLine($"[LayoutExtensions.ArrangeContentUnbounded] view={contentView.GetType().Name}#{contentView.GetHashCode()} InitialBounds={bounds} Padding={contentView.Padding} Presented={(presentedContent as IView)?.GetType().Name}", "MAUI-Layout");
 
 			if (presentedContent == null)
 			{
@@ -227,7 +246,10 @@ namespace Microsoft.Maui.Layouts
 
 			contentView.ArrangeContent(bounds);
 
+			System.Diagnostics.Debug.WriteLine($"[LayoutExtensions.ArrangeContentUnbounded] view={contentView.GetType().Name}#{contentView.GetHashCode()} FinalBounds={bounds} ContentDesired={presentedContent.DesiredSize}", "MAUI-Layout");
 			return bounds.Size;
 		}
+
+
 	}
 }

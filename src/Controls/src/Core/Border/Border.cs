@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Diagnostics;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Layouts;
@@ -261,21 +262,37 @@ namespace Microsoft.Maui.Controls
 
 		public Size CrossPlatformArrange(Graphics.Rect bounds)
 		{
+			System.Diagnostics.Debug.WriteLine($"[Border.Arrange] id={GetHashCode()} IncomingBounds={bounds} StrokeThickness={StrokeThickness} Padding={Padding} HasContent={Content != null}", "MAUI-Layout");
 			var inset = bounds.Inset(StrokeThickness);
 			this.ArrangeContent(inset);
+			System.Diagnostics.Debug.WriteLine($"[Border.Arrange] id={GetHashCode()} InsetBounds={inset} FinalContentFrame={(Content as IView)?.Frame} StrokeShape={StrokeShape?.GetType().Name} StrokeDashPatternLen={StrokeDashPattern?.Length ?? 0}", "MAUI-Layout");
+			if (Content is IView pc)
+			{
+				var overRight = (pc.Frame.Right) - (Frame.Right);
+				var overBottom = (pc.Frame.Bottom) - (Frame.Bottom);
+				if (overRight > 0 || overBottom > 0)
+					System.Diagnostics.Debug.WriteLine($"[Border.Arrange][Overflow] id={GetHashCode()} Content overflows Border by Right={overRight} Bottom={overBottom} (BorderFrame={Frame} ContentFrame={pc.Frame})", "MAUI-Layout");
+			}
 			return bounds.Size;
 		}
 
 		public Size CrossPlatformMeasure(double widthConstraint, double heightConstraint)
 		{
 			var inset = Padding + StrokeThickness;
-			return this.MeasureContent(inset, widthConstraint, heightConstraint);
+			var result = this.MeasureContent(inset, widthConstraint, heightConstraint);
+			System.Diagnostics.Debug.WriteLine($"[Border.Measure] id={GetHashCode()} Constraints=({widthConstraint},{heightConstraint}) StrokeThickness={StrokeThickness} Padding={Padding} Inset(H+V)=({inset.HorizontalThickness},{inset.VerticalThickness}) Result={result}", "MAUI-Layout");
+			if (Content is IView pc)
+			{
+				System.Diagnostics.Debug.WriteLine($"[Border.Measure] id={GetHashCode()} PresentedContent Desired={pc.DesiredSize} Margin={pc.Margin} Alignment=({pc.HorizontalLayoutAlignment},{pc.VerticalLayoutAlignment})", "MAUI-Layout");
+			}
+			return result;
 		}
 
 		public static void ContentChanged(BindableObject bindable, object oldValue, object newValue)
 		{
 			if (bindable is Border border)
 			{
+				System.Diagnostics.Debug.WriteLine($"[Border.ContentChanged] id={border.GetHashCode()} Old={(oldValue as View)?.GetType().Name ?? "null"} New={(newValue as View)?.GetType().Name ?? "null"}", "MAUI-Layout");
 				if (oldValue is Element oldElement)
 				{
 					border.RemoveLogicalChild(oldElement);
@@ -292,6 +309,8 @@ namespace Microsoft.Maui.Controls
 
 		public static void StrokeThicknessChanged(BindableObject bindable, object oldValue, object newValue)
 		{
+			if (bindable is Border b)
+				System.Diagnostics.Debug.WriteLine($"[Border.StrokeThicknessChanged] id={b.GetHashCode()} Old={oldValue} New={newValue}", "MAUI-Layout");
 			((IBorderView)bindable).InvalidateMeasure();
 		}
 
@@ -308,6 +327,10 @@ namespace Microsoft.Maui.Controls
 		protected override void OnPropertyChanged([CallerMemberName] string? propertyName = null)
 		{
 			base.OnPropertyChanged(propertyName);
+			if (propertyName == WidthProperty.PropertyName || propertyName == HeightProperty.PropertyName || propertyName == StrokeThicknessProperty.PropertyName || propertyName == StrokeShapeProperty.PropertyName || propertyName == PaddingProperty.PropertyName)
+			{
+				System.Diagnostics.Debug.WriteLine($"[Border.PropertyChanged] id={GetHashCode()} Property={propertyName} Frame={Frame} StrokeThickness={StrokeThickness} Padding={Padding} DesiredSize={DesiredSize}", "MAUI-Layout");
+			}
 
 			if (propertyName == StrokeThicknessProperty.PropertyName || propertyName == StrokeShapeProperty.PropertyName)
 			{
@@ -327,6 +350,7 @@ namespace Microsoft.Maui.Controls
 
 		void UpdateStrokeShape()
 		{
+			System.Diagnostics.Debug.WriteLine($"[Border.UpdateStrokeShape] id={GetHashCode()} StrokeShape={StrokeShape?.GetType().Name} StrokeThickness={StrokeThickness}", "MAUI-Layout");
 			if (StrokeShape is Shape strokeShape && StrokeThickness == 0)
 			{
 				strokeShape.StrokeThickness = StrokeThickness;
