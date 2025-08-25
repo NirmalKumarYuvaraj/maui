@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+       xmlns:local="clr-namespace:Maui.Controls.Sample"
+       x:Class="Maui.Controls.Sample.EdgeToEdgeShellBottomTabs"
+       Title="Edge-to-Edge Shell Bottom Tabs"
+       Shell.TabBarBackgroundColor="Navy"
+       Shell.TabBarForegroundColor="White"
+       Shell.TabBarTitleColor="White"
+       Shell.TabBarUnselectedColor="LightGray">
+
+    <ShellContent Title="Tab 1"
+                  Icon="tab1.png"
+                  ContentTemplate="{DataTemplate local:EdgeToEdgeTestPageForShell}"
+                  Shell.TabBarIsVisible="True"/>
+
+    <ShellContent Title="Tab 2"
+                  Icon="tab2.png"
+                  ContentTemplate="{DataTemplate local:EdgeToEdgeTestPageForShell}"
+                  Shell.TabBarIsVisible="True"/>
+
+    <ShellContent Title="Tab 3"
+                  Icon="tab3.png"
+                  ContentTemplate="{DataTemplate local:EdgeToEdgeTestPageForShell}"
+                  Shell.TabBarIsVisible="True"/>
+
+    <Shell.ToolbarItems>
+        <ToolbarItem Text="Reset"
+                     Command="{Binding ResetCommand}"/>
+    </Shell.ToolbarItems>
+
+</Shell>

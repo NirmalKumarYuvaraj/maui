@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Maui.Controls.Sample.EdgeToEdgeTestPage"
+             BackgroundColor="LightBlue">
+       <ScrollView>
+              <StackLayout Padding="20"
+                           Spacing="15">
+                     <Label x:Name="ScenarioTitle"
+                            FontSize="20"
+                            FontAttributes="Bold"
+                            HorizontalOptions="Center"
+                            TextColor="DarkBlue"
+                            Margin="0,20,0,10"/>
+
+                     <Label Text="Edge-to-Edge Test Instructions:"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            TextColor="DarkRed"/>
+
+                     <Label Text="1. Check if content extends behind status bar (top edge)"
+                            FontSize="14"/>
+
+                     <Label Text="2. Check if content extends behind navigation bar (bottom edge)"
+                            FontSize="14"/>
+
+                     <Label Text="3. Verify proper padding/margins are applied to avoid overlapping system UI"
+                            FontSize="14"/>
+
+                     <Label Text="4. Test orientation changes (portrait ↔ landscape)"
+                            FontSize="14"/>
+
+                     <Label Text="5. Check gesture navigation vs button navigation behavior"
+                            FontSize="14"/>
+
+
+                     <!-- Navigation Buttons -->
+                     <StackLayout Orientation="Horizontal"
+                                  HorizontalOptions="Center"
+                                  Spacing="10"
+                                  Margin="0,30,0,0">
+                            <Button Text="Back"
+                                    BackgroundColor="Gray"
+                                    TextColor="White"
+                                    Clicked="OnBackClicked"/>
+
+                            <Button Text="Close Modal"
+                                    BackgroundColor="Red"
+                                    TextColor="White"
+                                    Clicked="OnCloseModalClicked"/>
+                     </StackLayout>
+              </StackLayout>
+       </ScrollView>
+</ContentPage>

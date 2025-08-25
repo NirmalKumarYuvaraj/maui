@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<FlyoutPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:local="clr-namespace:Maui.Controls.Sample"
+            x:Class="Maui.Controls.Sample.EdgeToEdgeFlyoutPage"
+            Title="Edge-to-Edge Flyout Page">
+
+    <FlyoutPage.Flyout>
+        <ContentPage Title="Menu"
+                     BackgroundColor="LightGray">
+            <StackLayout Padding="20">
+                <Label Text="Flyout Menu"
+                       FontSize="20"
+                       FontAttributes="Bold"
+                       Margin="0,20,0,30"/>
+                <Button Text="Page 1"
+                        x:Name="Page1Button"
+                        Clicked="OnPage1Clicked"/>
+                <Button Text="Page 2"
+                        x:Name="Page2Button"
+                        Clicked="OnPage2Clicked"/>
+                <Button Text="Page 3"
+                        x:Name="Page3Button"
+                        Clicked="OnPage3Clicked"/>
+                <Button Text="Close"
+                        BackgroundColor="Red"
+                        TextColor="White"
+                        Clicked="OnCloseClicked"
+                        Margin="0,20,0,0"/>
+            </StackLayout>
+        </ContentPage>
+    </FlyoutPage.Flyout>
+
+    <FlyoutPage.Detail>
+        <NavigationPage>
+            <x:Arguments>
+                <local:EdgeToEdgeTestPage>
+                    <x:Arguments>
+                        <x:String>Flyout Page - Detail</x:String>
+                    </x:Arguments>
+                </local:EdgeToEdgeTestPage>
+            </x:Arguments>
+        </NavigationPage>
+    </FlyoutPage.Detail>
+
+</FlyoutPage>

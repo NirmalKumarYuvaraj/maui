@@ -4,6 +4,7 @@ using Android.Graphics;
 using Android.Runtime;
 using Android.Util;
 using Android.Views;
+using AndroidX.Core.View;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Graphics.Platform;
 
@@ -17,6 +18,7 @@ namespace Microsoft.Maui.Platform
 		public ContentViewGroup(Context context) : base(context)
 		{
 			_context = context;
+			SetupWindowInsetsHandling();
 		}
 
 		public ContentViewGroup(IntPtr javaReference, JniHandleOwnership transfer) : base(javaReference, transfer)
@@ -39,6 +41,11 @@ namespace Microsoft.Maui.Platform
 		public ContentViewGroup(Context context, IAttributeSet attrs, int defStyleAttr, int defStyleRes) : base(context, attrs, defStyleAttr, defStyleRes)
 		{
 			_context = context;
+		}
+
+		void SetupWindowInsetsHandling()
+		{
+			ViewCompat.SetOnApplyWindowInsetsListener(this, new WindowsListener());
 		}
 
 		public ICrossPlatformLayout? CrossPlatformLayout
@@ -142,6 +149,38 @@ namespace Microsoft.Maui.Platform
 			}
 
 			return null;
+		}
+	}
+
+	internal class WindowsListener : Java.Lang.Object, IOnApplyWindowInsetsListener
+	{
+		public WindowInsetsCompat? OnApplyWindowInsets(View? v, WindowInsetsCompat? insets)
+		{
+			if (insets == null || v == null)
+			{
+				return insets;
+			}
+
+			var systemBars = insets.GetInsets(WindowInsetsCompat.Type.SystemBars());
+			var displayCutout = insets.GetInsets(WindowInsetsCompat.Type.DisplayCutout());
+
+			if (systemBars == null && displayCutout == null)
+			{
+				return insets;
+			}
+
+			// Calculate padding to apply to content - use the maximum of system bars and display cutouts
+			var leftPadding = Math.Max(systemBars?.Left ?? 0, displayCutout?.Left ?? 0);
+			var topPadding = Math.Max(systemBars?.Top ?? 0, displayCutout?.Top ?? 0);
+			var rightPadding = Math.Max(systemBars?.Right ?? 0, displayCutout?.Right ?? 0);
+			var bottomPadding = Math.Max(systemBars?.Bottom ?? 0, displayCutout?.Bottom ?? 0);
+
+			// Apply padding to the ContentViewGroup itself so the content inside respects insets
+			// while the background can still extend edge-to-edge
+			v.SetPadding(leftPadding, topPadding, rightPadding, bottomPadding);
+
+			// Consume the insets since we've handled them
+			return WindowInsetsCompat.Consumed;
 		}
 	}
 }

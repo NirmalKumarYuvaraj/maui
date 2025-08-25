@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+       xmlns:local="clr-namespace:Maui.Controls.Sample"
+       x:Class="Maui.Controls.Sample.EdgeToEdgeShellFlyout"
+       Title="Edge-to-Edge Shell Flyout">
+
+    <Shell.FlyoutHeader>
+        <Grid BackgroundColor="DarkBlue"
+              HeightRequest="150">
+            <Label Text="Shell Flyout Header"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   TextColor="White"
+                   VerticalOptions="Center"
+                   HorizontalOptions="Center"/>
+        </Grid>
+    </Shell.FlyoutHeader>
+
+    <FlyoutItem Title="Home"
+                Icon="home.png">
+        <ShellContent Title="Home"
+                      ContentTemplate="{DataTemplate local:EdgeToEdgeTestPageForShell}"/>
+    </FlyoutItem>
+
+    <FlyoutItem Title="Settings"
+                Icon="settings.png">
+        <ShellContent Title="Settings"
+                      ContentTemplate="{DataTemplate local:EdgeToEdgeTestPageForShell}"/>
+    </FlyoutItem>
+
+    <FlyoutItem Title="About"
+                Icon="info.png">
+        <ShellContent Title="About"
+                      ContentTemplate="{DataTemplate local:EdgeToEdgeTestPageForShell}"/>
+    </FlyoutItem>
+
+    <MenuItem Text="Reset to Main"
+              StyleClass="MenuItemLayoutStyle"
+              Clicked="OnResetToMainClicked"/>
+
+</Shell>

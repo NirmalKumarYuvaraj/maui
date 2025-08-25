@@ -1,6 +1,133 @@
 ﻿<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Maui.Controls.Sample.MainPage"
-             Title="Home page"
-             xmlns:local="clr-namespace:Maui.Controls.Sample">
+             xmlns:local="clr-namespace:Maui.Controls.Sample"
+             BackgroundColor="LightBlue"
+             Title="Edge-to-Edge Test Suite">
+        <ScrollView>
+                <StackLayout Padding="20"
+                             Spacing="10">
+                        <Label Text="Android Edge-to-Edge Test Suite"
+                               FontSize="24"
+                               FontAttributes="Bold"
+                               HorizontalOptions="Center"
+                               Margin="0,20,0,30"/>
+
+                        <!-- Navigation Page Scenarios -->
+                        <Label Text="Navigation Page Scenarios"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="Blue"
+                               Margin="0,10,0,5"/>
+
+                        <Button Text="Default Navigation Page"
+                                x:Name="DefaultNavigationPageBtn"
+                                Clicked="OnDefaultNavigationPageClicked"/>
+
+                        <Button Text="Navigation Page + BarBackgroundColor"
+                                x:Name="NavigationPageBarBackgroundColorBtn"
+                                Clicked="OnNavigationPageBarBackgroundColorClicked"/>
+
+                        <Button Text="Navigation Page + BarBackground"
+                                x:Name="NavigationPageBarBackgroundBtn"
+                                Clicked="OnNavigationPageBarBackgroundClicked"/>
+
+                        <Button Text="Navigation Page + ToolBar Items"
+                                x:Name="NavigationPageToolBarItemsBtn"
+                                Clicked="OnNavigationPageToolBarItemsClicked"/>
+
+                        <Button Text="Navigation Page + HasNavigationBar=False"
+                                x:Name="NavigationPageNoBarBtn"
+                                Clicked="OnNavigationPageNoBarClicked"/>
+
+                        <!-- Modal Navigation Page Scenarios -->
+                        <Label Text="Modal Navigation Page Scenarios"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="Green"
+                               Margin="0,20,0,5"/>
+
+                        <Button Text="Default Modal Navigation Page"
+                                x:Name="DefaultModalNavigationPageBtn"
+                                Clicked="OnDefaultModalNavigationPageClicked"/>
+
+                        <Button Text="Modal Navigation Page + BarBackgroundColor"
+                                x:Name="ModalNavigationPageBarBackgroundColorBtn"
+                                Clicked="OnModalNavigationPageBarBackgroundColorClicked"/>
+
+                        <Button Text="Modal Navigation Page + BarBackground"
+                                x:Name="ModalNavigationPageBarBackgroundBtn"
+                                Clicked="OnModalNavigationPageBarBackgroundClicked"/>
+
+                        <Button Text="Modal Navigation Page + ToolBar Items"
+                                x:Name="ModalNavigationPageToolBarItemsBtn"
+                                Clicked="OnModalNavigationPageToolBarItemsClicked"/>
+
+                        <Button Text="Modal Navigation Page + HasNavigationBar=False"
+                                x:Name="ModalNavigationPageNoBarBtn"
+                                Clicked="OnModalNavigationPageNoBarClicked"/>
+
+                        <!-- Page Type Scenarios -->
+                        <Label Text="Page Type Scenarios"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="Purple"
+                               Margin="0,20,0,5"/>
+
+                        <Button Text="Default Tabbed Page"
+                                x:Name="DefaultTabbedPageBtn"
+                                Clicked="OnDefaultTabbedPageClicked"/>
+
+                        <Button Text="Default Flyout Page"
+                                x:Name="DefaultFlyoutPageBtn"
+                                Clicked="OnDefaultFlyoutPageClicked"/>
+
+                        <!-- Shell Scenarios -->
+                        <Label Text="Shell Scenarios"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="Red"
+                               Margin="0,20,0,5"/>
+
+                        <Button Text="Shell with Flyout"
+                                x:Name="ShellFlyoutBtn"
+                                Clicked="OnShellFlyoutClicked"/>
+
+                        <Button Text="Shell with TabBar"
+                                x:Name="ShellTabBarBtn"
+                                Clicked="OnShellTabBarClicked"/>
+
+                        <Button Text="Shell with Bottom Tabs"
+                                x:Name="ShellBottomTabsBtn"
+                                Clicked="OnShellBottomTabsClicked"/>
+
+                        <Button Text="Shell with Top Tabs"
+                                x:Name="ShellTopTabsBtn"
+                                Clicked="OnShellTopTabsClicked"/>
+
+                        <Button Text="Shell + NavBarIsVisible=False"
+                                x:Name="ShellNoNavBarBtn"
+                                Clicked="OnShellNoNavBarClicked"/>
+
+                        <Button Text="Shell + NavBarHasShadow=True"
+                                x:Name="ShellNavBarShadowBtn"
+                                Clicked="OnShellNavBarShadowClicked"/>
+
+                        <Button Text="Shell + Background Color"
+                                x:Name="ShellBackgroundColorBtn"
+                                Clicked="OnShellBackgroundColorClicked"/>
+
+                        <!-- Test Controls -->
+                        <Label Text="Test Controls"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="Orange"
+                               Margin="0,20,0,5"/>
+
+                        <Button Text="Reset to Main Menu"
+                                x:Name="ResetBtn"
+                                Clicked="OnResetClicked"
+                                BackgroundColor="LightGray"/>
+                </StackLayout>
+        </ScrollView>
 </ContentPage>
