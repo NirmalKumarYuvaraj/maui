@@ -136,101 +136,16 @@ namespace Microsoft.Maui.Controls.Platform
 					nativeToolbar.BackgroundTintMode = PorterDuff.Mode.Src;
 					nativeToolbar.BackgroundTintList = ColorStateList.ValueOf(tintColor.ToPlatform());
 				}
-
-				// Update the parent AppBarLayout background to match the toolbar
-				UpdateAppBarLayoutBackground(nativeToolbar, tintColor);
 			}
 			else
 			{
 				nativeToolbar.UpdateBackground(barBackground);
 
 				if (Brush.IsNullOrEmpty(barBackground))
-				{
 					nativeToolbar.BackgroundTintMode = null;
-					// Reset AppBarLayout to default when brush is empty
-					UpdateAppBarLayoutBackground(nativeToolbar, null);
-				}
-				else
-				{
-					// For non-solid brushes, apply the same brush to AppBarLayout
-					UpdateAppBarLayoutBackground(nativeToolbar, barBackground);
-				}
 			}
 		}
 
-		private static void UpdateAppBarLayoutBackground(AToolbar nativeToolbar, Color? color)
-		{
-			// Find the parent AppBarLayout
-			var appBarLayout = FindParentAppBarLayout(nativeToolbar);
-
-			if (appBarLayout != null)
-			{
-				if (color == null)
-				{
-					// Reset to default theme color
-					appBarLayout.BackgroundTintMode = null;
-					appBarLayout.BackgroundTintList = null;
-				}
-				else
-				{
-					appBarLayout.BackgroundTintMode = PorterDuff.Mode.Src;
-					appBarLayout.BackgroundTintList = ColorStateList.ValueOf(color.ToPlatform());
-				}
-			}
-		}
-
-		private static void UpdateAppBarLayoutBackground(AToolbar nativeToolbar, Brush? brush)
-		{
-			// Find the parent AppBarLayout
-			var appBarLayout = FindParentAppBarLayout(nativeToolbar);
-
-			if (appBarLayout != null)
-			{
-				if (Brush.IsNullOrEmpty(brush))
-				{
-					// Reset to default
-					appBarLayout.BackgroundTintMode = null;
-					appBarLayout.BackgroundTintList = null;
-					appBarLayout.Background = null;
-				}
-				else
-				{
-					// Apply the brush to the AppBarLayout
-					appBarLayout.UpdateBackground(brush);
-				}
-			}
-		}
-
-		private static Google.Android.Material.AppBar.AppBarLayout? FindParentAppBarLayout(AView view)
-		{
-			var parent = view.Parent;
-			while (parent != null)
-			{
-				if (parent is Google.Android.Material.AppBar.AppBarLayout appBarLayout)
-					return appBarLayout;
-
-				parent = parent.Parent;
-			}
-
-			// Alternative: Try to find by ID if direct parent traversal doesn't work
-			var context = view.Context;
-
-			// First try to find in the current view's root view
-			if (view.RootView is ViewGroup rootView)
-			{
-				var appBarLayoutById = rootView.FindViewById<Google.Android.Material.AppBar.AppBarLayout>(Resource.Id.navigationlayout_appbar);
-				if (appBarLayoutById != null)
-					return appBarLayoutById;
-			}
-
-			// Then try using the activity context
-			if (context is AndroidX.AppCompat.App.AppCompatActivity activity)
-			{
-				return activity.FindViewById<Google.Android.Material.AppBar.AppBarLayout>(Resource.Id.navigationlayout_appbar);
-			}
-
-			return null;
-		}
 		public static void UpdateIconColor(this AToolbar nativeToolbar, Toolbar toolbar)
 		{
 			var navIconColor = toolbar.IconColor;
