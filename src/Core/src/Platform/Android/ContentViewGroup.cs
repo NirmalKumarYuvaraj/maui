@@ -84,12 +84,10 @@ namespace Microsoft.Maui.Platform
 			var deviceIndependentWidth = widthMeasureSpec.ToDouble(_context);
 			var deviceIndependentHeight = heightMeasureSpec.ToDouble(_context);
 
-			System.Diagnostics.Debug.WriteLine($"[edgeToEdge] ContentViewGroup.OnMeasure - Original constraints: {deviceIndependentWidth}x{deviceIndependentHeight}");
-
 			var widthMode = MeasureSpec.GetMode(widthMeasureSpec);
 			var heightMode = MeasureSpec.GetMode(heightMeasureSpec);
 
-			// Adjust measurement constraints based on current insets
+			// Always adjust measurement constraints for content when we have insets
 			var measureWidth = deviceIndependentWidth;
 			var measureHeight = deviceIndependentHeight;
 
@@ -100,21 +98,15 @@ namespace Microsoft.Maui.Platform
 				var rightInsetDp = _context.FromPixels(_currentInsets.Right);
 				var bottomInsetDp = _context.FromPixels(_currentInsets.Bottom);
 
-				System.Diagnostics.Debug.WriteLine($"[edgeToEdge] ContentViewGroup.OnMeasure - Insets: L={leftInsetDp}, T={topInsetDp}, R={rightInsetDp}, B={bottomInsetDp}");
-
-				// Reduce available space by insets for measurement
+				// Always reduce available space by insets for content measurement
 				measureWidth = Math.Max(0, deviceIndependentWidth - leftInsetDp - rightInsetDp);
 				measureHeight = Math.Max(0, deviceIndependentHeight - topInsetDp - bottomInsetDp);
-
-				System.Diagnostics.Debug.WriteLine($"[edgeToEdge] ContentViewGroup.OnMeasure - Adjusted constraints: {measureWidth}x{measureHeight}");
 			}
 
 			var measure = CrossPlatformMeasure(measureWidth, measureHeight);
 
-			System.Diagnostics.Debug.WriteLine($"[edgeToEdge] ContentViewGroup.OnMeasure - Content measured size: {measure.Width}x{measure.Height}");
-
-			// If the measure spec was exact, we should return the explicit size value, even if the content
-			// measure came out to a different size
+			// For the container size, always use original constraints in Exactly mode
+			// In other modes, use the content size (which respects insets through arrangement)
 			var width = widthMode == MeasureSpecMode.Exactly ? deviceIndependentWidth : measure.Width;
 			var height = heightMode == MeasureSpecMode.Exactly ? deviceIndependentHeight : measure.Height;
 
@@ -124,8 +116,6 @@ namespace Microsoft.Maui.Platform
 			// Minimum values win over everything
 			platformWidth = Math.Max(MinimumWidth, platformWidth);
 			platformHeight = Math.Max(MinimumHeight, platformHeight);
-
-			System.Diagnostics.Debug.WriteLine($"[edgeToEdge] ContentViewGroup.OnMeasure - Final measured size: {platformWidth}x{platformHeight}");
 
 			SetMeasuredDimension((int)platformWidth, (int)platformHeight);
 		}
@@ -140,8 +130,6 @@ namespace Microsoft.Maui.Platform
 			// Start with the full bounds of the container (edge-to-edge)
 			var destination = _context.ToCrossPlatformRectInReferenceFrame(left, top, right, bottom);
 
-			System.Diagnostics.Debug.WriteLine($"[edgeToEdge] ContentViewGroup.OnLayout - Full bounds: {destination}");
-
 			// If we have insets, adjust the content area to respect them
 			if (_currentInsets != null)
 			{
@@ -149,8 +137,6 @@ namespace Microsoft.Maui.Platform
 				var topInsetDp = _context.FromPixels(_currentInsets.Top);
 				var rightInsetDp = _context.FromPixels(_currentInsets.Right);
 				var bottomInsetDp = _context.FromPixels(_currentInsets.Bottom);
-
-				System.Diagnostics.Debug.WriteLine($"[edgeToEdge] ContentViewGroup.OnLayout - Insets: L={leftInsetDp}, T={topInsetDp}, R={rightInsetDp}, B={bottomInsetDp}");
 
 				// Create a new rect that is inset by the safe area amounts
 				var safeDestination = new Graphics.Rect(
@@ -160,14 +146,11 @@ namespace Microsoft.Maui.Platform
 					destination.Height - topInsetDp - bottomInsetDp
 				);
 
-				System.Diagnostics.Debug.WriteLine($"[edgeToEdge] ContentViewGroup.OnLayout - Safe bounds: {safeDestination}");
-
 				// Arrange the content in the safe area
 				CrossPlatformArrange(safeDestination);
 			}
 			else
 			{
-				System.Diagnostics.Debug.WriteLine($"[edgeToEdge] ContentViewGroup.OnLayout - No insets, using full bounds");
 				// No insets, use full bounds
 				CrossPlatformArrange(destination);
 			}
