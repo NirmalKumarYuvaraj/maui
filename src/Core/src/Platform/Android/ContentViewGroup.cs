@@ -14,6 +14,7 @@ namespace Microsoft.Maui.Platform
 	{
 		IBorderStroke? _clip;
 		readonly Context _context;
+		internal AndroidX.Core.Graphics.Insets? _currentInsets;
 
 		public ContentViewGroup(Context context) : base(context)
 		{
@@ -48,6 +49,15 @@ namespace Microsoft.Maui.Platform
 			ViewCompat.SetOnApplyWindowInsetsListener(this, new WindowsListener());
 		}
 
+		internal void SetWindowInsets(AndroidX.Core.Graphics.Insets? insets)
+		{
+			if (_currentInsets != insets)
+			{
+				_currentInsets = insets;
+				RequestLayout(); // Trigger a layout pass when insets change
+			}
+		}
+
 		public ICrossPlatformLayout? CrossPlatformLayout
 		{
 			get; set;
@@ -74,10 +84,34 @@ namespace Microsoft.Maui.Platform
 			var deviceIndependentWidth = widthMeasureSpec.ToDouble(_context);
 			var deviceIndependentHeight = heightMeasureSpec.ToDouble(_context);
 
+			System.Diagnostics.Debug.WriteLine($"[edgeToEdge] ContentViewGroup.OnMeasure - Original constraints: {deviceIndependentWidth}x{deviceIndependentHeight}");
+
 			var widthMode = MeasureSpec.GetMode(widthMeasureSpec);
 			var heightMode = MeasureSpec.GetMode(heightMeasureSpec);
 
-			var measure = CrossPlatformMeasure(deviceIndependentWidth, deviceIndependentHeight);
+			// Adjust measurement constraints based on current insets
+			var measureWidth = deviceIndependentWidth;
+			var measureHeight = deviceIndependentHeight;
+
+			if (_currentInsets != null)
+			{
+				var leftInsetDp = _context.FromPixels(_currentInsets.Left);
+				var topInsetDp = _context.FromPixels(_currentInsets.Top);
+				var rightInsetDp = _context.FromPixels(_currentInsets.Right);
+				var bottomInsetDp = _context.FromPixels(_currentInsets.Bottom);
+
+				System.Diagnostics.Debug.WriteLine($"[edgeToEdge] ContentViewGroup.OnMeasure - Insets: L={leftInsetDp}, T={topInsetDp}, R={rightInsetDp}, B={bottomInsetDp}");
+
+				// Reduce available space by insets for measurement
+				measureWidth = Math.Max(0, deviceIndependentWidth - leftInsetDp - rightInsetDp);
+				measureHeight = Math.Max(0, deviceIndependentHeight - topInsetDp - bottomInsetDp);
+
+				System.Diagnostics.Debug.WriteLine($"[edgeToEdge] ContentViewGroup.OnMeasure - Adjusted constraints: {measureWidth}x{measureHeight}");
+			}
+
+			var measure = CrossPlatformMeasure(measureWidth, measureHeight);
+
+			System.Diagnostics.Debug.WriteLine($"[edgeToEdge] ContentViewGroup.OnMeasure - Content measured size: {measure.Width}x{measure.Height}");
 
 			// If the measure spec was exact, we should return the explicit size value, even if the content
 			// measure came out to a different size
@@ -91,6 +125,8 @@ namespace Microsoft.Maui.Platform
 			platformWidth = Math.Max(MinimumWidth, platformWidth);
 			platformHeight = Math.Max(MinimumHeight, platformHeight);
 
+			System.Diagnostics.Debug.WriteLine($"[edgeToEdge] ContentViewGroup.OnMeasure - Final measured size: {platformWidth}x{platformHeight}");
+
 			SetMeasuredDimension((int)platformWidth, (int)platformHeight);
 		}
 
@@ -101,9 +137,40 @@ namespace Microsoft.Maui.Platform
 				return;
 			}
 
+			// Start with the full bounds of the container (edge-to-edge)
 			var destination = _context.ToCrossPlatformRectInReferenceFrame(left, top, right, bottom);
 
-			CrossPlatformArrange(destination);
+			System.Diagnostics.Debug.WriteLine($"[edgeToEdge] ContentViewGroup.OnLayout - Full bounds: {destination}");
+
+			// If we have insets, adjust the content area to respect them
+			if (_currentInsets != null)
+			{
+				var leftInsetDp = _context.FromPixels(_currentInsets.Left);
+				var topInsetDp = _context.FromPixels(_currentInsets.Top);
+				var rightInsetDp = _context.FromPixels(_currentInsets.Right);
+				var bottomInsetDp = _context.FromPixels(_currentInsets.Bottom);
+
+				System.Diagnostics.Debug.WriteLine($"[edgeToEdge] ContentViewGroup.OnLayout - Insets: L={leftInsetDp}, T={topInsetDp}, R={rightInsetDp}, B={bottomInsetDp}");
+
+				// Create a new rect that is inset by the safe area amounts
+				var safeDestination = new Graphics.Rect(
+					destination.X + leftInsetDp,
+					destination.Y + topInsetDp,
+					destination.Width - leftInsetDp - rightInsetDp,
+					destination.Height - topInsetDp - bottomInsetDp
+				);
+
+				System.Diagnostics.Debug.WriteLine($"[edgeToEdge] ContentViewGroup.OnLayout - Safe bounds: {safeDestination}");
+
+				// Arrange the content in the safe area
+				CrossPlatformArrange(safeDestination);
+			}
+			else
+			{
+				System.Diagnostics.Debug.WriteLine($"[edgeToEdge] ContentViewGroup.OnLayout - No insets, using full bounds");
+				// No insets, use full bounds
+				CrossPlatformArrange(destination);
+			}
 		}
 
 		internal IBorderStroke? Clip
@@ -156,7 +223,7 @@ namespace Microsoft.Maui.Platform
 	{
 		public WindowInsetsCompat? OnApplyWindowInsets(View? v, WindowInsetsCompat? insets)
 		{
-			if (insets == null || v == null)
+			if (insets == null || v == null || !(v is ContentViewGroup contentViewGroup))
 			{
 				return insets;
 			}
@@ -166,18 +233,24 @@ namespace Microsoft.Maui.Platform
 
 			if (systemBars == null && displayCutout == null)
 			{
+				contentViewGroup.SetWindowInsets(null);
 				return insets;
 			}
 
-			// Calculate padding to apply to content - use the maximum of system bars and display cutouts
-			var leftPadding = Math.Max(systemBars?.Left ?? 0, displayCutout?.Left ?? 0);
-			var topPadding = Math.Max(systemBars?.Top ?? 0, displayCutout?.Top ?? 0);
-			var rightPadding = Math.Max(systemBars?.Right ?? 0, displayCutout?.Right ?? 0);
-			var bottomPadding = Math.Max(systemBars?.Bottom ?? 0, displayCutout?.Bottom ?? 0);
+			// Calculate the maximum insets from system bars and display cutouts
+			var leftInset = Math.Max(systemBars?.Left ?? 0, displayCutout?.Left ?? 0);
+			var topInset = Math.Max(systemBars?.Top ?? 0, displayCutout?.Top ?? 0);
+			var rightInset = Math.Max(systemBars?.Right ?? 0, displayCutout?.Right ?? 0);
+			var bottomInset = Math.Max(systemBars?.Bottom ?? 0, displayCutout?.Bottom ?? 0);
 
-			// Apply padding to the ContentViewGroup itself so the content inside respects insets
-			// while the background can still extend edge-to-edge
-			v.SetPadding(leftPadding, topPadding, rightPadding, bottomPadding);
+			// Store the insets for use in layout arrangement
+			var combinedInsets = AndroidX.Core.Graphics.Insets.Of(
+				leftInset, topInset, rightInset, bottomInset);
+
+			contentViewGroup.SetWindowInsets(combinedInsets);
+
+			// Clear any padding since we're handling insets through layout arrangement
+			v.SetPadding(0, 0, 0, 0);
 
 			// Consume the insets since we've handled them
 			return WindowInsetsCompat.Consumed;
