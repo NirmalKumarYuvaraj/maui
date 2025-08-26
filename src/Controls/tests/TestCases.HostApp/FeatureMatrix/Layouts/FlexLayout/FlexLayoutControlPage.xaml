@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:Maui.Controls.Sample"
+             x:Class="Maui.Controls.Sample.FlexLayoutControlMainPage"
+             x:DataType="local:FlexLayoutViewModel"
+             Title="FlexLayoutControlPage">
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Options"
+                     Clicked="NavigateToOptionsPage_Clicked"
+                     AutomationId="Options"/>
+    </ContentPage.ToolbarItems>
+
+    <ScrollView Padding="10,20,10,20">
+        <StackLayout Spacing="10">
+            <!-- Main FlexLayout being tested -->
+            <Border BackgroundColor="LightGray"
+                    Padding="5">
+                <FlexLayout x:Name="TestFlexLayout"
+                            AutomationId="FlexLayoutControl"
+                            Direction="{Binding Direction}"
+                            JustifyContent="{Binding JustifyContent}"
+                            AlignContent="{Binding AlignContent}"
+                            AlignItems="{Binding AlignItems}"
+                            Position="{Binding Position}"
+                            Wrap="{Binding Wrap}"
+                            BackgroundColor="White"
+                            HeightRequest="200"
+                            WidthRequest="300"
+                            Margin="5">
+
+                    <!-- Child elements with different FlexLayout properties -->
+                    <Border BackgroundColor="Red"
+                            WidthRequest="60"
+                            HeightRequest="40"
+                            AutomationId="Child1">
+                        <Label Text="1"
+                               VerticalOptions="Center"
+                               HorizontalOptions="Center"
+                               FontSize="18"
+                               TextColor="White"/>
+                    </Border>
+
+                    <Border BackgroundColor="Green"
+                            WidthRequest="60"
+                            HeightRequest="40"
+                            AutomationId="Child2">
+                        <Label Text="2"
+                               VerticalOptions="Center"
+                               HorizontalOptions="Center"
+                               FontSize="18"
+                               TextColor="White"/>
+                    </Border>
+
+                    <Border BackgroundColor="Blue"
+                            WidthRequest="60"
+                            HeightRequest="40"
+                            AutomationId="Child3">
+                        <Label Text="3"
+                               VerticalOptions="Center"
+                               HorizontalOptions="Center"
+                               FontSize="18"
+                               TextColor="White"/>
+                    </Border>
+
+                    <Border BackgroundColor="Orange"
+                            WidthRequest="60"
+                            HeightRequest="40"
+                            AutomationId="Child4">
+                        <Label Text="4"
+                               VerticalOptions="Center"
+                               HorizontalOptions="Center"
+                               FontSize="18"
+                               TextColor="White"/>
+                    </Border>
+
+                    <Border BackgroundColor="Purple"
+                            WidthRequest="60"
+                            HeightRequest="40"
+                            AutomationId="Child5">
+                        <Label Text="5"
+                               VerticalOptions="Center"
+                               HorizontalOptions="Center"
+                               FontSize="18"
+                               TextColor="White"/>
+                    </Border>
+
+                </FlexLayout>
+            </Border>
+
+            <!-- Status information -->
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                  ColumnDefinitions="Auto,*"
+                  ColumnSpacing="10"
+                  RowSpacing="5">
+
+                <Label Grid.Row="0"
+                       Grid.Column="0"
+                       Text="Direction:"
+                       FontAttributes="Bold"/>
+                <Label Grid.Row="0"
+                       Grid.Column="1"
+                       Text="{Binding Direction}"
+                       AutomationId="DirectionLabel"/>
+
+                <Label Grid.Row="1"
+                       Grid.Column="0"
+                       Text="JustifyContent:"
+                       FontAttributes="Bold"/>
+                <Label Grid.Row="1"
+                       Grid.Column="1"
+                       Text="{Binding JustifyContent}"
+                       AutomationId="JustifyContentLabel"/>
+
+                <Label Grid.Row="2"
+                       Grid.Column="0"
+                       Text="AlignContent:"
+                       FontAttributes="Bold"/>
+                <Label Grid.Row="2"
+                       Grid.Column="1"
+                       Text="{Binding AlignContent}"
+                       AutomationId="AlignContentLabel"/>
+
+                <Label Grid.Row="3"
+                       Grid.Column="0"
+                       Text="AlignItems:"
+                       FontAttributes="Bold"/>
+                <Label Grid.Row="3"
+                       Grid.Column="1"
+                       Text="{Binding AlignItems}"
+                       AutomationId="AlignItemsLabel"/>
+
+                <Label Grid.Row="4"
+                       Grid.Column="0"
+                       Text="Position:"
+                       FontAttributes="Bold"/>
+                <Label Grid.Row="4"
+                       Grid.Column="1"
+                       Text="{Binding Position}"
+                       AutomationId="PositionLabel"/>
+
+                <Label Grid.Row="5"
+                       Grid.Column="0"
+                       Text="Wrap:"
+                       FontAttributes="Bold"/>
+                <Label Grid.Row="5"
+                       Grid.Column="1"
+                       Text="{Binding Wrap}"
+                       AutomationId="WrapLabel"/>
+
+            </Grid>
+        </StackLayout>
+    </ScrollView>
+</ContentPage>
