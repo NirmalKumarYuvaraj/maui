@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using CoreGraphics;
 using Foundation;
@@ -7,6 +8,8 @@ using Microsoft.Maui.Controls.Handlers.Items;
 using UIKit;
 
 namespace Microsoft.Maui.Controls.Handlers.Items2;
+
+internal delegate Microsoft.Maui.Graphics.Size ContentSizeCalculator(Microsoft.Maui.Graphics.Size originalSize, UICollectionViewCompositionalLayout layout);
 
 internal static class LayoutFactory2
 {
@@ -396,14 +399,76 @@ internal static class LayoutFactory2
 		return layout;
 	}
 #nullable enable
-	class CustomUICollectionViewCompositionalLayout : UICollectionViewCompositionalLayout
+	public class CustomUICollectionViewCompositionalLayout : UICollectionViewCompositionalLayout
 	{
 		LayoutSnapInfo _snapInfo;
+		ContentSizeCalculator? _contentSizeCalculator;
+
 		public CustomUICollectionViewCompositionalLayout(LayoutSnapInfo snapInfo, UICollectionViewCompositionalLayoutSectionProvider sectionProvider, UICollectionViewCompositionalLayoutConfiguration configuration) : base(sectionProvider, configuration)
 		{
 			_snapInfo = snapInfo;
 		}
 
+		public void SetContentSizeCalculator(ContentSizeCalculator calculator)
+		{
+			_contentSizeCalculator = calculator;
+		}
+
+		public override CGSize CollectionViewContentSize
+		{
+			get
+			{
+				var originalSize = base.CollectionViewContentSize;
+
+				// For horizontal layouts, calculate actual content size based on measured cells
+				// instead of relying on estimated values from base.CollectionViewContentSize
+				if (Configuration?.ScrollDirection == UICollectionViewScrollDirection.Horizontal &&
+					_contentSizeCalculator is not null)
+				{
+					// Get the actual content size based on real layout attributes, not estimates
+					var actualContentSize = GetActualContentSize();
+					var correctedSize = _contentSizeCalculator(actualContentSize.ToSize(), this);
+					return correctedSize.ToCGSize();
+				}
+
+				return originalSize;
+			}
+		}
+
+		CGSize GetActualContentSize()
+		{
+			if (CollectionView == null)
+				return CGSize.Empty;
+
+			// Get all layout attributes to calculate actual content bounds
+			var allAttributes = new List<UICollectionViewLayoutAttributes>();
+
+			// Get attributes for all sections and items
+			for (int section = 0; section < CollectionView.NumberOfSections(); section++)
+			{
+				var itemCount = CollectionView.NumberOfItemsInSection(section);
+				for (int item = 0; item < itemCount; item++)
+				{
+					var indexPath = NSIndexPath.FromItemSection(item, section);
+					var attributes = LayoutAttributesForItem(indexPath);
+					if (attributes != null)
+					{
+						allAttributes.Add(attributes);
+					}
+				}
+			}
+
+			if (allAttributes.Count == 0)
+				return base.CollectionViewContentSize;
+
+			// Calculate actual content bounds based on all item frames
+			var minX = allAttributes.Min(attr => attr.Frame.GetMinX());
+			var maxX = allAttributes.Max(attr => attr.Frame.GetMaxX());
+			var minY = allAttributes.Min(attr => attr.Frame.GetMinY());
+			var maxY = allAttributes.Max(attr => attr.Frame.GetMaxY());
+
+			return new CGSize(maxX - minX, maxY - minY);
+		}
 		public override CGPoint TargetContentOffset(CGPoint proposedContentOffset, CGPoint scrollingVelocity)
 		{
 			var snapPointsType = _snapInfo.SnapType;

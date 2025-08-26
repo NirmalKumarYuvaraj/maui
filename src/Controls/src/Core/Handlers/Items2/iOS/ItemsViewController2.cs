@@ -8,7 +8,6 @@ using CoreGraphics;
 using Foundation;
 using Microsoft.Maui.Controls.Internals;
 using Microsoft.Maui.Graphics;
-using PassKit;
 using UIKit;
 
 namespace Microsoft.Maui.Controls.Handlers.Items2
@@ -40,6 +39,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 		VisualElement _emptyViewFormsElement;
 		List<string> _cellReuseIds = new List<string>();
 		CGSize _previousContentSize;
+		CGRect? _previousCollectionViewBounds;
 
 		[UnconditionalSuppressMessage("Memory", "MEM0002", Justification = "Proven safe in test: MemoryTests.HandlerDoesNotLeak")]
 		protected UICollectionViewDelegateFlowLayout Delegator { get; set; }
@@ -65,6 +65,12 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 				// Thanks to it, we can use OrthogonalScrollingBehavior.GroupPagingCentered to scroll the section horizontally.
 				// And even if CarouselView is vertically oriented, each section scrolls horizontally — which results in the carousel-style behavior.
 				ScrollDirection = compositionalLayout.Configuration.ScrollDirection;
+
+				// Set up the controller reference for the custom layout
+				if (compositionalLayout is LayoutFactory2.CustomUICollectionViewCompositionalLayout customLayout)
+				{
+					customLayout.SetContentSizeCalculator((originalSize, layout) => CalculateCorrectedContentSize(originalSize, layout));
+				}
 			}
 
 			ItemsViewLayout = newLayout;
@@ -74,7 +80,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 			if (_initialized)
 			{
-				// Reload the data so the currently visible cells get laid out according to the new layout
+				// Reload the data so the currently visible cells get lay out according to the new layout
 				CollectionView.ReloadData();
 			}
 		}
@@ -113,15 +119,15 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 			// Some ItemsView like CarouselView have a loop feature that will make the index path different from the item source
 			var indexpathAdjusted = GetAdjustedIndexPathForItemSource(indexPath);
 
-			if (cell is TemplatedCell2 TemplatedCell2)
+			if (cell is TemplatedCell2 templatedCell2)
 			{
-				TemplatedCell2.ScrollDirection = ScrollDirection;
+				templatedCell2.ScrollDirection = ScrollDirection;
 
-				TemplatedCell2.Bind(ItemsView.ItemTemplate, ItemsSource[indexpathAdjusted], ItemsView);
+				templatedCell2.Bind(ItemsView.ItemTemplate, ItemsSource[indexpathAdjusted], ItemsView);
 			}
-			else if (cell is DefaultCell2 DefaultCell2)
+			else if (cell is DefaultCell2 defaultCell2)
 			{
-				DefaultCell2.Label.Text = ItemsSource[indexpathAdjusted].ToString();
+				defaultCell2.Label.Text = ItemsSource[indexpathAdjusted].ToString();
 			}
 
 			return cell;
@@ -198,6 +204,19 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 				collectionView.NeedsCellLayout = false;
 			}
 
+			// Check if collection view bounds have changed significantly - this might affect our corrected content size calculation
+			if (_initialized && CollectionView?.Bounds is { } currentBounds)
+			{
+				static bool BoundsChangedSignificantly(CGRect previous, CGRect current)
+					=> Math.Abs(previous.Width - current.Width) > 1 || Math.Abs(previous.Height - current.Height) > 1;
+
+				if (_previousCollectionViewBounds.HasValue && BoundsChangedSignificantly(_previousCollectionViewBounds.Value, currentBounds))
+				{
+					// Bounds changes will be handled automatically by the custom layout's CollectionViewContentSize property
+				}
+				_previousCollectionViewBounds = currentBounds;
+			}
+
 			base.ViewWillLayoutSubviews();
 			LayoutEmptyView();
 			InvalidateMeasureIfContentSizeChanged();
@@ -221,9 +240,18 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 			if (invalidatedCells is not null)
 			{
-				var layoutInvalidationContext = new UICollectionViewLayoutInvalidationContext();
-				layoutInvalidationContext.InvalidateItems(invalidatedCells.Select(CollectionView.IndexPathForCell).ToArray());
-				collectionView.CollectionViewLayout.InvalidateLayout(layoutInvalidationContext);
+				// For compositional layouts with corrected content size, invalidate the entire layout
+				// to ensure content size is recalculated properly
+				if (ItemsViewLayout is UICollectionViewCompositionalLayout)
+				{
+					collectionView.CollectionViewLayout.InvalidateLayout();
+				}
+				else
+				{
+					var layoutInvalidationContext = new UICollectionViewLayoutInvalidationContext();
+					layoutInvalidationContext.InvalidateItems(invalidatedCells.Select(CollectionView.IndexPathForCell).ToArray());
+					collectionView.CollectionViewLayout.InvalidateLayout(layoutInvalidationContext);
+				}
 			}
 		}
 
@@ -243,6 +271,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 		{
 			ItemsSource?.Dispose();
 			ItemsSource = new Items.EmptySource();
+
 			CollectionView.ReloadData();
 		}
 
@@ -424,14 +453,8 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 			var contentSize = CollectionView.CollectionViewLayout.CollectionViewContentSize.ToSize();
 
-
-			// ISSUE FIX: For UICollectionViewCompositionalLayout, calculate corrected content size
-			// based on actual measured cell sizes instead of layout estimates
-			if (ItemsViewLayout is UICollectionViewCompositionalLayout compositionalLayout)
-			{
-				return CalculateCorrectedContentSize(contentSize, compositionalLayout);
-			}
-
+			// For UICollectionViewCompositionalLayout, the custom layout now calculates actual content size
+			// based on real layout attributes rather than estimated values, ensuring accurate measurements
 			return contentSize;
 		}
 
