@@ -493,7 +493,10 @@ namespace Microsoft.Maui.Controls
 				_viewInfo.Add(child, new FlexInfo());
 			}
 
-			var item = (child as FlexLayout)?._root ?? new Flex.Item();
+			// For nested FlexLayouts, create a new Flex.Item to avoid sharing the _root item
+			// This prevents the "Layout() must be called on a root item" exception
+			var item = new Flex.Item();
+
 			InitItemProperties(child, item);
 			if (child is not FlexLayout)
 			{
@@ -529,7 +532,44 @@ namespace Microsoft.Maui.Controls
 					h = (float)request.Height;
 				};
 			}
+			else
+			{
+				// For nested FlexLayouts, we need a custom SelfSizing that handles the nested layout properly
+				item.SelfSizing = (Flex.Item it, ref float w, ref float h, bool inMeasureMode) =>
+				{
 
+					var childFlexLayout = (FlexLayout)child;
+					Size request;
+
+					if (inMeasureMode)
+					{
+						var sizeConstraints = item.GetConstraints();
+
+						sizeConstraints.Width = (inMeasureMode && sizeConstraints.Width == 0) ? double.PositiveInfinity : sizeConstraints.Width;
+						sizeConstraints.Height = (inMeasureMode && sizeConstraints.Height == 0) ? double.PositiveInfinity : sizeConstraints.Height;
+
+
+						// Use the proper Measure call to ensure DesiredSize gets set correctly
+						request = childFlexLayout.Measure(sizeConstraints.Width, sizeConstraints.Height);
+
+					}
+					else
+					{
+						// Arrange pass - we need to re-measure with the actual arrange constraints
+						// because the arrange bounds might be different from measure constraints due to padding calculations
+						var arrangeConstraints = item.GetConstraints();
+
+						arrangeConstraints.Width = (arrangeConstraints.Width == 0) ? double.PositiveInfinity : arrangeConstraints.Width;
+						arrangeConstraints.Height = (arrangeConstraints.Height == 0) ? double.PositiveInfinity : arrangeConstraints.Height;
+
+						// Re-measure with arrange constraints to get correct size
+						request = childFlexLayout.Measure(arrangeConstraints.Width, arrangeConstraints.Height);
+
+					}
+					w = (float)request.Width;
+					h = (float)request.Height;
+				};
+			}
 			_root.InsertAt(index, item);
 			SetFlexItem(child, item);
 		}
