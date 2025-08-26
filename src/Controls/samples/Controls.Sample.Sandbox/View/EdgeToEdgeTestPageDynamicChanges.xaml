@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Maui.Controls.Sample.EdgeToEdgeTestPageDynamicChanges"
+             BackgroundColor="LightBlue">
+        <ScrollView>
+                <StackLayout Padding="20"
+                             Spacing="15">
+                        <Label x:Name="ScenarioTitle"
+                               FontSize="20"
+                               FontAttributes="Bold"
+                               HorizontalOptions="Center"
+                               TextColor="DarkBlue"
+                               Margin="0,20,0,10"/>
+
+                        <Label Text="Edge-to-Edge Test Instructions:"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="DarkRed"/>
+
+                        <Label Text="1. Check if content extends behind status bar (top edge)"
+                               FontSize="14"/>
+
+                        <Label Text="2. Check if content extends behind navigation bar (bottom edge)"
+                               FontSize="14"/>
+
+                        <Label Text="3. Verify proper padding/margins are applied to avoid overlapping system UI"
+                               FontSize="14"/>
+
+                        <Label Text="4. Test orientation changes (portrait ↔ landscape)"
+                               FontSize="14"/>
+
+                        <Label Text="5. Check gesture navigation vs button navigation behavior"
+                               FontSize="14"/>
+
+                        <!-- Navigation Features Grid -->
+                        <Border BackgroundColor="#F5F5FF"
+                                Stroke="#CCCCFF"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 5,5,5,5"
+                                Padding="10"
+                                Margin="0,10,0,0">
+                                <StackLayout>
+                                        <Label Text="Navigation Features"
+                                               FontSize="16"
+                                               FontAttributes="Bold"
+                                               HorizontalOptions="Center"
+                                               Margin="0,0,0,10"/>
+
+                                        <Grid ColumnDefinitions="*,*"
+                                              RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                                              Margin="0,10,0,0"
+                                              RowSpacing="8"
+                                              ColumnSpacing="8">
+                                                <!-- Row 1 -->
+                                                <Button Grid.Column="0"
+                                                        Grid.Row="0"
+                                                        Text="Push New Page"
+                                                        BackgroundColor="#3366CC"
+                                                        TextColor="White"
+                                                        Clicked="OnPushAsyncClicked"/>
+                                                <Button Grid.Column="1"
+                                                        Grid.Row="0"
+                                                        Text="Pop Page"
+                                                        BackgroundColor="#0099CC"
+                                                        TextColor="White"
+                                                        Clicked="OnPopAsyncClicked"/>
+                                                <!-- Row 2 -->
+                                                <Button Grid.Column="0"
+                                                        Grid.Row="1"
+                                                        Text="Push Modal Page"
+                                                        BackgroundColor="#6633CC"
+                                                        TextColor="White"
+                                                        Clicked="OnPushModalClicked"/>
+                                                <Button Grid.Column="1"
+                                                        Grid.Row="1"
+                                                        Text="Pop Modal Page"
+                                                        BackgroundColor="#663399"
+                                                        TextColor="White"
+                                                        Clicked="OnPopModalClicked"/>
+                                                <!-- Row 3 -->
+                                                <Button Grid.Column="0"
+                                                        Grid.Row="2"
+                                                        Text="Toggle NavBar Visible"
+                                                        BackgroundColor="#009966"
+                                                        TextColor="White"
+                                                        Clicked="OnToggleNavBarClicked"/>
+                                                <Button Grid.Column="1"
+                                                        Grid.Row="2"
+                                                        Text="Toggle BackButton"
+                                                        BackgroundColor="#006633"
+                                                        TextColor="White"
+                                                        Clicked="OnToggleBackButtonClicked"/>
+                                                <!-- Row 4 -->
+                                                <Button Grid.Column="0"
+                                                        Grid.Row="3"
+                                                        Text="Change BarBgColor"
+                                                        BackgroundColor="#FF6600"
+                                                        TextColor="White"
+                                                        Clicked="OnChangeBarBackgroundColorClicked"/>
+                                                <Button Grid.Column="1"
+                                                        Grid.Row="3"
+                                                        Text="Change BarBgGradient"
+                                                        BackgroundColor="#CC6633"
+                                                        TextColor="White"
+                                                        Clicked="OnChangeBarBackgroundClicked"/>
+                                                <!-- Row 5 -->
+                                                <Button Grid.Column="0"
+                                                        Grid.Row="4"
+                                                        Text="Add Toolbar Items"
+                                                        BackgroundColor="#FF9900"
+                                                        TextColor="White"
+                                                        Clicked="OnAddToolbarItemsClicked"/>
+                                                <Button Grid.Column="1"
+                                                        Grid.Row="4"
+                                                        Text="Add Secondary Items"
+                                                        BackgroundColor="#CC9933"
+                                                        TextColor="White"
+                                                        Clicked="OnAddSecondaryItemsClicked"/>
+                                                <!-- Row 6 -->
+                                                <Button Grid.Column="0"
+                                                        Grid.Row="5"
+                                                        Text="Set TitleView"
+                                                        BackgroundColor="#9933CC"
+                                                        TextColor="White"
+                                                        Clicked="OnSetTitleViewClicked"/>
+                                                <Button Grid.Column="1"
+                                                        Grid.Row="5"
+                                                        Text="Add TitleIcon"
+                                                        BackgroundColor="#993399"
+                                                        TextColor="White"
+                                                        Clicked="OnSetTitleIconClicked"/>
+                                                <!-- Row 7 -->
+                                                <Button Grid.Column="0"
+                                                        Grid.Row="6"
+                                                        Text="Toggle Bar Separator"
+                                                        BackgroundColor="#669900"
+                                                        TextColor="White"
+                                                        Clicked="OnToggleBarSeparatorClicked"/>
+                                                <Button Grid.Column="1"
+                                                        Grid.Row="6"
+                                                        Text="Change Bar Height"
+                                                        BackgroundColor="#336600"
+                                                        TextColor="White"
+                                                        Clicked="OnChangeBarHeightClicked"/>
+                                                <!-- Row 8 -->
+                                                <Button Grid.Column="0"
+                                                        Grid.Row="7"
+                                                        Text="Set BackButtonTitle"
+                                                        BackgroundColor="#FF3366"
+                                                        TextColor="White"
+                                                        Clicked="OnSetBackButtonTitleClicked"/>
+                                                <Button Grid.Column="1"
+                                                        Grid.Row="7"
+                                                        Text="Set BarTextColor"
+                                                        BackgroundColor="#CC3366"
+                                                        TextColor="White"
+                                                        Clicked="OnChangeBarTextColorClicked"/>
+                                                <!-- Row 9 -->
+                                                <Button Grid.Column="0"
+                                                        Grid.Row="8"
+                                                        Text="Add Tooltips"
+                                                        BackgroundColor="#3399FF"
+                                                        TextColor="White"
+                                                        Clicked="OnAddToolbarTooltipsClicked"/>
+                                                <Button Grid.Column="1"
+                                                        Grid.Row="8"
+                                                        Text="Full Combo Test"
+                                                        BackgroundColor="#333399"
+                                                        TextColor="White"
+                                                        Clicked="OnFullComboTestClicked"/>
+                                        </Grid>
+                                </StackLayout>
+                        </Border>
+
+                        <!-- Current Configuration -->
+                        <Border BackgroundColor="#FFFFEE"
+                                Stroke="Orange"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 5,5,5,5"
+                                Padding="10"
+                                Margin="0,10,0,0">
+                                <StackLayout>
+                                        <Label Text="Current Navigation Configuration"
+                                               FontSize="16"
+                                               FontAttributes="Bold"
+                                               HorizontalOptions="Center"/>
+                                        <Label x:Name="ConfigStatusLabel"
+                                               FontSize="12"
+                                               Margin="0,5,0,0"
+                                               Text="No changes applied yet"/>
+                                </StackLayout>
+                        </Border>
+
+                        <!-- System Info -->
+                        <Border BackgroundColor="LightGray"
+                                Stroke="Gray"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 5,5,5,5"
+                                Padding="10"
+                                Margin="0,10,0,0">
+                                <StackLayout>
+                                        <Label Text="System Information"
+                                               FontSize="16"
+                                               FontAttributes="Bold"
+                                               HorizontalOptions="Center"/>
+                                        <Label x:Name="SystemInfoLabel"
+                                               FontSize="12"
+                                               Text="Loading system info..."/>
+                                </StackLayout>
+                        </Border>
+
+                        <!-- Navigation Buttons -->
+                        <StackLayout Orientation="Horizontal"
+                                     HorizontalOptions="Center"
+                                     Spacing="10"
+                                     Margin="0,20,0,20">
+                                <Button Text="Back"
+                                        BackgroundColor="Gray"
+                                        TextColor="White"
+                                        Clicked="OnBackClicked"/>
+
+                                <Button Text="Close Modal"
+                                        BackgroundColor="Red"
+                                        TextColor="White"
+                                        Clicked="OnCloseModalClicked"/>
+                        </StackLayout>
+                </StackLayout>
+        </ScrollView>
+</ContentPage>

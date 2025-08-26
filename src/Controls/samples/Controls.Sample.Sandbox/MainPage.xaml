@@ -36,9 +36,41 @@
                                 x:Name="NavigationPageToolBarItemsBtn"
                                 Clicked="OnNavigationPageToolBarItemsClicked"/>
 
+                        <Button Text="Navigation Page + Secondary ToolBar Items"
+                                x:Name="NavigationPageSecondaryToolBarItemsBtn"
+                                Clicked="OnNavigationPageSecondaryToolBarItemsClicked"/>
+
+                        <Button Text="Navigation Page + Primary + Secondary ToolBar Items"
+                                x:Name="NavigationPagePrimaryAndSecondaryToolBarItemsBtn"
+                                Clicked="OnNavigationPagePrimaryAndSecondaryToolBarItemsClicked"/>
+
                         <Button Text="Navigation Page + HasNavigationBar=False"
                                 x:Name="NavigationPageNoBarBtn"
                                 Clicked="OnNavigationPageNoBarClicked"/>
+
+                        <Button Text="Navigation Page + HasBackButton=False"
+                                x:Name="NavigationPageNoBackButtonBtn"
+                                Clicked="OnNavigationPageNoBackButtonClicked"/>
+
+                        <Button Text="Navigation Page + TitleView"
+                                x:Name="NavigationPageTitleViewBtn"
+                                Clicked="OnNavigationPageTitleViewClicked"/>
+
+                        <Button Text="Navigation Page + IconImageSource"
+                                x:Name="NavigationPageIconImageSourceBtn"
+                                Clicked="OnNavigationPageIconImageSourceClicked"/>
+
+                        <Button Text="Navigation Page + IconImageSource + TitleView"
+                                x:Name="NavigationPageIconImageSourceAndTitleViewBtn"
+                                Clicked="OnNavigationPageIconImageSourceAndTitleViewClicked"/>
+
+                        <Button Text="Navigation Page + BackButtonTitle"
+                                x:Name="NavigationPageBackButtonTitleBtn"
+                                Clicked="OnNavigationPageBackButtonTitleClicked"/>
+
+                        <Button Text="Navigation Page + Dynamic Changes"
+                                x:Name="NavigationPageDynamicChangesBtn"
+                                Clicked="OnNavigationPageDynamicChangesClicked"/>
 
                         <!-- Modal Navigation Page Scenarios -->
                         <Label Text="Modal Navigation Page Scenarios"

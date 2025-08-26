@@ -19,7 +19,7 @@ public partial class MainPage : ContentPage
 		var testPage = new EdgeToEdgeTestPage("Navigation Page + BarBackgroundColor");
 		var navPage = new NavigationPage(testPage)
 		{
-			BarBackgroundColor = Colors.Blue
+			BarBackgroundColor = Colors.Blue,
 		};
 		await Navigation.PushAsync(navPage);
 	}
@@ -52,12 +52,120 @@ public partial class MainPage : ContentPage
 		await Navigation.PushAsync(testPage);
 	}
 
+	private async void OnNavigationPageSecondaryToolBarItemsClicked(object sender, EventArgs e)
+	{
+		var testPage = new EdgeToEdgeTestPage("Navigation Page + Secondary ToolBar Items");
+		testPage.ToolbarItems.Add(new ToolbarItem
+		{
+			Text = "Settings",
+			IconImageSource = "settings.png",
+			Order = ToolbarItemOrder.Secondary,
+			Command = new Command(async () =>
+			{
+				await DisplayAlertAsync("Toolbar Action", "Settings clicked", "OK");
+			})
+		});
+		testPage.ToolbarItems.Add(new ToolbarItem()
+		{
+			Text = "Share",
+			IconImageSource = "share.png",
+			Order = ToolbarItemOrder.Secondary,
+			Command = new Command(async () =>
+			{
+				await DisplayAlertAsync("Toolbar Action", "Share clicked", "OK");
+			})
+		});
+
+		await Navigation.PushAsync(testPage);
+	}
+
+	private async void OnNavigationPagePrimaryAndSecondaryToolBarItemsClicked(object sender, EventArgs e)
+	{
+		var testPage = new EdgeToEdgeTestPage("Navigation Page + Secondary ToolBar Items");
+		testPage.ToolbarItems.Add(new ToolbarItem("Save", "save.png", () => { }));
+		testPage.ToolbarItems.Add(new ToolbarItem("Edit", "edit.png", () => { }));
+		testPage.ToolbarItems.Add(new ToolbarItem("Delete", "delete.png", () => { }));
+		testPage.ToolbarItems.Add(new ToolbarItem
+		{
+			Text = "Settings",
+			IconImageSource = "settings.png",
+			Order = ToolbarItemOrder.Secondary,
+			Command = new Command(async () =>
+			{
+				await DisplayAlertAsync("Toolbar Action", "Settings clicked", "OK");
+			})
+		});
+		testPage.ToolbarItems.Add(new ToolbarItem()
+		{
+			Text = "Share",
+			IconImageSource = "share.png",
+			Order = ToolbarItemOrder.Secondary,
+			Command = new Command(async () =>
+			{
+				await DisplayAlertAsync("Toolbar Action", "Share clicked", "OK");
+			})
+		});
+
+		await Navigation.PushAsync(testPage);
+	}
+
 	private async void OnNavigationPageNoBarClicked(object sender, EventArgs e)
 	{
 		var testPage = new EdgeToEdgeTestPage("Navigation Page + HasNavigationBar=False");
 		NavigationPage.SetHasNavigationBar(testPage, false);
 		await Navigation.PushAsync(testPage);
 	}
+
+	private async void OnNavigationPageNoBackButtonClicked(object sender, EventArgs e)
+	{
+		var testPage = new EdgeToEdgeTestPage("Navigation Page + HasBackButton=False");
+		NavigationPage.SetHasBackButton(testPage, false);
+		await Navigation.PushAsync(testPage);
+	}
+
+	private async void OnNavigationPageTitleViewClicked(object sender, EventArgs e)
+	{
+		var testPage = new EdgeToEdgeTestPage("Navigation Page + TitleView");
+		NavigationPage.SetTitleView(testPage, new Label { Text = "Custom Title", VerticalOptions = LayoutOptions.Center });
+		await Navigation.PushAsync(testPage);
+	}
+
+	private async void OnNavigationPageIconImageSourceClicked(object sender, EventArgs e)
+	{
+		var testPage = new EdgeToEdgeTestPage("Navigation Page + IconImageSource");
+		NavigationPage.SetTitleIconImageSource(testPage, new FileImageSource { File = "dotnet_bot.png" });
+		await Navigation.PushAsync(testPage);
+	}
+
+	private async void OnNavigationPageIconImageSourceAndTitleViewClicked(object sender, EventArgs e)
+	{
+		var testPage = new EdgeToEdgeTestPage("Navigation Page + IconImageSource + TitleView");
+		NavigationPage.SetTitleView(testPage, new Label { Text = "Custom Title", VerticalOptions = LayoutOptions.Center });
+		NavigationPage.SetTitleIconImageSource(testPage, new FileImageSource { File = "dotnet_bot.png" });
+
+		await Navigation.PushAsync(testPage);
+	}
+
+	private async void OnNavigationPageBackButtonTitleClicked(object sender, EventArgs e)
+	{
+		var testPage = new EdgeToEdgeTestPageDynamicChanges("Navigation Page + Dynamic Changes");
+		await Navigation.PushAsync(testPage);
+
+		var firstPage = new EdgeToEdgeTestPage("Navigation Page + Back Button Title");
+		var navPage = new NavigationPage(firstPage);
+		await Navigation.PushModalAsync(navPage);
+		var secondPage = new EdgeToEdgeTestPage("Page with Custom Back Button Title");
+
+		NavigationPage.SetBackButtonTitle(secondPage, "Go Back");
+		await navPage.PushAsync(secondPage);
+	}
+
+	private async void OnNavigationPageDynamicChangesClicked(object sender, EventArgs e)
+	{
+		var testPage = new EdgeToEdgeTestPageDynamicChanges("Navigation Page + Dynamic Changes");
+		await Navigation.PushAsync(testPage);
+	}
+
 
 	// Modal Navigation Page Scenarios
 	private async void OnDefaultModalNavigationPageClicked(object sender, EventArgs e)
