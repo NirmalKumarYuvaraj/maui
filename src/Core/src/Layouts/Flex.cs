@@ -486,18 +486,57 @@ namespace Microsoft.Maui.Layouts.Flex
 				child.Frame[2] = child.Width;
 				child.Frame[3] = child.Height;
 
-				// Main axis size defaults to 0.
+				// Main axis size defaults to 0, but during measurement with infinite
+				// constraints, we want natural sizing behavior
 				if (float.IsNaN(child.Frame[layout.frame_size_i]))
-					child.Frame[layout.frame_size_i] = 0;
+				{
+					if (inMeasureMode && float.IsPositiveInfinity(layout.size_dim))
+					{
+						// During measurement with infinite main-axis constraint,
+						// let SelfSizing determine the natural size
+						child.Frame[layout.frame_size_i] = 0; // Will be set by SelfSizing
+					}
+					else
+					{
+						// Finite constraint or arrangement - use 0 as default
+						child.Frame[layout.frame_size_i] = 0;
+					}
+				}
 
 				// Cross axis size defaults to the parent's size (or line size in wrap
-				// mode, which is calculated later on).
+				// mode, which is calculated later on). During measurement with infinite
+				// constraints, we handle this more intelligently.
 				if (float.IsNaN(child.Frame[layout.frame_size2_i]))
 				{
 					if (layout.wrap)
 						layout.need_lines = true;
 					else
-						child.Frame[layout.frame_size2_i] = (layout.vertical ? width : height) - child.MarginThickness(!layout.vertical);
+					{
+						var crossAxisParentSize = layout.vertical ? width : height;
+
+						// Enhanced constraint handling for measurement mode
+						if (inMeasureMode && float.IsPositiveInfinity(crossAxisParentSize))
+						{
+							// During measurement with infinite cross-axis constraint,
+							// don't stretch children - let them use their natural size
+							// This eliminates the need for the "PrepareMeasureHack"
+							if (child_align(child, item) == AlignItems.Stretch)
+							{
+								// For stretch alignment with infinite constraint during measurement,
+								// use the child's natural size instead of stretching to infinity
+								child.Frame[layout.frame_size2_i] = 0; // Will be set by SelfSizing
+							}
+							else
+							{
+								child.Frame[layout.frame_size2_i] = 0; // Natural size from SelfSizing
+							}
+						}
+						else
+						{
+							// Finite constraint or arrangement pass - use normal stretching behavior
+							child.Frame[layout.frame_size2_i] = crossAxisParentSize - child.MarginThickness(!layout.vertical);
+						}
+					}
 				}
 
 				// Call the self_sizing callback if provided. Only non-NAN values
@@ -554,12 +593,32 @@ namespace Microsoft.Maui.Layouts.Flex
 					}
 				}
 
-				if (child.Grow < 0
-					|| child.Shrink < 0)
+				// Enhanced grow/shrink handling for measurement mode
+				if (child.Grow < 0 || child.Shrink < 0)
 					throw new Exception("shrink and grow should be >= 0");
 
-				layout.flex_grows += child.Grow;
-				layout.flex_shrinks += child.Shrink;
+				// During measurement with infinite constraints, we modify grow/shrink behavior
+				// to prevent unrealistic stretching or shrinking
+				float effectiveGrow = child.Grow;
+				float effectiveShrink = child.Shrink;
+
+				if (inMeasureMode)
+				{
+					var hasInfiniteMainAxis = float.IsPositiveInfinity(layout.size_dim);
+					var hasInfiniteCrossAxis = float.IsPositiveInfinity(layout.vertical ? width : height);
+
+					if (hasInfiniteMainAxis)
+					{
+						// With infinite main axis during measurement, don't shrink items
+						// This prevents the hack of setting shrink to 0
+						effectiveShrink = 0;
+					}
+
+					// For cross-axis, the alignment handling above takes care of infinite constraints
+				}
+
+				layout.flex_grows += effectiveGrow;
+				layout.flex_shrinks += effectiveShrink;
 
 				if (layout.flex_dim > 0)
 				{

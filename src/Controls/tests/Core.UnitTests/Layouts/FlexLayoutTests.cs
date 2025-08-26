@@ -218,5 +218,105 @@ namespace Microsoft.Maui.Controls.Core.UnitTests.Layouts
 			Assert.Equal(0, flexFrame.X);
 			Assert.Equal(0, flexFrame.Y);
 		}
+
+		[Fact]
+		public void FlexLayoutMeasurementDoesNotModifyFlexProperties()
+		{
+			// This test verifies the fix for issue #8240 - FlexLayout no longer uses measurement mode hacks
+			// that temporarily modify Shrink and AlignSelf properties during measurement with infinite constraints
+
+			var root = new Grid();
+			var flexLayout = new FlexLayout() { Direction = FlexDirection.Row };
+			var child1 = new TestLabel();
+			var child2 = new TestLabel();
+
+			root.Add(flexLayout);
+			flexLayout.Add(child1);
+			flexLayout.Add(child2);
+
+			// Set specific flex properties that would have been affected by the old measurement hacks
+			FlexLayout.SetShrink(child1, 0.5f);
+			FlexLayout.SetShrink(child2, 2.0f);
+			FlexLayout.SetAlignSelf(child1, FlexAlignSelf.Center);
+			FlexLayout.SetAlignSelf(child2, FlexAlignSelf.End);
+
+			// Store original values
+			var originalShrink1 = FlexLayout.GetShrink(child1);
+			var originalShrink2 = FlexLayout.GetShrink(child2);
+			var originalAlignSelf1 = FlexLayout.GetAlignSelf(child1);
+			var originalAlignSelf2 = FlexLayout.GetAlignSelf(child2);
+
+			// Measure with infinite width constraint - this used to trigger the measurement hacks
+			var size = flexLayout.CrossPlatformMeasure(double.PositiveInfinity, 100);
+
+			// Verify that flex properties were NOT modified during measurement
+			// The old implementation would have temporarily set Shrink to 0 and AlignSelf to Start
+			Assert.Equal(originalShrink1, FlexLayout.GetShrink(child1));
+			Assert.Equal(originalShrink2, FlexLayout.GetShrink(child2));
+			Assert.Equal(originalAlignSelf1, FlexLayout.GetAlignSelf(child1));
+			Assert.Equal(originalAlignSelf2, FlexLayout.GetAlignSelf(child2));
+
+			// Verify that measurement still produces reasonable results
+			Assert.True(size.Width > 0, "FlexLayout should have positive width");
+			Assert.True(size.Height > 0, "FlexLayout should have positive height");
+
+			// Verify children have reasonable frames
+			var frame1 = flexLayout.GetFlexFrame(child1);
+			var frame2 = flexLayout.GetFlexFrame(child2);
+
+			Assert.True(frame1.Width > 0, "Child 1 should have positive width");
+			Assert.True(frame2.Width > 0, "Child 2 should have positive width");
+		}
+
+		[Fact]
+		public void FlexLayoutWorksWithNonBindableObjectViews()
+		{
+			// This test verifies that FlexLayout works correctly with IView implementations
+			// that are not BindableObjects (addressing the second part of issue #8240)
+
+			var root = new Grid();
+			var flexLayout = new FlexLayout();
+
+			// Create a mock IView that is not a BindableObject
+			var pureView = Substitute.For<IView>();
+			var desiredSize = new Size(100, 50);
+			pureView.Measure(Arg.Any<double>(), Arg.Any<double>()).Returns(desiredSize);
+			pureView.Visibility.Returns(Visibility.Visible);
+			pureView.Margin.Returns(Thickness.Zero);
+			pureView.Width.Returns(-1);
+			pureView.Height.Returns(-1);
+			pureView.DesiredSize.Returns(desiredSize);
+
+			root.Add(flexLayout);
+			flexLayout.Add(pureView);
+
+			// Set flex properties on the non-BindableObject view
+			// This should work without throwing exceptions
+			flexLayout.SetGrow(pureView, 2.0f);
+			flexLayout.SetShrink(pureView, 0.5f);
+			flexLayout.SetAlignSelf(pureView, FlexAlignSelf.Center);
+			flexLayout.SetBasis(pureView, FlexBasis.Auto);
+			flexLayout.SetOrder(pureView, 5);
+
+			// Verify the properties can be retrieved
+			Assert.Equal(2.0f, flexLayout.GetGrow(pureView));
+			Assert.Equal(0.5f, flexLayout.GetShrink(pureView));
+			Assert.Equal(FlexAlignSelf.Center, flexLayout.GetAlignSelf(pureView));
+			Assert.Equal(FlexBasis.Auto, flexLayout.GetBasis(pureView));
+			Assert.Equal(5, flexLayout.GetOrder(pureView));
+
+			// Verify measurement and arrangement work correctly
+			var size = flexLayout.CrossPlatformMeasure(200, 200);
+			Assert.True(size.Width > 0, "FlexLayout should have positive measured width");
+			Assert.True(size.Height > 0, "FlexLayout should have positive measured height");
+
+			// For the arrange test, let's check if we can at least call it without exceptions
+			// rather than checking frame dimensions which might be complex with mock objects
+			var arrangeRect = new Rect(0, 0, size.Width, size.Height);
+
+			// This should not throw an exception
+			var exception = Record.Exception(() => flexLayout.CrossPlatformArrange(arrangeRect));
+			Assert.Null(exception);
+		}
 	}
 }

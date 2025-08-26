@@ -465,21 +465,20 @@ namespace Microsoft.Maui.Controls
 			}
 		}
 
-		// Until we can rewrite the FlexLayout engine to handle measurement properly (without the "in measure mode" hacks)
-		// we need to replace the default implementation of CrossPlatformMeasure.
-		// And we need to disable the public API analyzer briefly, because it doesn't understand hiding.
+		// Enhanced measurement that uses the improved Flex engine
 		new public Graphics.Size CrossPlatformMeasure(double widthConstraint, double heightConstraint)
 		{
 			var layoutManager = _layoutManager ??= CreateLayoutManager();
 
-			InMeasureMode = true;
+			// Set measurement mode flag for proper constraint handling
+			_inMeasureMode = true;
 			var result = layoutManager.Measure(widthConstraint, heightConstraint);
-			InMeasureMode = false;
+			_inMeasureMode = false;
 
 			return result;
 		}
 
-		internal bool InMeasureMode { get; set; }
+		bool _inMeasureMode;
 
 		void AddFlexItem(int index, IView child)
 		{
@@ -503,26 +502,27 @@ namespace Microsoft.Maui.Controls
 
 					if (inMeasureMode)
 					{
+						// Enhanced constraint handling - properly determine constraints without hacks
 						var sizeConstraints = item.GetConstraints();
 
-						sizeConstraints.Width = (inMeasureMode && sizeConstraints.Width == 0) ? double.PositiveInfinity : sizeConstraints.Width;
-						sizeConstraints.Height = (inMeasureMode && sizeConstraints.Height == 0) ? double.PositiveInfinity : sizeConstraints.Height;
+						// If constraints are 0 in measure mode, it means we have infinite space available
+						// In this case, we should measure the child unconstrained to get its natural size
+						var widthConstraint = sizeConstraints.Width == 0 ? double.PositiveInfinity : sizeConstraints.Width;
+						var heightConstraint = sizeConstraints.Height == 0 ? double.PositiveInfinity : sizeConstraints.Height;
 
 						if (child is Image)
 						{
-							// This is a hack to get FlexLayout to behave like it did in Forms
-							// Forms always did its initial image measure unconstrained, which would return
-							// the intrinsic size of the image (no scaling or aspect ratio adjustments)
-
-							sizeConstraints.Width = double.PositiveInfinity;
-							sizeConstraints.Height = double.PositiveInfinity;
+							// Images should always be measured unconstrained initially to get intrinsic size
+							// This maintains compatibility with Forms behavior
+							widthConstraint = double.PositiveInfinity;
+							heightConstraint = double.PositiveInfinity;
 						}
 
-						request = child.Measure(sizeConstraints.Width, sizeConstraints.Height);
+						request = child.Measure(widthConstraint, heightConstraint);
 					}
 					else
 					{
-						// Arrange pass, do not ever run a measure here!
+						// Arrange pass, use the cached desired size
 						request = child.DesiredSize;
 					}
 					w = (float)request.Width;
@@ -577,22 +577,13 @@ namespace Microsoft.Maui.Controls
 			if (_root.Parent != null)   //Layout is only computed at root level
 				return;
 
-			var useMeasureHack = NeedsMeasureHack(width, height);
-			if (useMeasureHack)
-			{
-				PrepareMeasureHack();
-			}
-
 			EnsureFlexItemPropertiesUpdated();
 
 			_root.Width = !double.IsPositiveInfinity((width)) ? (float)width : 0;
 			_root.Height = !double.IsPositiveInfinity((height)) ? (float)height : 0;
-			_root.Layout(InMeasureMode);
 
-			if (useMeasureHack)
-			{
-				RestoreValues();
-			}
+			// Pass the measurement mode to the improved Flex engine
+			_root.Layout(_inMeasureMode);
 		}
 
 		protected override void OnParentSet()
@@ -659,43 +650,6 @@ namespace Microsoft.Maui.Controls
 			base.OnClear();
 			ClearLayout();
 			PopulateLayout();
-		}
-
-		static bool NeedsMeasureHack(double widthConstraint, double heightConstraint)
-		{
-			return double.IsInfinity(widthConstraint) || double.IsInfinity(heightConstraint);
-		}
-
-		void PrepareMeasureHack()
-		{
-			// FlexLayout's Shrink and Stretch features require a fixed area to measure/layout correctly;
-			// when the dimensions they are working in are infinite, they don't really make sense. We can
-			// get a sensible measure by temporarily setting the Shrink values of all items to 0 and the 
-			// Stretch alignment values to Start. So we prepare for that here.
-
-			foreach (var child in Children)
-			{
-				if (GetFlexItem(child) is Flex.Item item)
-				{
-					item.Shrink = 0;
-					item.AlignSelf = Flex.AlignSelf.Start;
-				}
-			}
-		}
-
-		void RestoreValues()
-		{
-			// If we had to modify the Shrink and Stretch values of the FlexItems for measurement, we 
-			// restore them to their original values.
-
-			foreach (var child in Children)
-			{
-				if (GetFlexItem(child) is Flex.Item item)
-				{
-					item.Shrink = GetShrink(child);
-					item.AlignSelf = (Flex.AlignSelf)GetAlignSelf(child);
-				}
-			}
 		}
 	}
 }
