@@ -311,8 +311,8 @@ namespace Microsoft.Maui.Controls.Platform
 
 				var rootView = _navigationRootManager?.RootView ??
 					throw new InvalidOperationException("Root view not initialized");
-				
-				ViewCompat.SetOnApplyWindowInsetsListener(rootView, new WindowHandler.WindowsListener());
+
+				ViewCompat.SetOnApplyWindowInsetsListener(rootView, new Microsoft.Maui.Platform.WindowInsetsOrchestrator());
 
 				if (IsAnimated)
 				{
