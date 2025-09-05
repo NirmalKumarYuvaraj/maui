@@ -172,25 +172,24 @@ namespace Microsoft.Maui.Platform
 
 		public WindowInsetsCompat? HandleWindowInsets(View view, WindowInsetsCompat insets)
 		{
+			if (CrossPlatformLayout is null || insets is null)
+			{
+				return insets;
+			}
+
 			if (!_hasStoredOriginalPadding)
 			{
 				_originalPadding = (PaddingLeft, PaddingTop, PaddingRight, PaddingBottom);
 				_hasStoredOriginalPadding = true;
 			}
 
-			var systemBars = insets.GetInsets(WindowInsetsCompat.Type.SystemBars());
-			var displayCutout = insets.GetInsets(WindowInsetsCompat.Type.DisplayCutout());
+			var processedInsets = SafeAreaExtension.GetAdjustedSafeAreaInsets(insets, CrossPlatformLayout, _context);
 
-			var leftInset = Math.Max(systemBars?.Left ?? 0, displayCutout?.Left ?? 0);
-			var topInset = Math.Max(systemBars?.Top ?? 0, displayCutout?.Top ?? 0);
-			var rightInset = Math.Max(systemBars?.Right ?? 0, displayCutout?.Right ?? 0);
-			var bottomInset = Math.Max(systemBars?.Bottom ?? 0, displayCutout?.Bottom ?? 0);
-
-			// Apply insets to layout view group - typically we want all insets
-			SetPadding(leftInset, topInset, rightInset, bottomInset);
+			// Apply all insets to content view group
+			SetPadding((int)_context.ToPixels(processedInsets.Left), (int)_context.ToPixels(processedInsets.Top), (int)_context.ToPixels(processedInsets.Right), (int)_context.ToPixels(processedInsets.Bottom));
 
 			// Consume all insets since we handled them
-			return WindowInsetsCompat.Consumed;
+			return insets;
 		}
 
 		public void ResetWindowInsets(View view)
