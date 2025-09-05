@@ -6,6 +6,8 @@ using AndroidX.Core.View;
 using AndroidX.Window.Layout;
 using Google.Android.Material.AppBar;
 using AView = Android.Views.View;
+using AColor = Android.Graphics.Color;
+using Android.Content.Res;
 
 namespace Microsoft.Maui.Handlers
 {
@@ -16,8 +18,38 @@ namespace Microsoft.Maui.Handlers
 		protected override void ConnectHandler(Activity platformView)
 		{
 			base.ConnectHandler(platformView);
-
+			ConfigureTranslucentSystemBars(PlatformView);
 			UpdateVirtualViewFrame(platformView);
+		}
+
+		static void ConfigureTranslucentSystemBars(Activity activity)
+		{
+			var window = activity.Window;
+			if (window == null)
+				return;
+
+			// Enable edge-to-edge by making content draw behind system bars
+			WindowCompat.SetDecorFitsSystemWindows(window, false);
+
+			// Make both status bar and navigation bar translucent
+			if (OperatingSystem.IsAndroidVersionAtLeast(21))
+			{
+				window.SetStatusBarColor(AColor.Transparent);
+				window.SetNavigationBarColor(AColor.Transparent);
+			}
+
+			// Set appropriate system bar appearance for readability
+			var windowInsetsController = WindowCompat.GetInsetsController(window, window.DecorView);
+			if (windowInsetsController != null)
+			{
+				// Automatically adjust icon/text colors based on app theme
+				var configuration = activity.Resources?.Configuration;
+				var isLightTheme = configuration != null &&
+					(configuration.UiMode & UiMode.NightMask) != UiMode.NightYes;
+
+				windowInsetsController.AppearanceLightStatusBars = isLightTheme;
+				windowInsetsController.AppearanceLightNavigationBars = isLightTheme;
+			}
 		}
 
 		public static void MapTitle(IWindowHandler handler, IWindow window) =>
