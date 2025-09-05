@@ -213,6 +213,11 @@ namespace Microsoft.Maui.Platform
 			// Apply all insets to content view group
 			SetPadding((int)_context.ToPixels(processedInsets.Left), (int)_context.ToPixels(processedInsets.Top), (int)_context.ToPixels(processedInsets.Right), (int)_context.ToPixels(processedInsets.Bottom));
 
+			if (processedInsets.Top > 0)
+			{
+				return WindowInsetsCompat.Consumed;
+			}
+
 			// Consume all insets since we handled them
 			return insets;
 		}

@@ -77,11 +77,6 @@ namespace Microsoft.Maui.Platform
                 for (int i = 0; i < viewGroup.ChildCount; i++)
                 {
                     var child = viewGroup.GetChildAt(i);
-                    if (child is MauiScrollView)
-                    {
-                        // dont process children of scrollview
-                        continue;
-                    }
                     if (child != null)
                     {
                         // Check if this child implements the interface
@@ -90,8 +85,9 @@ namespace Microsoft.Maui.Platform
                             result.Add(child);
                         }
 
-                        // Always continue recursively to find all descendants that need handling
+                        // Only recurse into children if this view doesn't handle insets
                         // This ensures we handle both IHandleWindowInsets views and views with ISafeAreaView2 handlers
+                        // but prevents processing children of views that already handle their own insets
                         result.AddRange(FindViewsImplementingInterface(child));
                     }
                 }
