@@ -10,33 +10,13 @@ using AView = Android.Views.View;
 namespace Microsoft.Maui.Platform
 {
     /// <summary>
-    /// Centralized orchestrator for managing window insets across different view types.
+    /// Centralized Listener for managing window insets across different view types.
     /// Provides unified tracking and reset capabilities for views that have insets applied.
     /// </summary>
     internal class GlobalWindowInsetListener : Java.Lang.Object, IOnApplyWindowInsetsListener
     {
         private readonly HashSet<AView> _trackedViews = new();
         private readonly Dictionary<AView, (int left, int top, int right, int bottom)> _originalPadding = new();
-
-        SafeAreaPadding _keyboardInsets = SafeAreaPadding.Empty;
-        bool _isKeyboardShowing;
-
-        /// <summary>
-        /// Forces a re-application of window insets when safe area configuration changes.
-        /// This ensures OnApplyWindowInsets is called before measure and arrange.
-        /// </summary>
-        // internal void InvalidateWindowInsets()
-        // {
-        //     // Request fresh insets from the system
-        //     ViewCompat.RequestApplyInsets(_owner);
-        // }
-
-        void UpdateKeyboardState(SafeAreaPadding keyboardInsets, bool isKeyboardShowing)
-        {
-            _keyboardInsets = keyboardInsets;
-            _isKeyboardShowing = isKeyboardShowing;
-        }
-
 
         public WindowInsetsCompat? OnApplyWindowInsets(AView? v, WindowInsetsCompat? insets)
         {
@@ -260,16 +240,19 @@ public static class SafeAreaExtension
     internal static SafeAreaPadding GetAdjustedSafeAreaInsets(WindowInsetsCompat windowInsets, ICrossPlatformLayout crossPlatformLayout, Context context)
     {
         var baseSafeArea = windowInsets.ToSafeAreaInsets(context);
+        var keyboardInsets = windowInsets.GetKeyboardInsets(context);
+        var isKeyboardShowing = !keyboardInsets.IsEmpty;
+
         var layout = crossPlatformLayout;
         var safeAreaView2 = GetSafeAreaView2(layout);
 
         if (safeAreaView2 is not null)
         {
             // Apply safe area selectively per edge based on SafeAreaRegions
-            var left = GetSafeAreaForEdge(GetSafeAreaRegionForEdge(0, layout), baseSafeArea.Left, 0);
-            var top = GetSafeAreaForEdge(GetSafeAreaRegionForEdge(1, layout), baseSafeArea.Top, 1);
-            var right = GetSafeAreaForEdge(GetSafeAreaRegionForEdge(2, layout), baseSafeArea.Right, 2);
-            var bottom = GetSafeAreaForEdge(GetSafeAreaRegionForEdge(3, layout), baseSafeArea.Bottom, 3);
+            var left = GetSafeAreaForEdge(GetSafeAreaRegionForEdge(0, layout), baseSafeArea.Left, 0, isKeyboardShowing, keyboardInsets);
+            var top = GetSafeAreaForEdge(GetSafeAreaRegionForEdge(1, layout), baseSafeArea.Top, 1, isKeyboardShowing, keyboardInsets);
+            var right = GetSafeAreaForEdge(GetSafeAreaRegionForEdge(2, layout), baseSafeArea.Right, 2, isKeyboardShowing, keyboardInsets);
+            var bottom = GetSafeAreaForEdge(GetSafeAreaRegionForEdge(3, layout), baseSafeArea.Bottom, 3, isKeyboardShowing, keyboardInsets);
 
             return new SafeAreaPadding(left, right, top, bottom);
         }
@@ -278,7 +261,7 @@ public static class SafeAreaExtension
         return baseSafeArea;
     }
 
-    internal static double GetSafeAreaForEdge(SafeAreaRegions safeAreaRegion, double originalSafeArea, int edge)
+    internal static double GetSafeAreaForEdge(SafeAreaRegions safeAreaRegion, double originalSafeArea, int edge, bool isKeyboardShowing, SafeAreaPadding keyBoardInsets)
     {
         // Edge-to-edge content - no safe area padding
         if (safeAreaRegion == SafeAreaRegions.None)
@@ -287,10 +270,10 @@ public static class SafeAreaExtension
         }
 
         // Handle SoftInput specifically - only apply keyboard insets for bottom edge when keyboard is showing
-        // if (SafeAreaEdges.IsSoftInput(safeAreaRegion) && _isKeyboardShowing && edge == 3)
-        // {
-        //     return _keyboardInsets.Bottom;
-        // }
+        if (SafeAreaEdges.IsSoftInput(safeAreaRegion) && isKeyboardShowing && edge == 3)
+        {
+            return keyBoardInsets.Bottom;
+        }
 
         // All other regions respect safe area in some form
         // This includes:
@@ -299,31 +282,5 @@ public static class SafeAreaExtension
         // - Container: Content flows under keyboard but stays out of bars/notch
         // - Any combination of the above flags
         return originalSafeArea;
-    }
-
-    /// <summary>
-    /// Updates safe area configuration and triggers window insets re-application if needed.
-    /// Call this when safe area edge configuration changes.
-    /// </summary>
-    // internal void UpdateSafeAreaConfiguration()
-    // {
-    //     // Always invalidate insets when configuration changes, regardless of whether
-    //     // the calculated safe area changed. This ensures proper handling of:
-    //     // - Orientation changes where the same safe area values might apply differently
-    //     // - Soft input behavior changes that need immediate re-evaluation
-    //     // - Multiple sequential configuration changes that need consistent behavior
-    //     InvalidateWindowInsets();
-    // }
-
-    internal static bool HasAnyRegions(ISafeAreaView2 sav2)
-    {
-        for (int edge = 0; edge < 4; edge++)
-        {
-            if (sav2.GetSafeAreaRegionsForEdge(edge) != SafeAreaRegions.None)
-            {
-                return true;
-            }
-        }
-        return false;
     }
 }

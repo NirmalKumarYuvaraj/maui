@@ -19,6 +19,21 @@ namespace Microsoft.Maui.Controls
 			if (bindable is IView view)
 			{
 				view.InvalidateMeasure();
+#if ANDROID
+				// On Android, request layout does not call OnApplyWindowInsets. so we manually call it.
+				if (bindable is Element element && element.Handler is IElementHandler handler)
+				{
+					var platformView = handler.PlatformView;
+					if (platformView is Microsoft.Maui.Platform.ContentViewGroup contentViewGroup)
+					{
+						contentViewGroup.UpdateSafeAreaConfiguration();
+					}
+					else if (platformView is Microsoft.Maui.Platform.LayoutViewGroup layoutViewGroup)
+					{
+						layoutViewGroup.UpdateSafeAreaConfiguration();
+					}
+				}
+#endif
 			}
 		}
 
