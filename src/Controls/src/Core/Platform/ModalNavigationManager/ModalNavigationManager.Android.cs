@@ -312,7 +312,11 @@ namespace Microsoft.Maui.Controls.Platform
 				var rootView = _navigationRootManager?.RootView ??
 					throw new InvalidOperationException("Root view not initialized");
 
-				ViewCompat.SetOnApplyWindowInsetsListener(rootView, new Microsoft.Maui.Platform.GlobalWindowInsetListener());
+				var context = rootView.Context ?? inflater.Context;
+				if (context != null)
+				{
+					rootView.SetGlobalWindowInsetListener(context);
+				}
 
 				if (IsAnimated)
 				{

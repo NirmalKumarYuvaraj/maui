@@ -23,6 +23,7 @@ namespace Microsoft.Maui.Platform
 		public LayoutViewGroup(Context context) : base(context)
 		{
 			_context = context;
+			SetUpWindowInsetHandling();
 		}
 
 		public LayoutViewGroup(IntPtr javaReference, JniHandleOwnership transfer) : base(javaReference, transfer)
@@ -52,6 +53,11 @@ namespace Microsoft.Maui.Platform
 		public ICrossPlatformLayout? CrossPlatformLayout
 		{
 			get; set;
+		}
+
+		void SetUpWindowInsetHandling()
+		{
+			GlobalWindowInsetListenerExtensions.SetGlobalWindowInsetListener(this, _context);
 		}
 
 		Graphics.Size CrossPlatformMeasure(double widthConstraint, double heightConstraint)

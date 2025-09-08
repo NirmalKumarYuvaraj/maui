@@ -9,91 +9,29 @@ using AView = Android.Views.View;
 
 namespace Microsoft.Maui.Platform
 {
-    /// <summary>
-    /// Centralized Listener for managing window insets across different view types.
-    /// Provides unified tracking and reset capabilities for views that have insets applied.
-    /// </summary>
-    internal class GlobalWindowInsetListener : Java.Lang.Object, IOnApplyWindowInsetsListener
+    public class GlobalWindowInsetListener : Java.Lang.Object, IOnApplyWindowInsetsListener
     {
         private readonly HashSet<AView> _trackedViews = new();
         private readonly Dictionary<AView, (int left, int top, int right, int bottom)> _originalPadding = new();
 
         public WindowInsetsCompat? OnApplyWindowInsets(AView? v, WindowInsetsCompat? insets)
         {
-            if (insets is null || !insets.HasInsets || v == null)
+            if (insets is null || !insets.HasInsets || v is null)
             {
                 return insets;
             }
 
-            // Reset all previously tracked views before applying new insets
-            ResetTrackedViews();
+            // Track this view
+            TrackView(v);
 
-            // First apply default window insets (handles root view, AppBar, etc.)
-            var processedInsets = ApplyDefaultWindowInsets(v, insets);
-
-            // Then pass the processed insets to child views that implement IHandleWindowInsets
-            var finalInsets = HandleCustomInsetViews(v, processedInsets ?? insets);
-
-            return finalInsets ?? processedInsets;
-        }
-
-        private WindowInsetsCompat? HandleCustomInsetViews(AView rootView, WindowInsetsCompat insets)
-        {
-            // Check if the root view itself implements the interface
-            if (rootView is IHandleWindowInsets customHandler)
+            // Handle custom inset views first
+            if (v is IHandleWindowInsets customHandler)
             {
-                TrackView(rootView);
-                return customHandler.HandleWindowInsets(rootView, insets);
+                return customHandler.HandleWindowInsets(v, insets);
             }
 
-            // Search for child views that implement IHandleWindowInsets
-            var customViews = FindViewsImplementingInterface(rootView);
-            if (customViews.Count > 0)
-            {
-                WindowInsetsCompat? resultInsets = insets;
-
-                foreach (var view in customViews)
-                {
-                    if (view is IHandleWindowInsets handler)
-                    {
-                        TrackView(view);
-                        // Pass the current processed insets to each handler
-                        resultInsets = handler.HandleWindowInsets(view, resultInsets ?? insets);
-                    }
-                }
-
-                return resultInsets;
-            }
-
-            return null; // No custom handlers found, return null so default processed insets are used
-        }
-
-        private static List<AView> FindViewsImplementingInterface(AView parent)
-        {
-            var result = new List<AView>();
-
-            if (parent is ViewGroup viewGroup)
-            {
-                for (int i = 0; i < viewGroup.ChildCount; i++)
-                {
-                    var child = viewGroup.GetChildAt(i);
-                    if (child != null)
-                    {
-                        // Check if this child implements the interface
-                        if (child is IHandleWindowInsets)
-                        {
-                            result.Add(child);
-                        }
-
-                        // Only recurse into children if this view doesn't handle insets
-                        // This ensures we handle both IHandleWindowInsets views and views with ISafeAreaView2 handlers
-                        // but prevents processing children of views that already handle their own insets
-                        result.AddRange(FindViewsImplementingInterface(child));
-                    }
-                }
-            }
-
-            return result;
+            // Apply default window insets for standard views
+            return ApplyDefaultWindowInsets(v, insets);
         }
 
         private WindowInsetsCompat? ApplyDefaultWindowInsets(AView v, WindowInsetsCompat insets)
@@ -112,7 +50,6 @@ namespace Microsoft.Maui.Platform
             if (appBarLayout != null)
             {
                 TrackView(appBarLayout);
-                StorePadding(appBarLayout);
                 if (hasNavigationBar)
                 {
                     appBarLayout.SetPadding(0, topInset, 0, 0);
@@ -125,7 +62,6 @@ namespace Microsoft.Maui.Platform
 
             // Apply side and bottom insets to root view, but not top
             TrackView(v);
-            StorePadding(v);
 
             if (hasNavigationBar)
             {
@@ -159,40 +95,43 @@ namespace Microsoft.Maui.Platform
 
         private void TrackView(AView view)
         {
-            _trackedViews.Add(view);
-        }
-
-        private void StorePadding(AView view)
-        {
+            // Store original padding if not already stored
             if (!_originalPadding.ContainsKey(view))
             {
                 _originalPadding[view] = (view.PaddingLeft, view.PaddingTop, view.PaddingRight, view.PaddingBottom);
             }
+            _trackedViews.Add(view);
         }
 
-        private void ResetTrackedViews()
+        public void ResetView(AView view)
         {
-            foreach (var view in _trackedViews)
+            if (view is IHandleWindowInsets customHandler)
             {
-                if (view is IHandleWindowInsets customHandler)
-                {
-                    customHandler.ResetWindowInsets(view);
-                }
-                else if (_originalPadding.TryGetValue(view, out var padding))
-                {
-                    view.SetPadding(padding.left, padding.top, padding.right, padding.bottom);
-                }
+                customHandler.ResetWindowInsets(view);
+            }
+            else if (_originalPadding.TryGetValue(view, out var padding))
+            {
+                view.SetPadding(padding.left, padding.top, padding.right, padding.bottom);
             }
 
-            _trackedViews.Clear();
-            _originalPadding.Clear();
+            _trackedViews.Remove(view);
+            _originalPadding.Remove(view);
+        }
+
+        public void ResetAllViews()
+        {
+            var viewsToReset = new List<AView>(_trackedViews); // Create a copy to avoid modification during enumeration
+            foreach (var view in viewsToReset)
+            {
+                ResetView(view);
+            }
         }
 
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                ResetTrackedViews();
+                ResetAllViews();
             }
             base.Dispose(disposing);
         }
@@ -278,5 +217,38 @@ public static class SafeAreaExtension
         // - Container: Content flows under keyboard but stays out of bars/notch
         // - Any combination of the above flags
         return originalSafeArea;
+    }
+}
+
+/// <summary>
+/// Extension methods to access the shared GlobalWindowInsetListener instance.
+/// </summary>
+public static class GlobalWindowInsetListenerExtensions
+{
+    /// <summary>
+    /// Gets the shared GlobalWindowInsetListener instance from the current MauiAppCompatActivity.
+    /// </summary>
+    /// <param name="context">The Android context</param>
+    /// <returns>The shared GlobalWindowInsetListener instance, or null if not available</returns>
+    public static GlobalWindowInsetListener? GetGlobalWindowInsetListener(this Context context)
+    {
+        return context.GetActivity() as MauiAppCompatActivity is MauiAppCompatActivity activity
+            ? activity.GlobalWindowInsetListener
+            : null;
+    }
+
+    /// <summary>
+    /// Sets the shared GlobalWindowInsetListener on the specified view.
+    /// This ensures all views use the same listener instance for coordinated inset management.
+    /// </summary>
+    /// <param name="view">The Android view to set the listener on</param>
+    /// <param name="context">The Android context to get the listener from</param>
+    public static void SetGlobalWindowInsetListener(this View view, Context context)
+    {
+        var listener = context.GetGlobalWindowInsetListener();
+        if (listener != null)
+        {
+            ViewCompat.SetOnApplyWindowInsetsListener(view, listener);
+        }
     }
 }
