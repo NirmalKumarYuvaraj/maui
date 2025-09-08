@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Android.Content;
 using Android.Views;
 using AndroidX.Core.Graphics;
@@ -12,7 +13,6 @@ namespace Microsoft.Maui.Platform
     public class GlobalWindowInsetListener : Java.Lang.Object, IOnApplyWindowInsetsListener
     {
         private readonly HashSet<AView> _trackedViews = new();
-        private readonly Dictionary<AView, (int left, int top, int right, int bottom)> _originalPadding = new();
 
         public WindowInsetsCompat? OnApplyWindowInsets(AView? v, WindowInsetsCompat? insets)
         {
@@ -95,11 +95,6 @@ namespace Microsoft.Maui.Platform
 
         private void TrackView(AView view)
         {
-            // Store original padding if not already stored
-            if (!_originalPadding.ContainsKey(view))
-            {
-                _originalPadding[view] = (view.PaddingLeft, view.PaddingTop, view.PaddingRight, view.PaddingBottom);
-            }
             _trackedViews.Add(view);
         }
 
@@ -109,13 +104,8 @@ namespace Microsoft.Maui.Platform
             {
                 customHandler.ResetWindowInsets(view);
             }
-            else if (_originalPadding.TryGetValue(view, out var padding))
-            {
-                view.SetPadding(padding.left, padding.top, padding.right, padding.bottom);
-            }
 
             _trackedViews.Remove(view);
-            _originalPadding.Remove(view);
         }
 
         public void ResetAllViews()
@@ -125,6 +115,45 @@ namespace Microsoft.Maui.Platform
             {
                 ResetView(view);
             }
+        }
+
+        /// <summary>
+        /// Resets all tracked descendant views of the specified parent view to their original padding.
+        /// This should be called before applying new insets when SafeArea settings change.
+        /// </summary>
+        /// <param name="parentView">The parent view whose descendants should be reset</param>
+        public void ResetDescendantsOfView(AView parentView)
+        {
+            // Find all tracked views that are descendants of the parent view and reset them
+            foreach (var trackedView in _trackedViews.ToArray()) // Use ToArray to avoid modification during enumeration
+            {
+                if (trackedView != parentView && IsDescendantOf(trackedView, parentView))
+                {
+                    // Reset to original padding but don't remove from tracking
+                    if (trackedView is IHandleWindowInsets customHandler)
+                    {
+                        customHandler.ResetWindowInsets(trackedView);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Checks if a view is a descendant of a parent view
+        /// </summary>
+        private static bool IsDescendantOf(AView? child, AView parent)
+        {
+            if (child == null || parent == null)
+                return false;
+
+            var currentParent = child.Parent;
+            while (currentParent != null)
+            {
+                if (currentParent == parent)
+                    return true;
+                currentParent = currentParent.Parent;
+            }
+            return false;
         }
 
         protected override void Dispose(bool disposing)
@@ -250,5 +279,20 @@ public static class GlobalWindowInsetListenerExtensions
         {
             ViewCompat.SetOnApplyWindowInsetsListener(view, listener);
         }
+    }
+
+    /// <summary>
+    /// Resets tracked descendant views and requests fresh window insets.
+    /// Call this when SafeArea settings change to avoid double padding issues.
+    /// </summary>
+    /// <param name="view">The view whose descendants should be reset</param>
+    /// <param name="context">The Android context to get the listener from</param>
+    public static void ResetDescendantsAndRequestInsets(this View view, Context context)
+    {
+        var listener = context.GetGlobalWindowInsetListener();
+        listener?.ResetDescendantsOfView(view);
+
+        // Request fresh insets to be applied
+        ViewCompat.RequestApplyInsets(view);
     }
 }

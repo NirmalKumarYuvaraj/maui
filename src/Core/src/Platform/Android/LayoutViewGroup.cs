@@ -181,24 +181,10 @@ namespace Microsoft.Maui.Platform
 		/// Updates safe area configuration and triggers window insets re-application if needed.
 		/// Call this when safe area edge configuration changes.
 		/// </summary>
-		internal void UpdateSafeAreaConfiguration()
-		{
-			// Always invalidate insets when configuration changes, regardless of whether
-			// the calculated safe area changed. This ensures proper handling of:
-			// - Orientation changes where the same safe area values might apply differently
-			// - Soft input behavior changes that need immediate re-evaluation
-			// - Multiple sequential configuration changes that need consistent behavior
-			InvalidateWindowInsets();
-		}
-
-		/// <summary>
-		/// Forces a re-application of window insets when safe area configuration changes.
-		/// This ensures OnApplyWindowInsets is called before measure and arrange.
-		/// </summary>
 		internal void InvalidateWindowInsets()
 		{
-			// Request fresh insets from the system
-			ViewCompat.RequestApplyInsets(this);
+			// Reset descendants and request fresh insets to avoid double padding
+			GlobalWindowInsetListenerExtensions.ResetDescendantsAndRequestInsets(this, _context);
 		}
 
 		public WindowInsetsCompat? HandleWindowInsets(View view, WindowInsetsCompat insets)
@@ -221,10 +207,10 @@ namespace Microsoft.Maui.Platform
 
 			if (processedInsets.Top > 0)
 			{
+				// Consume all insets since we handled them
 				return WindowInsetsCompat.Consumed;
 			}
 
-			// Consume all insets since we handled them
 			return insets;
 		}
 

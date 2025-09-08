@@ -378,6 +378,7 @@ Microsoft.Maui.Platform.GlobalWindowInsetListener.GlobalWindowInsetListener() ->
 Microsoft.Maui.Platform.GlobalWindowInsetListener.OnApplyWindowInsets(Android.Views.View? v, AndroidX.Core.View.WindowInsetsCompat? insets) -> AndroidX.Core.View.WindowInsetsCompat?
 Microsoft.Maui.Platform.GlobalWindowInsetListener.ResetView(Android.Views.View! view) -> void
 Microsoft.Maui.Platform.GlobalWindowInsetListener.ResetAllViews() -> void
+Microsoft.Maui.Platform.GlobalWindowInsetListener.ResetDescendantsOfView(Android.Views.View! parentView) -> void
 override Microsoft.Maui.Platform.GlobalWindowInsetListener.Dispose(bool disposing) -> void
 Microsoft.Maui.MauiAppCompatActivity.GlobalWindowInsetListener.get -> Microsoft.Maui.Platform.GlobalWindowInsetListener!
 override Microsoft.Maui.MauiAppCompatActivity.OnDestroy() -> void

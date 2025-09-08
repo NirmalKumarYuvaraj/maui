@@ -26,11 +26,11 @@ namespace Microsoft.Maui.Controls
 					var platformView = handler.PlatformView;
 					if (platformView is Microsoft.Maui.Platform.ContentViewGroup contentViewGroup)
 					{
-						contentViewGroup.UpdateSafeAreaConfiguration();
+						contentViewGroup.InvalidateWindowInsets();
 					}
 					else if (platformView is Microsoft.Maui.Platform.LayoutViewGroup layoutViewGroup)
 					{
-						layoutViewGroup.UpdateSafeAreaConfiguration();
+						layoutViewGroup.InvalidateWindowInsets();
 					}
 				}
 #endif
