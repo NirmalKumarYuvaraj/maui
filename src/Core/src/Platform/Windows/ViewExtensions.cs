@@ -178,6 +178,11 @@ namespace Microsoft.Maui.Platform
 			platformView.InvalidateMeasure();
 		}
 
+		public static void InvalidateArrange(this FrameworkElement platformView, IView view)
+		{
+			platformView.InvalidateArrange();
+		}
+
 		public static void UpdateWidth(this FrameworkElement platformView, IView view)
 		{
 			// WinUI uses NaN for "unspecified", so as long as we're using NaN for unspecified on the xplat side, 

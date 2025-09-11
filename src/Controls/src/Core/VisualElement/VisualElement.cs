@@ -1392,9 +1392,8 @@ namespace Microsoft.Maui.Controls
 						thisView.ComputedConstraint = visualParent.ComputeConstraintForView(thisView);
 					}
 
-					// TODO ezhart Once we get InvalidateArrange sorted, HorizontalOptionsChanged and 
-					// VerticalOptionsChanged will need to call ParentView.InvalidateArrange() instead
-					ParentView?.InvalidateMeasure();
+					// Layout options affect arrangement, not measurement
+					ParentView?.InvalidateArrange();
 					break;
 				default:
 					(this as IView)?.InvalidateMeasure();
@@ -1943,7 +1942,13 @@ namespace Microsoft.Maui.Controls
 		/// <inheritdoc/>
 		void IView.InvalidateArrange()
 		{
+			InvalidateArrangeOverride();
 		}
+
+		/// <summary>
+		/// Provides a way to allow subclasses (e.g., Layout) to override <see cref="IView.InvalidateArrange"/>
+		/// </summary>
+		protected virtual void InvalidateArrangeOverride() => Handler?.Invoke(nameof(IView.InvalidateArrange));
 
 		/// <inheritdoc/>
 		Size IView.Measure(double widthConstraint, double heightConstraint)

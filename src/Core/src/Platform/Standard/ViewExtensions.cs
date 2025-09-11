@@ -53,6 +53,8 @@ namespace Microsoft.Maui.Platform
 
 		public static void InvalidateMeasure(this object platformView, IView view) { }
 
+		public static void InvalidateArrange(this object platformView, IView view) { }
+
 		public static void UpdateWidth(this object platformView, IView view) { }
 
 		public static void UpdateHeight(this object platformView, IView view) { }

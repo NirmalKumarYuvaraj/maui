@@ -183,6 +183,28 @@ namespace Microsoft.Maui.Platform
 			}
 		}
 
+		public static void InvalidateArrange(this NView platformView, IView view)
+		{
+			// On Tizen, InvalidateArrange is essentially the same as InvalidateMeasure
+			// since layout invalidation triggers both measure and arrange passes
+			if (platformView is LayoutViewGroup layoutViewGroup)
+			{
+				layoutViewGroup.SetNeedMeasureUpdate();
+			}
+			else if (platformView is ViewGroup viewGroup)
+			{
+				viewGroup.MarkChanged();
+			}
+			else if (view.ToPlatform().GetParent() is ViewGroup parentViewGroup)
+			{
+				parentViewGroup.MarkChanged();
+			}
+			else
+			{
+				platformView.Layout?.RequestLayout();
+			}
+		}
+
 		public static void UpdateWidth(this NView platformView, IView view)
 		{
 			UpdateSize(platformView, view);

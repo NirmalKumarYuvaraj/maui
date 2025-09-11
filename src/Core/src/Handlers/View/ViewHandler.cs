@@ -87,6 +87,7 @@ namespace Microsoft.Maui.Handlers
 		public static CommandMapper<IView, IViewHandler> ViewCommandMapper = new()
 		{
 			[nameof(IView.InvalidateMeasure)] = MapInvalidateMeasure,
+			[nameof(IView.InvalidateArrange)] = MapInvalidateArrange,
 			[nameof(IView.Frame)] = MapFrame,
 			[nameof(IView.ZIndex)] = MapZIndex,
 			[nameof(IView.Focus)] = MapFocus,
@@ -509,6 +510,17 @@ namespace Microsoft.Maui.Handlers
 		public static void MapInvalidateMeasure(IViewHandler handler, IView view, object? args)
 		{
 			(handler.PlatformView as PlatformView)?.InvalidateMeasure(view);
+		}
+
+		/// <summary>
+		/// Maps the abstract <see cref="IView.InvalidateArrange"/> method to the platform-specific implementations.
+		/// </summary>
+		/// <param name="handler">The associated handler.</param>
+		/// <param name="view">The associated <see cref="IView"/> instance.</param>
+		/// <param name="args">The arguments passed associated to this event.</param>
+		public static void MapInvalidateArrange(IViewHandler handler, IView view, object? args)
+		{
+			(handler.PlatformView as PlatformView)?.InvalidateArrange(view);
 		}
 
 		/// <summary>

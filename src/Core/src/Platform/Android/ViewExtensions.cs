@@ -364,6 +364,11 @@ namespace Microsoft.Maui.Platform
 			PlatformInterop.RequestLayoutIfNeeded(platformView);
 		}
 
+		public static void InvalidateArrange(this AView platformView, IView view)
+		{
+			PlatformInterop.RequestLayoutIfNeeded(platformView);
+		}
+
 		public static void UpdateWidth(this AView platformView, IView view)
 		{
 			// GetDesiredSize will take the specified Width into account during the layout

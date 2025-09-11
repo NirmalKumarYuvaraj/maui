@@ -1,4 +1,6 @@
 #nullable enable
+static Microsoft.Maui.Handlers.ViewHandler.MapInvalidateArrange(Microsoft.Maui.IViewHandler! handler, Microsoft.Maui.IView! view, object? args) -> void
+static Microsoft.Maui.Platform.ViewExtensions.InvalidateArrange(this Tizen.NUI.BaseComponents.View! platformView, Microsoft.Maui.IView! view) -> void
 Microsoft.Maui.Converters.SafeAreaEdgesTypeConverter
 Microsoft.Maui.Converters.SafeAreaEdgesTypeConverter.SafeAreaEdgesTypeConverter() -> void
 Microsoft.Maui.FontManager.GetFontFamily(string? fontFamily) -> string!

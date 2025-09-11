@@ -167,6 +167,11 @@ namespace Microsoft.Maui.Controls
 			base.InvalidateMeasureOverride();
 		}
 
+		protected override void InvalidateArrangeOverride()
+		{
+			base.InvalidateArrangeOverride();
+		}
+
 		/// <summary>
 		/// Adds a child view to the end of this layout.
 		/// </summary>

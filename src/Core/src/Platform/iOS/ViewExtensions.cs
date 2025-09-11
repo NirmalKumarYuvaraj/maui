@@ -349,6 +349,19 @@ namespace Microsoft.Maui.Platform
 			}
 		}
 
+		/// <summary>
+		/// Invalidates the arrangement of the view through <see cref="UIView.SetNeedsLayout"/> call.
+		/// </summary>
+		public static void InvalidateArrange(this UIView platformView, IView view)
+		{
+			InvalidateArrange(platformView);
+		}
+
+		internal static void InvalidateArrange(this UIView platformView)
+		{
+			platformView.SetNeedsLayout();
+		}
+
 		public static void UpdateWidth(this UIView platformView, IView view)
 		{
 			UpdateFrame(platformView, view);

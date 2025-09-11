@@ -246,3 +246,5 @@ virtual Microsoft.Maui.SwipeViewSwipeStarted.<Clone>$() -> Microsoft.Maui.SwipeV
 virtual Microsoft.Maui.SwipeViewSwipeStarted.EqualityContract.get -> System.Type!
 virtual Microsoft.Maui.SwipeViewSwipeStarted.Equals(Microsoft.Maui.SwipeViewSwipeStarted? other) -> bool
 virtual Microsoft.Maui.SwipeViewSwipeStarted.PrintMembers(System.Text.StringBuilder! builder) -> bool
+static Microsoft.Maui.Handlers.ViewHandler.MapInvalidateArrange(Microsoft.Maui.IViewHandler! handler, Microsoft.Maui.IView! view, object? args) -> void
+static Microsoft.Maui.Platform.ViewExtensions.InvalidateArrange(this object! platformView, Microsoft.Maui.IView! view) -> void

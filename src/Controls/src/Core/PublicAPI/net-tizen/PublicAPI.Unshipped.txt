@@ -295,3 +295,5 @@ Microsoft.Maui.Controls.Xaml.IXamlDataTypeProvider
 Microsoft.Maui.Controls.Xaml.IXamlDataTypeProvider.BindingDataType.get -> string!
 ~Microsoft.Maui.Controls.Binding.DataType.get -> System.Type
 ~Microsoft.Maui.Controls.Binding.DataType.set -> void
+override Microsoft.Maui.Controls.Layout.InvalidateArrangeOverride() -> void
+virtual Microsoft.Maui.Controls.VisualElement.InvalidateArrangeOverride() -> void
