@@ -65,17 +65,25 @@ namespace Microsoft.Maui.Handlers
 		{
 			var result = base.GetDesiredSize(widthConstraint, heightConstraint);
 
-			if (double.IsNaN(VirtualView.Width))
+			// Ensure Rectangle shapes have reasonable minimum dimensions when not explicitly set
+			// This prevents shapes from being invisible while maintaining proper layout behavior
+
+			if (double.IsNaN(VirtualView.Width) && result.Width <= 0)
 			{
-				result.Width = 0;
+				// If no explicit width and base measurement returned 0 or negative, use a small default
+				result.Width = 1;
 			}
 
-			if (double.IsNaN(VirtualView.Height))
+			if (double.IsNaN(VirtualView.Height) && result.Height <= 0)
 			{
-				result.Height = 0;
+				// If no explicit height and base measurement returned 0 or negative, use a small default
+				result.Height = 1;
 			}
 
 			return result;
 		}
+
+
+
 	}
 }

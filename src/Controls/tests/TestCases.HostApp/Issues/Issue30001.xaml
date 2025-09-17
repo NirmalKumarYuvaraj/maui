@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Maui.Controls.Sample.Issues.Issue30001"
+             Title="Rectangle in Grid Alignment Issue">
+
+    <Grid ColumnDefinitions="Auto,*"
+          ColumnSpacing="20">
+        <FlexLayout x:Name="FlexLayout"
+                    BackgroundColor="LightGray"
+                    AlignContent="Start"
+                    AlignItems="Start"
+                    Direction="Column"
+                    JustifyContent="Start"
+                    Position="Relative"
+                    Wrap="NoWrap"
+                    Grid.Column="0"
+                    Grid.Row="0">
+            <ScrollView x:Name="ScrollView"
+                        HorizontalOptions="Start">
+                <VerticalStackLayout HorizontalOptions="Start"
+                                     HeightRequest="200">
+                </VerticalStackLayout>
+            </ScrollView>
+            <Grid x:Name="TestGrid"
+                  HorizontalOptions="Start"
+                  WidthRequest="150"
+                  FlexLayout.Grow="1"
+                  FlexLayout.Basis="0"
+                  RowDefinitions="Auto,*">
+                <Label AutomationId="TestLabel"
+                       WidthRequest="100"
+                       HeightRequest="2"
+                       BackgroundColor="Black"
+                       Grid.Row="0"/>
+                <Rectangle x:Name="TestRectangle"
+                           AutomationId="TestRectangle"
+                           WidthRequest="100"
+                           Grid.Row="1">
+                    <Rectangle.Background>
+                        <LinearGradientBrush StartPoint="0,0"
+                                             EndPoint="0,1">
+                            <GradientStop Color="Green"
+                                          Offset="0"/>
+                            <GradientStop Color="Turquoise"
+                                          Offset="1"/>
+                        </LinearGradientBrush>
+                    </Rectangle.Background>
+                </Rectangle>
+            </Grid>
+        </FlexLayout>
+    </Grid>
+</ContentPage>

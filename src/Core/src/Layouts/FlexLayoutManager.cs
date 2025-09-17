@@ -33,6 +33,13 @@ namespace Microsoft.Maui.Layouts
 					|| double.IsNaN(frame.Height))
 					throw new Exception("something is deeply wrong");
 
+				// Fix precision errors that can cause negative dimensions due to
+				// floating-point rounding in FlexLayout space distribution calculations
+				if (frame.Width < 0)
+					frame.Width = 0;
+				if (frame.Height < 0)
+					frame.Height = 0;
+
 				frame = frame.Offset(left, top);
 				child.Arrange(frame);
 			}
