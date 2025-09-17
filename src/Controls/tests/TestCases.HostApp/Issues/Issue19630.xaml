@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Maui.Controls.Sample.Issues.Issue19630"
+             Title="SwipeItemView TapGestureRecognizer Test">
+    <StackLayout>
+        <Label Text="Test TapGestureRecognizer in SwipeItemView" Margin="10" FontSize="18"/>
+        <Label x:Name="StatusLabel" Text="Status: Waiting for tap..." Margin="10" FontSize="14" AutomationId="StatusLabel"/>
+        
+        <CollectionView ItemsSource="{Binding TestItems}" Margin="10">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <SwipeView>
+                        <Grid Padding="10" BackgroundColor="LightGray">
+                            <Label Text="{Binding Name}" VerticalOptions="Center" AutomationId="ItemLabel"/>
+                        </Grid>
+                        
+                        <SwipeView.RightItems>
+                            <SwipeItems>
+                                <!-- Test SwipeItemView with TapGestureRecognizer -->
+                                <SwipeItemView>
+                                    <Grid ColumnDefinitions="*, *" WidthRequest="160" HeightRequest="60">
+                                        <Label Grid.Column="0" 
+                                               Text="Edit" 
+                                               BackgroundColor="LightBlue" 
+                                               VerticalOptions="Center" 
+                                               HorizontalOptions="Center"
+                                               AutomationId="EditLabel">
+                                            <Label.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="OnEditLabelTapped"
+                                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditCommand}" 
+                                                                    CommandParameter="{Binding .}"/>
+                                            </Label.GestureRecognizers>
+                                        </Label>
+                                        
+                                        <Label Grid.Column="1" 
+                                               Text="Delete" 
+                                               BackgroundColor="Red" 
+                                               TextColor="White"
+                                               VerticalOptions="Center" 
+                                               HorizontalOptions="Center"
+                                               AutomationId="DeleteLabel">
+                                            <Label.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="OnDeleteLabelTapped"
+                                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteCommand}" 
+                                                                    CommandParameter="{Binding .}"/>
+                                            </Label.GestureRecognizers>
+                                        </Label>
+                                    </Grid>
+                                </SwipeItemView>
+                                
+                                <!-- For comparison: Regular SwipeItem that should work -->
+                                <SwipeItem Text="Working" 
+                                          BackgroundColor="Green" 
+                                          Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.WorkingCommand}"
+                                          CommandParameter="{Binding .}"/>
+                            </SwipeItems>
+                        </SwipeView.RightItems>
+                    </SwipeView>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+        
+        <StackLayout Margin="10">
+            <Label Text="Instructions:" FontAttributes="Bold"/>
+            <Label Text="1. Swipe an item to the left to reveal actions"/>
+            <Label Text="2. Tap the 'Edit' or 'Delete' buttons (these should update the status)"/>
+            <Label Text="3. Tap the 'Working' button for comparison"/>
+        </StackLayout>
+    </StackLayout>
+</ContentPage>

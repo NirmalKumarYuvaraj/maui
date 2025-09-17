@@ -1290,10 +1290,21 @@ namespace Microsoft.Maui.Platform
 					{
 						var swipeItem = swipeItems[i];
 
-						ExecuteSwipeItem(swipeItem);
+						// For SwipeItemView, try to delegate touch to child elements first
+						if (swipeItem is ISwipeItemView && TryHandleChildGestures(swipeButton, point, swipeItemX, swipeItemY))
+						{
+							// Child gesture handled the touch, close swipe if needed
+							if (swipeItems.SwipeBehaviorOnInvoked != SwipeBehaviorOnInvoked.RemainOpen)
+								ResetSwipe();
+						}
+						else
+						{
+							// No child handled it, execute the swipe item command
+							ExecuteSwipeItem(swipeItem);
 
-						if (swipeItems.SwipeBehaviorOnInvoked != SwipeBehaviorOnInvoked.RemainOpen)
-							ResetSwipe();
+							if (swipeItems.SwipeBehaviorOnInvoked != SwipeBehaviorOnInvoked.RemainOpen)
+								ResetSwipe();
+						}
 
 						break;
 					}
@@ -1316,6 +1327,86 @@ namespace Microsoft.Maui.Platform
 
 			if (isEnabled)
 				item.OnInvoked();
+		}
+
+		bool TryHandleChildGestures(AView swipeButton, APointF point, float swipeItemX, float swipeItemY)
+		{
+			if (swipeButton is not ViewGroup viewGroup)
+				return false;
+
+			// Convert point to be relative to the swipe item
+			var relativeX = (point.X - swipeItemX) * _density;
+			var relativeY = (point.Y - swipeItemY) * _density;
+
+			// Try to find a child view that can handle the touch
+			return TryDispatchTouchToChild(viewGroup, relativeX, relativeY);
+		}
+
+		static bool TryDispatchTouchToChild(ViewGroup parent, float x, float y)
+		{
+			// Iterate through children from front to back (reverse order for hit testing)
+			for (int i = parent.ChildCount - 1; i >= 0; i--)
+			{
+				var child = parent.GetChildAt(i);
+				if (child == null || child.Visibility != ViewStates.Visible)
+					continue;
+
+				// Check if the touch point is within the child's bounds
+				if (x >= child.Left && x <= child.Right && y >= child.Top && y <= child.Bottom)
+				{
+					// If it's a ViewGroup, recursively check its children
+					if (child is ViewGroup childGroup)
+					{
+						var childRelativeX = x - child.Left;
+						var childRelativeY = y - child.Top;
+						if (TryDispatchTouchToChild(childGroup, childRelativeX, childRelativeY))
+							return true;
+					}
+
+					// Check if this child has gesture recognizers by looking for gesture manager
+					if (HasGestureRecognizers(child))
+					{
+						// Create a touch event and dispatch it to the child
+						var eventTime = Android.OS.SystemClock.UptimeMillis();
+						var downEvent = MotionEvent.Obtain(eventTime, eventTime, MotionEventActions.Down, x - child.Left, y - child.Top, 0);
+						var upEvent = MotionEvent.Obtain(eventTime, eventTime + 100, MotionEventActions.Up, x - child.Left, y - child.Top, 0);
+
+						try
+						{
+							// Dispatch touch events to the child
+							var downHandled = child.DispatchTouchEvent(downEvent);
+							var upHandled = child.DispatchTouchEvent(upEvent);
+
+							// If either event was handled, consider this child as handling the gesture
+							return downHandled || upHandled;
+						}
+						finally
+						{
+							downEvent?.Recycle();
+							upEvent?.Recycle();
+						}
+					}
+				}
+			}
+
+			return false;
+		}
+
+		static bool HasGestureRecognizers(AView view)
+		{
+			// Check if the view has click listeners or other gesture-related properties
+			// This covers TapGestureRecognizer and other common gestures
+			bool hasContextClickable = false;
+
+			// ContextClickable is only available on API 23+
+#pragma warning disable CA1416 // This is guarded by a platform version check
+			if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.M)
+			{
+				hasContextClickable = view.ContextClickable;
+			}
+#pragma warning restore CA1416
+
+			return view.HasOnClickListeners || view.Clickable || view.LongClickable || hasContextClickable;
 		}
 
 		void EnableParentGesture(bool isGestureEnabled)
