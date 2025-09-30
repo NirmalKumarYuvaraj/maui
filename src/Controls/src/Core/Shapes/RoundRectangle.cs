@@ -49,15 +49,6 @@ namespace Microsoft.Maui.Controls.Shapes
 			}
 		}
 
-		// TODO this should move to a remapped mapper
-		protected override void OnPropertyChanged([CallerMemberName] string propertyName = null)
-		{
-			base.OnPropertyChanged(propertyName);
-
-			if (propertyName == CornerRadiusProperty.PropertyName)
-				Handler?.UpdateValue(nameof(IShapeView.Shape));
-		}
-
 		public override PathF GetPath()
 		{
 			float w = (float)WidthForPathComputation;

@@ -64,18 +64,6 @@ namespace Microsoft.Maui.Controls.Shapes
 			get { return (double)GetValue(Y2Property); }
 		}
 
-		// TODO this should move to a remapped mapper
-		protected override void OnPropertyChanged([CallerMemberName] string propertyName = null)
-		{
-			base.OnPropertyChanged(propertyName);
-
-			if (propertyName == X1Property.PropertyName ||
-				propertyName == Y1Property.PropertyName ||
-				propertyName == X2Property.PropertyName ||
-				propertyName == Y2Property.PropertyName)
-				Handler?.UpdateValue(nameof(IShapeView.Shape));
-		}
-
 		public override PathF GetPath()
 		{
 			var path = new PathF();

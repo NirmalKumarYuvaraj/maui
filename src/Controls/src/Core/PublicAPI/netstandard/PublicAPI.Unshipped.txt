@@ -30,7 +30,9 @@ Microsoft.Maui.Controls.ContentPage.SafeAreaEdges.get -> Microsoft.Maui.SafeArea
 Microsoft.Maui.Controls.ContentPage.SafeAreaEdges.set -> void
 Microsoft.Maui.Controls.ContentPresenter.CascadeInputTransparent.get -> bool
 Microsoft.Maui.Controls.ContentPresenter.CascadeInputTransparent.set -> void
+Microsoft.Maui.Controls.Handlers.BoxViewHandler.BoxViewHandler(Microsoft.Maui.IPropertyMapper! mapper) -> void
 override Microsoft.Maui.Controls.CheckBox.IsEnabledCore.get -> bool
+static Microsoft.Maui.Controls.Handlers.BoxViewHandler.Mapper -> Microsoft.Maui.IPropertyMapper<Microsoft.Maui.Controls.BoxView!, Microsoft.Maui.Handlers.IShapeViewHandler!>!
 ~Microsoft.Maui.Controls.CheckBox.Command.get -> System.Windows.Input.ICommand
 ~Microsoft.Maui.Controls.CheckBox.Command.set -> void
 ~Microsoft.Maui.Controls.CheckBox.CommandParameter.get -> object
@@ -472,3 +474,6 @@ virtual Microsoft.Maui.Controls.BindableProperty.CreateDefaultValueDelegate<TDec
 ~virtual Microsoft.Maui.Controls.Internals.EvaluateJavaScriptDelegate.Invoke(string script) -> System.Threading.Tasks.Task<string>
 ~virtual Microsoft.Maui.Controls.PropertyChangingEventHandler.Invoke(object sender, Microsoft.Maui.Controls.PropertyChangingEventArgs e) -> void
 ~virtual Microsoft.Maui.Controls.VisualElement.ComputeConstraintForView(Microsoft.Maui.Controls.View view) -> Microsoft.Maui.Controls.LayoutConstraint
+*REMOVED*override Microsoft.Maui.Controls.BoxView.OnPropertyChanged(string? propertyName = null) -> void
+static Microsoft.Maui.Controls.Handlers.BoxViewHandler.MapColor(Microsoft.Maui.Handlers.IShapeViewHandler! handler, Microsoft.Maui.Controls.BoxView! boxView) -> void
+static Microsoft.Maui.Controls.Handlers.BoxViewHandler.MapCornerRadius(Microsoft.Maui.Handlers.IShapeViewHandler! handler, Microsoft.Maui.Controls.BoxView! boxView) -> void

@@ -39,16 +39,6 @@ namespace Microsoft.Maui.Controls.Shapes
 			get { return (FillRule)GetValue(FillRuleProperty); }
 		}
 
-		// TODO this should move to a remapped mapper
-		protected override void OnPropertyChanged([CallerMemberName] string propertyName = null)
-		{
-			base.OnPropertyChanged(propertyName);
-
-			if (propertyName == PointsProperty.PropertyName ||
-				propertyName == FillRuleProperty.PropertyName)
-				Handler?.UpdateValue(nameof(IShapeView.Shape));
-		}
-
 		public override PathF GetPath()
 		{
 			var path = new PathF();

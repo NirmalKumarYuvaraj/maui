@@ -61,18 +61,6 @@ namespace Microsoft.Maui.Controls
 		}
 
 #nullable enable
-		// Todo these shuold be moved to a mapper
-		protected override void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-		{
-			base.OnPropertyChanged(propertyName);
-
-			if (propertyName == BackgroundColorProperty.PropertyName ||
-				propertyName == ColorProperty.PropertyName ||
-				propertyName == IsVisibleProperty.PropertyName ||
-				propertyName == BackgroundProperty.PropertyName ||
-				propertyName == CornerRadiusProperty.PropertyName)
-				Handler?.UpdateValue(nameof(IShapeView.Shape));
-		}
 
 		IShape? IShapeView.Shape => this;
 

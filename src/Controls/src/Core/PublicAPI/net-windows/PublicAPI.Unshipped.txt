@@ -501,3 +501,8 @@ virtual Microsoft.Maui.Controls.BindableProperty.CreateDefaultValueDelegate<TDec
 ~virtual Microsoft.Maui.Controls.Internals.EvaluateJavaScriptDelegate.Invoke(string script) -> System.Threading.Tasks.Task<string>
 ~virtual Microsoft.Maui.Controls.PropertyChangingEventHandler.Invoke(object sender, Microsoft.Maui.Controls.PropertyChangingEventArgs e) -> void
 ~virtual Microsoft.Maui.Controls.VisualElement.ComputeConstraintForView(Microsoft.Maui.Controls.View view) -> Microsoft.Maui.Controls.LayoutConstraint
+*REMOVED*override Microsoft.Maui.Controls.BoxView.OnPropertyChanged(string? propertyName = null) -> void
+static Microsoft.Maui.Controls.Handlers.BoxViewHandler.MapColor(Microsoft.Maui.Handlers.IShapeViewHandler! handler, Microsoft.Maui.Controls.BoxView! boxView) -> void
+static Microsoft.Maui.Controls.Handlers.BoxViewHandler.MapCornerRadius(Microsoft.Maui.Handlers.IShapeViewHandler! handler, Microsoft.Maui.Controls.BoxView! boxView) -> void
+Microsoft.Maui.Controls.Handlers.BoxViewHandler.BoxViewHandler(Microsoft.Maui.IPropertyMapper! mapper) -> void
+static Microsoft.Maui.Controls.Handlers.BoxViewHandler.Mapper -> Microsoft.Maui.IPropertyMapper<Microsoft.Maui.Controls.BoxView!, Microsoft.Maui.Handlers.IShapeViewHandler!>!
