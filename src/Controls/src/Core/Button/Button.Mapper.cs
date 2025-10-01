@@ -30,6 +30,20 @@ namespace Microsoft.Maui.Controls
 
 			ButtonHandler.Mapper.ReplaceMapping<Button, IButtonHandler>(nameof(TextTransform), MapText);
 			ButtonHandler.Mapper.ReplaceMapping<Button, IButtonHandler>(nameof(Button.LineBreakMode), MapLineBreakMode);
+
+			// Add aliases so legacy Border* and ImageSource changes trigger handler updates without OnPropertyChanged override
+			ButtonHandler.Mapper.AppendToMapping<Button, IButtonHandler>(nameof(BorderColor), static (handler, view) =>
+			{
+				handler.UpdateValue(nameof(IButtonStroke.StrokeColor));
+			});
+			ButtonHandler.Mapper.AppendToMapping<Button, IButtonHandler>(nameof(BorderWidth), static (handler, view) =>
+			{
+				handler.UpdateValue(nameof(IButtonStroke.StrokeThickness));
+			});
+			ButtonHandler.Mapper.AppendToMapping<Button, IButtonHandler>(nameof(ImageSource), static (handler, view) =>
+			{
+				handler.UpdateValue(nameof(IImage.Source));
+			});
 		}
 
 		/// <summary>

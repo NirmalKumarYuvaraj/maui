@@ -469,18 +469,6 @@ namespace Microsoft.Maui.Controls
 
 		bool _wasImageLoading;
 
-		protected override void OnPropertyChanged([CallerMemberName] string propertyName = null)
-		{
-			base.OnPropertyChanged(propertyName);
-
-			if (propertyName == BorderColorProperty.PropertyName)
-				Handler?.UpdateValue(nameof(IButtonStroke.StrokeColor));
-			else if (propertyName == BorderWidthProperty.PropertyName)
-				Handler?.UpdateValue(nameof(IButtonStroke.StrokeThickness));
-			else if (propertyName == ImageSourceProperty.PropertyName)
-				Handler?.UpdateValue(nameof(IImage.Source));
-		}
-
 		void IButton.Clicked()
 		{
 			(this as IButtonController).SendClicked();

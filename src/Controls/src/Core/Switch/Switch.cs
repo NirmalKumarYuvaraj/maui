@@ -98,15 +98,6 @@ namespace Microsoft.Maui.Controls
 			return _platformConfigurationRegistry.Value.On<T>();
 		}
 
-		// TODO This should get moved to a remapped mapper
-		protected override void OnPropertyChanged([CallerMemberName] string propertyName = null)
-		{
-			base.OnPropertyChanged(propertyName);
-
-			if (propertyName == IsToggledProperty.PropertyName)
-				Handler?.UpdateValue(nameof(ISwitch.IsOn));
-		}
-
 		Color ISwitch.TrackColor
 		{
 			get

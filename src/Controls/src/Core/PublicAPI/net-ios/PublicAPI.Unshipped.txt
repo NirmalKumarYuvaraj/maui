@@ -503,3 +503,6 @@ static Microsoft.Maui.Controls.Handlers.BoxViewHandler.MapColor(Microsoft.Maui.H
 static Microsoft.Maui.Controls.Handlers.BoxViewHandler.MapCornerRadius(Microsoft.Maui.Handlers.IShapeViewHandler! handler, Microsoft.Maui.Controls.BoxView! boxView) -> void
 Microsoft.Maui.Controls.Handlers.BoxViewHandler.BoxViewHandler(Microsoft.Maui.IPropertyMapper! mapper) -> void
 static Microsoft.Maui.Controls.Handlers.BoxViewHandler.Mapper -> Microsoft.Maui.IPropertyMapper<Microsoft.Maui.Controls.BoxView!, Microsoft.Maui.Handlers.IShapeViewHandler!>!
+*REMOVED*~override Microsoft.Maui.Controls.ImageButton.OnPropertyChanged(string propertyName = null) -> void
+*REMOVED*~override Microsoft.Maui.Controls.Switch.OnPropertyChanged(string propertyName = null) -> void
+*REMOVED*~override Microsoft.Maui.Controls.Button.OnPropertyChanged(string propertyName = null) -> void

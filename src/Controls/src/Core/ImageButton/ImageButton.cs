@@ -249,16 +249,6 @@ namespace Microsoft.Maui.Controls
 		void ICommandElement.CanExecuteChanged(object sender, EventArgs e) =>
 			RefreshIsEnabledProperty();
 
-		protected override void OnPropertyChanged([CallerMemberName] string propertyName = null)
-		{
-			base.OnPropertyChanged(propertyName);
-
-			if (propertyName == BorderWidthProperty.PropertyName)
-				Handler?.UpdateValue(nameof(IImageButton.StrokeThickness));
-			else if (propertyName == BorderColorProperty.PropertyName)
-				Handler?.UpdateValue(nameof(IImageButton.StrokeColor));
-		}
-
 		void IImageSourcePart.UpdateIsLoading(bool isLoading)
 		{
 			((IImageController)this)?.SetIsLoading(isLoading);
