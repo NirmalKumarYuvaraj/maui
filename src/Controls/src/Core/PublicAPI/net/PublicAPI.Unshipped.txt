@@ -480,3 +480,5 @@ static Microsoft.Maui.Controls.Handlers.BoxViewHandler.Mapper -> Microsoft.Maui.
 *REMOVED*~override Microsoft.Maui.Controls.ImageButton.OnPropertyChanged(string propertyName = null) -> void
 *REMOVED*~override Microsoft.Maui.Controls.Switch.OnPropertyChanged(string propertyName = null) -> void
 *REMOVED*~override Microsoft.Maui.Controls.Button.OnPropertyChanged(string propertyName = null) -> void
+*REMOVED*~Microsoft.Maui.Controls.IPinchGestureController.SendPinchStarted(Microsoft.Maui.Controls.Element sender, Microsoft.Maui.Graphics.Point intialScalePoint) -> void
+~Microsoft.Maui.Controls.IPinchGestureController.SendPinchStarted(Microsoft.Maui.Controls.Element sender, Microsoft.Maui.Graphics.Point initialScalePoint) -> void
