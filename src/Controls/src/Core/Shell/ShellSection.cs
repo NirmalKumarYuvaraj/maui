@@ -170,6 +170,9 @@ namespace Microsoft.Maui.Controls
 			if (_navStack.Count <= 1)
 				throw new Exception("Nav Stack consistency error");
 
+			// Set flag early to prevent unwanted appearance events
+			IsPoppingToRoot = true;
+
 			var oldStack = _navStack;
 			_navStack = new List<Page> { null };
 
@@ -183,6 +186,9 @@ namespace Microsoft.Maui.Controls
 				RemovePage(oldStack[i]);
 
 			(Parent?.Parent as IShellController)?.UpdateCurrentState(ShellNavigationSource.PopToRoot);
+
+			// Reset flag at the end
+			IsPoppingToRoot = false;
 		}
 
 		[Obsolete]
@@ -251,6 +257,7 @@ namespace Microsoft.Maui.Controls
 		List<Page> _navStack = new List<Page> { null };
 		internal bool IsPushingModalStack { get; private set; }
 		internal bool IsPoppingModalStack { get; private set; }
+		internal bool IsPoppingToRoot { get; set; }
 
 		/// <include file="../../../docs/Microsoft.Maui.Controls/ShellSection.xml" path="//Member[@MemberName='.ctor']/Docs/*" />
 		public ShellSection()
@@ -549,10 +556,28 @@ namespace Microsoft.Maui.Controls
 			List<string> globalRoutes = request.Request.GlobalRoutes;
 			if (globalRoutes == null || globalRoutes.Count == 0)
 			{
-				if (_navStack.Count == 2)
-					await OnPopAsync(animate ?? false);
-				else
-					await OnPopToRootAsync(animate ?? false);
+				// Set flag early to prevent any appearance events during pop operations
+				IsPoppingToRoot = true;
+
+				try
+				{
+					if (_navStack.Count == 2)
+					{
+						await OnPopAsync(animate ?? false);
+					}
+					else
+					{
+						await OnPopToRootAsync(animate ?? false);
+					}
+				}
+				finally
+				{
+					// OnPopToRootAsync will handle clearing the flag, but ensure it's cleared here too
+					if (IsPoppingToRoot)
+					{
+						IsPoppingToRoot = false;
+					}
+				}
 
 				return;
 			}
@@ -702,8 +727,16 @@ namespace Microsoft.Maui.Controls
 				previousPage?.SendDisappearing();
 				if (!Navigation.ModalStack.Any())
 				{
-					PresentedPageAppearing();
-					SendAppearanceChanged();
+					// Skip appearance events during pop-to-root operation
+					if (IsPoppingToRoot)
+					{
+						SendAppearanceChanged();
+					}
+					else
+					{
+						PresentedPageAppearing();
+						SendAppearanceChanged();
+					}
 				}
 			}
 		}
@@ -864,26 +897,44 @@ namespace Microsoft.Maui.Controls
 			if (!allow)
 				return;
 
+			// Set flag to prevent appearance events during pop-to-root operation
+			IsPoppingToRoot = true;
+
 			var page = _navStack[_navStack.Count - 1];
 			var args = new NavigationRequestedEventArgs(page, animated)
 			{
 				RequestType = NavigationRequestType.PopToRoot
 			};
 
+			// Send disappearing to the current presented page before starting the pop operation
+			PresentedPageDisappearing();
+
 			InvokeNavigationRequest(args);
 			var oldStack = _navStack;
 			_navStack = new List<Page> { null };
 
-			if (args.Task != null)
-				await args.Task;
-
-			if (_handlerBasedNavigationCompletionSource?.Task != null)
-				await _handlerBasedNavigationCompletionSource.Task;
-
-			for (int i = 1; i < oldStack.Count; i++)
+			try
 			{
-				oldStack[i].SendDisappearing();
-				RemovePage(oldStack[i]);
+				if (args.Task != null)
+				{
+					await args.Task;
+				}
+
+				if (_handlerBasedNavigationCompletionSource?.Task != null)
+				{
+					await _handlerBasedNavigationCompletionSource.Task;
+				}
+
+				for (int i = 1; i < oldStack.Count; i++)
+				{
+					oldStack[i].SendDisappearing();
+					RemovePage(oldStack[i]);
+				}
+			}
+			finally
+			{
+				// Clear the flag before calling final PresentedPageAppearing
+				IsPoppingToRoot = false;
 			}
 
 			PresentedPageAppearing();
@@ -1003,6 +1054,12 @@ namespace Microsoft.Maui.Controls
 
 		void PresentedPageAppearing()
 		{
+			// Skip appearance events if we're in the middle of a pop-to-root operation
+			if (IsPoppingToRoot)
+			{
+				return;
+			}
+
 			if (IsVisibleSection && this is IShellSectionController sectionController)
 			{
 				if (_navStack.Count == 1)

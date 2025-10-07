@@ -145,6 +145,18 @@ namespace Microsoft.Maui.Controls
 
 				if (_shell.CurrentItem != shellItem)
 				{
+					// Check if this shell item change will result in a pop-to-root operation
+					if (navigationRequest.StackRequest == ShellNavigationRequest.WhatToDoWithTheStack.ReplaceIt &&
+						navigationRequest.Request.GlobalRoutes.Count == 0 &&
+						nextActiveSection?.Navigation?.NavigationStack?.Count > 1)
+					{
+						// Set the flag on the target section to prevent unwanted appearance events
+						if (nextActiveSection is ShellSection targetSection)
+						{
+							targetSection.IsPoppingToRoot = true;
+						}
+					}
+
 					_shell.SetValueFromRenderer(Shell.CurrentItemProperty, shellItem);
 					navigatedToNewShellElement = true;
 				}
