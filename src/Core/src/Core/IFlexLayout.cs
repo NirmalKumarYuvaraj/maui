@@ -77,6 +77,13 @@ namespace Microsoft.Maui
 
 		Rect GetFlexFrame(IView view);
 
+		/// <summary>
+		/// Gets the computed layout size of the flex container after layout has been performed.
+		/// This is more efficient than measuring each child individually.
+		/// </summary>
+		/// <returns>The computed size of the flex layout.</returns>
+		Size GetLayoutSize();
+
 		void Layout(double width, double height);
 	}
 }

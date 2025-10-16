@@ -561,6 +561,38 @@ namespace Microsoft.Maui.Controls
 		public Graphics.Rect GetFlexFrame(IView view) =>
 			GetFlexItem(view).GetFrame();
 
+		public Graphics.Size GetLayoutSize()
+		{
+			if (_root == null)
+				return Graphics.Size.Zero;
+
+			// If there are no children, return zero size
+			if (_root.Count == 0)
+				return Graphics.Size.Zero;
+
+			// Get the maximum extent from all child items in the root
+			double maxRight = 0;
+			double maxBottom = 0;
+			bool hasVisibleChildren = false;
+
+			foreach (var item in _root)
+			{
+				if (item.IsVisible)
+				{
+					hasVisibleChildren = true;
+					var frame = item.Frame;
+					maxRight = Math.Max(maxRight, frame[0] + frame[2]); // X + Width
+					maxBottom = Math.Max(maxBottom, frame[1] + frame[3]); // Y + Height
+				}
+			}
+
+			// If no children are visible, return zero size
+			if (!hasVisibleChildren)
+				return Graphics.Size.Zero;
+
+			return new Graphics.Size(maxRight, maxBottom);
+		}
+
 		void EnsureFlexItemPropertiesUpdated()
 		{
 			for (int n = 0; n < this.Count; n++)

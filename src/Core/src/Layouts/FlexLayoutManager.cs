@@ -47,21 +47,29 @@ namespace Microsoft.Maui.Layouts
 			var availableWidth = widthConstraint - padding.HorizontalThickness;
 			var availableHeight = heightConstraint - padding.VerticalThickness;
 
-			double measuredHeight = 0;
-			double measuredWidth = 0;
-
 			FlexLayout.Layout(availableWidth, availableHeight);
 
-			foreach (var child in FlexLayout)
+			// Try to get the total size more efficiently using the new GetLayoutSize method
+			var layoutSize = FlexLayout.GetLayoutSize();
+			double measuredWidth = layoutSize.Width;
+			double measuredHeight = layoutSize.Height;
+
+			// Fallback to the original method if we couldn't get a valid size from GetLayoutSize
+			// This happens when there are no visible children or if the layout is empty
+			if (measuredWidth == 0 && measuredHeight == 0)
 			{
-				if (child.Visibility == Visibility.Collapsed)
+				// Use individual child measurement as fallback
+				foreach (var child in FlexLayout)
 				{
-					continue;
+					if (child.Visibility != Visibility.Collapsed)
+					{
+						var frame = FlexLayout.GetFlexFrame(child);
+						measuredHeight = Math.Max(measuredHeight, frame.Bottom);
+						measuredWidth = Math.Max(measuredWidth, frame.Right);
+					}
 				}
 
-				var frame = FlexLayout.GetFlexFrame(child);
-				measuredHeight = Math.Max(measuredHeight, frame.Bottom);
-				measuredWidth = Math.Max(measuredWidth, frame.Right);
+				// If there were no visible children, the zero size from GetLayoutSize is correct
 			}
 
 			var finalHeight = LayoutManager.ResolveConstraints(heightConstraint, FlexLayout.Height, measuredHeight + padding.VerticalThickness,

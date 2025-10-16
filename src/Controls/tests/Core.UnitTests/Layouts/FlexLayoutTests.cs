@@ -218,5 +218,53 @@ namespace Microsoft.Maui.Controls.Core.UnitTests.Layouts
 			Assert.Equal(0, flexFrame.X);
 			Assert.Equal(0, flexFrame.Y);
 		}
+
+		[Fact]
+		public void GetLayoutSizeReturnsCorrectDimensions()
+		{
+			// Arrange
+			var root = new Grid();
+			var flexLayout = new FlexLayout();
+			var view1 = Substitute.For<IView>();
+			var view2 = Substitute.For<IView>();
+
+			var view1Size = new Size(100, 100);
+			var view2Size = new Size(50, 150);
+
+			view1.Measure(Arg.Any<double>(), Arg.Any<double>()).Returns(view1Size);
+			view2.Measure(Arg.Any<double>(), Arg.Any<double>()).Returns(view2Size);
+
+			root.Add(flexLayout);
+			flexLayout.Add(view1);
+			flexLayout.Add(view2);
+
+			// Act
+			var measureSize = flexLayout.CrossPlatformMeasure(400, 400);
+			var layoutSize = flexLayout.GetLayoutSize();
+
+			// Assert - GetLayoutSize should return dimensions that match the measured layout
+			Assert.True(layoutSize.Width > 0, "Layout width should be greater than 0");
+			Assert.True(layoutSize.Height > 0, "Layout height should be greater than 0");
+
+			// The layout size should be reasonable based on our child sizes
+			// For row direction (default), we expect width to be sum of child widths and height to be max of child heights
+			Assert.True(layoutSize.Width >= 100, "Layout width should accommodate at least the first child");
+			Assert.True(layoutSize.Height >= 100, "Layout height should accommodate child heights");
+		}
+
+		[Fact]
+		public void GetLayoutSizeReturnsZeroForEmptyLayout()
+		{
+			// Arrange
+			var root = new Grid();
+			var flexLayout = new FlexLayout();
+			root.Add(flexLayout);
+
+			// Act
+			var layoutSize = flexLayout.GetLayoutSize();
+
+			// Assert
+			Assert.Equal(Size.Zero, layoutSize);
+		}
 	}
 }
