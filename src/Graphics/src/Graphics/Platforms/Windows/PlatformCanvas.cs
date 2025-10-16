@@ -137,7 +137,7 @@ namespace Microsoft.Maui.Graphics.Platform
 
 		public override BlendMode BlendMode
 		{
-			set { }
+			set => CurrentState.BlendMode = value;
 		}
 
 		public override void FillPath(PathF path, WindingMode windingMode)
@@ -740,7 +740,7 @@ namespace Microsoft.Maui.Graphics.Platform
 			}
 			else
 			{
-				drawingAction(_session);
+				DrawWithBlendMode(drawingAction);
 			}
 		}
 
@@ -842,12 +842,86 @@ namespace Microsoft.Maui.Graphics.Platform
 			}
 		}
 
+		private void DrawWithBlendMode(Action<CanvasDrawingSession> drawingAction)
+		{
+			if (CurrentState.BlendMode == BlendMode.Normal)
+			{
+				// For normal blend mode, draw directly
+				drawingAction(_session);
+			}
+			else
+			{
+				// For other blend modes, use a render target with compositing
+				var context = GetOrCreateEffectContext();
+				if (context != null)
+				{
+					using (var imageSession = context.CreateDrawingSession())
+					{
+						imageSession.Clear(WColors.Transparent);
+						imageSession.Transform = CurrentState.Matrix;
+						drawingAction(imageSession);
+					}
+
+					var composite = GetCanvasComposite(CurrentState.BlendMode);
+					_session.Transform = Matrix3x2.Identity;
+					using (var layer = _session.CreateLayer(CurrentState.Alpha, null, composite))
+					{
+						_session.DrawImage(context, 0, 0);
+					}
+					_session.Transform = CurrentState.Matrix;
+				}
+				else
+				{
+					// Fallback to direct drawing if render target creation fails
+					drawingAction(_session);
+				}
+			}
+		}
+
 		private void SetRect(float x, float y, float width, float height)
 		{
 			_rect.X = Math.Min(x, x + width);
 			_rect.Y = Math.Min(y, y + height);
 			_rect.Width = Math.Abs(width);
 			_rect.Height = Math.Abs(height);
+		}
+
+		private CanvasComposite GetCanvasComposite(BlendMode blendMode)
+		{
+			return blendMode switch
+			{
+				BlendMode.Normal => CanvasComposite.SourceOver,
+				BlendMode.Multiply => CanvasComposite.Multiply,
+				BlendMode.Screen => CanvasComposite.Screen,
+				BlendMode.Overlay => CanvasComposite.Overlay,
+				BlendMode.Darken => CanvasComposite.Darken,
+				BlendMode.Lighten => CanvasComposite.Lighten,
+				BlendMode.ColorDodge => CanvasComposite.ColorDodge,
+				BlendMode.ColorBurn => CanvasComposite.ColorBurn,
+				BlendMode.SoftLight => CanvasComposite.SoftLight,
+				BlendMode.HardLight => CanvasComposite.HardLight,
+				BlendMode.Difference => CanvasComposite.Difference,
+				BlendMode.Exclusion => CanvasComposite.Exclusion,
+				BlendMode.Hue => CanvasComposite.Hue,
+				BlendMode.Saturation => CanvasComposite.Saturation,
+				BlendMode.Color => CanvasComposite.Color,
+				BlendMode.Luminosity => CanvasComposite.Luminosity,
+				BlendMode.Clear => CanvasComposite.DestinationOut,
+				BlendMode.Copy => CanvasComposite.SourceCopy,
+				BlendMode.SourceIn => CanvasComposite.SourceIn,
+				BlendMode.SourceOut => CanvasComposite.SourceOut,
+				BlendMode.SourceAtop => CanvasComposite.SourceAtop,
+				BlendMode.DestinationOver => CanvasComposite.DestinationOver,
+				BlendMode.DestinationIn => CanvasComposite.DestinationIn,
+				BlendMode.DestinationOut => CanvasComposite.DestinationOut,
+				BlendMode.DestinationAtop => CanvasComposite.DestinationAtop,
+				BlendMode.Xor => CanvasComposite.Xor,
+				// Note: PlusDarker and PlusLighter don't have direct equivalents in Win2D
+				// Using closest alternatives
+				BlendMode.PlusDarker => CanvasComposite.Darken,
+				BlendMode.PlusLighter => CanvasComposite.Lighten,
+				_ => CanvasComposite.SourceOver
+			};
 		}
 	}
 }

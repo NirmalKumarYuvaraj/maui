@@ -19,6 +19,8 @@ namespace GraphicsTester.Scenarios
 						new DrawRectangles(),
 						new DrawEllipses(),
 						new DrawRoundedRectangles(),
+						new BlendModes(),
+						new SimpleBlendModeTest(),
 						new DrawArcs(),
 						new DrawArcs(true),
 						new ArcScenario1(true),

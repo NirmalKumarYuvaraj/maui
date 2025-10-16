@@ -70,6 +70,7 @@ namespace Microsoft.Maui.Graphics.Platform
 
 		private int _layerCount = 0;
 		private readonly float _dpi = 96;
+		private BlendMode _blendMode = BlendMode.Normal;
 
 		public IFont Font { get; set; }
 
@@ -138,6 +139,7 @@ namespace Microsoft.Maui.Graphics.Platform
 
 			_alpha = prototype._alpha;
 			_scale = prototype._scale;
+			_blendMode = prototype._blendMode;
 
 			IsBlurred = prototype.IsBlurred;
 			BlurRadius = prototype.BlurRadius;
@@ -172,6 +174,7 @@ namespace Microsoft.Maui.Graphics.Platform
 
 			_alpha = 1;
 			_scale = 1;
+			_blendMode = BlendMode.Normal;
 
 			IsBlurred = false;
 			BlurRadius = 0;
@@ -443,6 +446,12 @@ namespace Microsoft.Maui.Graphics.Platform
 		public float ActualScale => _scale;
 
 		public float ActualShadowBlur => ShadowBlur * Math.Abs(_scale);
+
+		public BlendMode BlendMode
+		{
+			get => _blendMode;
+			set => _blendMode = value;
+		}
 
 		public Matrix3x2 AppendTranslate(float tx, float ty)
 		{
