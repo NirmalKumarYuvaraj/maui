@@ -1,17 +1,21 @@
 #nullable disable
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Maui.Storage;
 
 namespace Microsoft.Maui.Controls
 {
-	// TODO: CACHING https://github.com/dotnet/runtime/issues/52332
 	/// <include file="../../docs/Microsoft.Maui.Controls/UriImageSource.xml" path="Type[@FullName='Microsoft.Maui.Controls.UriImageSource']/Docs/*" />
 	public sealed partial class UriImageSource : ImageSource, IStreamImageSource
 	{
+		internal const string CacheFolderName = "ImageLoaderCache";
+		static readonly object s_syncHandle = new object();
+		static readonly Dictionary<string, SemaphoreSlim> s_semaphores = new Dictionary<string, SemaphoreSlim>();
 		/// <summary>Bindable property for <see cref="Uri"/>.</summary>
 		public static readonly BindableProperty UriProperty = BindableProperty.Create(
 			nameof(Uri), typeof(Uri), typeof(UriImageSource), default(Uri),
@@ -92,19 +96,19 @@ namespace Microsoft.Maui.Controls
 			Stream stream = null;
 
 			if (CachingEnabled)
-			{
-				// TODO: CACHING https://github.com/dotnet/runtime/issues/52332
+				stream = await GetStreamFromCacheAsync(uri, cancellationToken).ConfigureAwait(false);
 
-				// var key = GetKey();
-				// var cached = TryGetFromCache(key, out stream)
-				if (stream is null)
-					stream = await DownloadStreamAsync(uri, cancellationToken).ConfigureAwait(false);
-				// if (!cached)
-				//    Cache(key, stream)
-			}
-			else
+			if (stream == null)
 			{
-				stream = await DownloadStreamAsync(uri, cancellationToken).ConfigureAwait(false);
+				try
+				{
+					stream = await DownloadStreamAsync(uri, cancellationToken).ConfigureAwait(false);
+				}
+				catch (Exception ex)
+				{
+					Application.Current?.FindMauiContext()?.CreateLogger<UriImageSource>()?.LogWarning(ex, "Error getting stream for {Uri}", Uri);
+					stream = null;
+				}
 			}
 
 			return stream;
@@ -125,6 +129,166 @@ namespace Microsoft.Maui.Controls
 
 				Application.Current?.FindMauiContext()?.CreateLogger<UriImageSource>()?.LogWarning(ex, "Error getting stream for {Uri}", Uri);
 				return null;
+			}
+		}
+
+		static string GetCacheKey(Uri uri)
+		{
+			return Crc64.ComputeHashString(uri.AbsoluteUri);
+		}
+
+		async Task<bool> GetHasLocallyCachedCopyAsync(string key, bool checkValidity = true)
+		{
+			var now = DateTime.UtcNow;
+			var lastWriteTime = await GetLastWriteTimeUtcAsync(key).ConfigureAwait(false);
+			return lastWriteTime.HasValue && (!checkValidity || now - lastWriteTime.Value < CacheValidity);
+		}
+
+		static async Task<DateTime?> GetLastWriteTimeUtcAsync(string key)
+		{
+			var path = Path.Combine(FileSystem.CacheDirectory, CacheFolderName, key);
+			if (!File.Exists(path))
+				return null;
+
+			try
+			{
+				return (await Task.Run(() => File.GetLastWriteTimeUtc(path)).ConfigureAwait(false));
+			}
+			catch
+			{
+				return null;
+			}
+		}
+
+		async Task<Stream> GetStreamAsyncUnchecked(string key, Uri uri, CancellationToken cancellationToken)
+		{
+			var cacheDir = Path.Combine(FileSystem.CacheDirectory, CacheFolderName);
+			var cachePath = Path.Combine(cacheDir, key);
+
+			if (await GetHasLocallyCachedCopyAsync(key).ConfigureAwait(false))
+			{
+				var retry = 5;
+				while (retry >= 0)
+				{
+					var backoff = 0;
+					try
+					{
+						var result = File.OpenRead(cachePath);
+						return result;
+					}
+					catch (IOException)
+					{
+						// Multiple readers may be trying to access the file, back off for a random amount of time
+						backoff = new Random().Next(1, 5);
+						retry--;
+					}
+
+					if (backoff > 0)
+					{
+						await Task.Delay(backoff, cancellationToken).ConfigureAwait(false);
+					}
+				}
+				return null;
+			}
+
+			Stream stream;
+			try
+			{
+				stream = await DownloadStreamAsync(uri, cancellationToken).ConfigureAwait(false);
+				if (stream == null)
+					return null;
+			}
+			catch (Exception ex)
+			{
+				Application.Current?.FindMauiContext()?.CreateLogger<UriImageSource>()?.LogWarning(ex, "Error getting stream for {Uri}", uri);
+				return null;
+			}
+
+			if (stream == null || !stream.CanRead)
+			{
+				stream?.Dispose();
+				return null;
+			}
+
+			try
+			{
+				// Ensure cache directory exists
+				Directory.CreateDirectory(cacheDir);
+
+				// Cache the stream
+				using (var writeStream = File.Create(cachePath))
+				{
+					await stream.CopyToAsync(writeStream, 16384, cancellationToken).ConfigureAwait(false);
+				}
+
+				stream.Dispose();
+				return File.OpenRead(cachePath);
+			}
+			catch (Exception ex)
+			{
+				Application.Current?.FindMauiContext()?.CreateLogger<UriImageSource>()?.LogWarning(ex, "Error caching stream for {Uri}", uri);
+				stream?.Dispose();
+				return null;
+			}
+		}
+
+		async Task<Stream> GetStreamFromCacheAsync(Uri uri, CancellationToken cancellationToken)
+		{
+			var key = GetCacheKey(uri);
+			SemaphoreSlim sem;
+
+			lock (s_syncHandle)
+			{
+				if (s_semaphores.ContainsKey(key))
+					sem = s_semaphores[key];
+				else
+					s_semaphores.Add(key, sem = new SemaphoreSlim(1, 1));
+			}
+
+			try
+			{
+				await sem.WaitAsync(cancellationToken).ConfigureAwait(false);
+				var stream = await GetStreamAsyncUnchecked(key, uri, cancellationToken).ConfigureAwait(false);
+				if (stream == null || stream.Length == 0 || !stream.CanRead)
+				{
+					sem.Release();
+					return null;
+				}
+
+				// Create a wrapper that releases the semaphore when disposed
+				var wrapped = new StreamWrapper(stream, new SemaphoreReleaser(sem));
+				return wrapped;
+			}
+			catch (OperationCanceledException)
+			{
+				sem.Release();
+				throw;
+			}
+			catch
+			{
+				sem.Release();
+				throw;
+			}
+		}
+
+		// Helper class to ensure semaphore is released when the stream is disposed
+		private sealed class SemaphoreReleaser : IDisposable
+		{
+			private readonly SemaphoreSlim _semaphore;
+			private bool _disposed;
+
+			public SemaphoreReleaser(SemaphoreSlim semaphore)
+			{
+				_semaphore = semaphore;
+			}
+
+			public void Dispose()
+			{
+				if (!_disposed)
+				{
+					_semaphore?.Release();
+					_disposed = true;
+				}
 			}
 		}
 
