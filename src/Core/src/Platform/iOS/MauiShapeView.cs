@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Maui.Graphics.Platform;
 using ObjCRuntime;
@@ -25,6 +25,24 @@ namespace Microsoft.Maui.Platform
 		{
 			base.MovedToWindow();
 			_movedToWindow?.Invoke(this, EventArgs.Empty);
+		}
+
+		public override bool Hidden
+		{
+			get => base.Hidden;
+			set
+			{
+				bool wasHidden = base.Hidden;
+				base.Hidden = value;
+
+				// If the view was hidden and is now becoming visible, ensure it gets redrawn
+				// This fixes the issue where BoxViews in initially invisible parents don't render
+				// We need to invalidate the drawable to trigger the draw method
+				if (wasHidden && !value && Window != null)
+				{
+					InvalidateDrawable();
+				}
+			}
 		}
 	}
 }
