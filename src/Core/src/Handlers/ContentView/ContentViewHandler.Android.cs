@@ -4,6 +4,8 @@ namespace Microsoft.Maui.Handlers
 {
 	public partial class ContentViewHandler : ViewHandler<IContentView, ContentViewGroup>
 	{
+		IPlatformViewHandler? _contentHandler;
+
 		protected override ContentViewGroup CreatePlatformView()
 		{
 			if (VirtualView == null)
@@ -36,10 +38,25 @@ namespace Microsoft.Maui.Handlers
 			_ = handler.MauiContext ?? throw new InvalidOperationException($"{nameof(MauiContext)} should have been set by base class.");
 			_ = handler.VirtualView ?? throw new InvalidOperationException($"{nameof(VirtualView)} should have been set by base class.");
 
+			// Disconnect the old content's handler tree (including all children) before clearing
+			if (handler is ContentViewHandler contentViewHandler && contentViewHandler._contentHandler?.VirtualView is IView oldView)
+			{
+				oldView.DisconnectHandlers();
+				contentViewHandler._contentHandler = null;
+			}
+
 			handler.PlatformView.RemoveAllViews();
 
 			if (handler.VirtualView.PresentedContent is IView view)
+			{
 				handler.PlatformView.AddView(view.ToPlatform(handler.MauiContext));
+
+				// Store the new content handler so we can disconnect it later
+				if (handler is ContentViewHandler contentHandler && view.Handler is IPlatformViewHandler viewHandler)
+				{
+					contentHandler._contentHandler = viewHandler;
+				}
+			}
 		}
 
 		public static partial void MapContent(IContentViewHandler handler, IContentView page)
@@ -49,6 +66,13 @@ namespace Microsoft.Maui.Handlers
 
 		protected override void DisconnectHandler(ContentViewGroup platformView)
 		{
+			// Disconnect the entire content handler tree (including all children) when the ContentView itself is being disconnected
+			if (_contentHandler?.VirtualView is IView view)
+			{
+				view.DisconnectHandlers();
+			}
+			_contentHandler = null;
+
 			// If we're being disconnected from the xplat element, then we should no longer be managing its children
 			platformView.CrossPlatformLayout = null;
 			platformView.RemoveAllViews();

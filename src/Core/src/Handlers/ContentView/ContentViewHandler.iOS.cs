@@ -5,6 +5,8 @@ namespace Microsoft.Maui.Handlers
 {
 	public partial class ContentViewHandler : ViewHandler<IContentView, ContentView>
 	{
+		IPlatformViewHandler? _contentHandler;
+
 		protected override ContentView CreatePlatformView()
 		{
 			_ = VirtualView ?? throw new InvalidOperationException($"{nameof(VirtualView)} must be set to create a {nameof(ContentView)}");
@@ -32,6 +34,14 @@ namespace Microsoft.Maui.Handlers
 			_ = handler.VirtualView ?? throw new InvalidOperationException($"{nameof(VirtualView)} should have been set by base class.");
 			_ = handler.MauiContext ?? throw new InvalidOperationException($"{nameof(MauiContext)} should have been set by base class.");
 
+			// Disconnect the old content's handler tree (including all children) before clearing
+			if (handler is ContentViewHandler contentViewHandler && contentViewHandler._contentHandler?.VirtualView is IView oldView)
+			{
+				oldView.DisconnectHandlers();
+				System.Diagnostics.Debug.WriteLine("Disconnecting old content view handlers");
+				contentViewHandler._contentHandler = null;
+			}
+
 			// Cleanup the old view when reused
 			handler.PlatformView.ClearSubviews();
 
@@ -43,6 +53,12 @@ namespace Microsoft.Maui.Handlers
 				if (view.FlowDirection == FlowDirection.MatchParent)
 				{
 					platformView.UpdateFlowDirection(view);
+				}
+
+				// Store the new content handler so we can disconnect it later
+				if (handler is ContentViewHandler contentHandler && view.Handler is IPlatformViewHandler viewHandler)
+				{
+					contentHandler._contentHandler = viewHandler;
 				}
 
 				// we need to trigger an invalidation of ancestor measures after the view has been added
@@ -58,6 +74,13 @@ namespace Microsoft.Maui.Handlers
 
 		protected override void DisconnectHandler(ContentView platformView)
 		{
+			// Disconnect the entire content handler tree (including all children) when the ContentView itself is being disconnected
+			if (_contentHandler?.VirtualView is IView view)
+			{
+				view.DisconnectHandlers();
+			}
+			_contentHandler = null;
+
 			platformView.CrossPlatformLayout = null;
 			platformView.RemoveFromSuperview();
 			base.DisconnectHandler(platformView);
