@@ -334,6 +334,17 @@ internal static class LayoutFactory2
 			{
 				section.InterGroupSpacing = (nfloat)linearItemsLayout.ItemSpacing;
 			}
+
+			// Apply section content insets for peek area
+			if (isHorizontal)
+			{
+				section.ContentInsets = new NSDirectionalEdgeInsets(0, (nfloat)sectionMargin, 0, (nfloat)sectionMargin);
+			}
+			else
+			{
+				section.ContentInsets = new NSDirectionalEdgeInsets((nfloat)sectionMargin, 0, (nfloat)sectionMargin, 0);
+			}
+
 			section.OrthogonalScrollingBehavior = isHorizontal
 				? UICollectionLayoutSectionOrthogonalScrollingBehavior.GroupPagingCentered
 				: UICollectionLayoutSectionOrthogonalScrollingBehavior.None;
