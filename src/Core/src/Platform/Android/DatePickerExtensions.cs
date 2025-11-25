@@ -4,6 +4,11 @@ using Android.Content.Res;
 
 namespace Microsoft.Maui.Platform
 {
+	/// <summary>
+	/// Extension methods for Material 3 DatePicker styling.
+	/// Manages date formatting, colors, and min/max date constraints.
+	/// DatePickerDialog uses Material 3 theming from styles.xml.
+	/// </summary>
 	public static class DatePickerExtensions
 	{
 		public static void UpdateFormat(this MauiDatePicker platformDatePicker, IDatePicker datePicker)

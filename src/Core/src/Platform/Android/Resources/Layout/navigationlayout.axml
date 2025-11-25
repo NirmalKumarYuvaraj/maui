@@ -1,4 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- Material 3 Navigation Layout -->
+<!-- Uses CoordinatorLayout for Material 3 scrolling behaviors and AppBarLayout for TopAppBar -->
+<!-- Compatible with Material 3 small, medium, and large TopAppBar variants -->
+<!-- Supports edge-to-edge layout with window insets handling -->
 <androidx.coordinatorlayout.widget.CoordinatorLayout
 		xmlns:android="http://schemas.android.com/apk/res/android"
 		xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -7,6 +11,9 @@
         android:id="@+id/navigation_layout"
 		>
 
+    <!-- Material 3 AppBarLayout for TopAppBar -->
+    <!-- Theme: MauiAppBarLayout uses ThemeOverlay.Material3.Dark -->
+    <!-- Supports collapsing toolbar and scrolling behaviors -->
     <com.google.android.material.appbar.AppBarLayout
 			android:id="@+id/navigationlayout_appbar"
             android:layout_width="match_parent"
@@ -14,6 +21,7 @@
 			      android:theme="@style/MauiAppBarLayout"
 				>
 
+        <!-- Top tabs container for Material 3 TabLayout -->
         <androidx.fragment.app.FragmentContainerView
                    android:id="@+id/navigationlayout_toptabs"
                    android:layout_width="match_parent"
@@ -22,12 +30,16 @@
 
     </com.google.android.material.appbar.AppBarLayout>
 
+    <!-- Main content area with Material 3 scrolling behavior -->
+    <!-- Uses appbar_scrolling_view_behavior for coordinated scrolling with AppBarLayout -->
     <androidx.fragment.app.FragmentContainerView
             android:id="@+id/navigationlayout_content"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             app:layout_behavior="@string/appbar_scrolling_view_behavior"
             />
+    
+    <!-- Bottom tabs container for Material 3 NavigationBar -->
     <androidx.fragment.app.FragmentContainerView
                android:id="@+id/navigationlayout_bottomtabs"
                android:layout_width="match_parent"

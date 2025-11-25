@@ -6,6 +6,11 @@ using SearchView = AndroidX.AppCompat.Widget.SearchView;
 
 namespace Microsoft.Maui.Platform
 {
+	/// <summary>
+	/// Custom SearchView for .NET MAUI search functionality.
+	/// Material 3 provides SearchBar and SearchView components with enhanced styling.
+	/// Currently extends AppCompat SearchView with Material theming.
+	/// </summary>
 	public class MauiSearchView : SearchView
 	{
 		internal EditText? _queryEditor;

@@ -11,6 +11,11 @@ using static Android.Views.View;
 
 namespace Microsoft.Maui.Platform
 {
+	/// <summary>
+	/// Custom time picker EditText for .NET MAUI.
+	/// Triggers Material 3 TimePickerDialog with enhanced styling.
+	/// Material 3 provides improved time picker with clock face and input modes.
+	/// </summary>
 	public class MauiTimePicker : AppCompatEditText, IOnClickListener
 	{
 		public MauiTimePicker(Context context) : base(context)

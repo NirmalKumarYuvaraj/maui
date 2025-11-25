@@ -6,6 +6,10 @@ using R = Android.Resource;
 
 namespace Microsoft.Maui.Platform
 {
+	/// <summary>
+	/// Extension methods for Material 3 Button styling and behavior.
+	/// Handles background, stroke, ripple effects, and Material 3 state layers.
+	/// </summary>
 	public static class ButtonExtensions
 	{
 		public static void UpdateBackground(this MaterialButton platformView, IButton button) =>
@@ -60,12 +64,14 @@ namespace Microsoft.Maui.Platform
 
 		internal static void UpdateButtonBackground(this MaterialButton platformView, IButton button)
 		{
+			// Material 3 uses surface tint and state layers instead of traditional elevation shadows.
+			// The ripple drawable system is compatible with both M2 and M3.
 			platformView.UpdateMauiRippleDrawableBackground(
 				button.Background,
 				button,
 				() =>
 				{
-					// Copy the tints from a temporary button.
+					// Copy the tints from a temporary Material 3 button.
 					// TODO: optimize this to avoid creating a new button every time.
 
 					var context = platformView.Context!;
@@ -89,16 +95,22 @@ namespace Microsoft.Maui.Platform
 				});
 		}
 
+		/// <summary>
+		/// Updates the ripple color for Material 3 state layer effects.
+		/// Material 3 uses enhanced state layers with improved visual feedback.
+		/// </summary>
 		public static void UpdateRippleColor(this MaterialButton platformView, Color? rippleColor)
 		{
 			if (platformView.Background is global::Android.Graphics.Drawables.RippleDrawable ripple)
 			{
 				if (rippleColor?.ToPlatform() is not null)
 				{
+					// Material 3 state layers support full color customization
 					ripple.SetColor(global::Android.Content.Res.ColorStateList.ValueOf(rippleColor.ToPlatform()));
 				}
 				else
 				{
+					// Revert to Material 3 default ripple color from theme
 					ripple.ClearColorFilter();
 				}
 			}

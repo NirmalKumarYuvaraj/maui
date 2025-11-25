@@ -12,6 +12,12 @@ using AView = Android.Views.View;
 
 namespace Microsoft.Maui.Platform
 {
+	/// <summary>
+	/// Manages stack-based navigation for .NET MAUI applications on Android.
+	/// Uses AndroidX Navigation Component with Material 3 compatible transitions.
+	/// Integrates with Material 3 TopAppBar (Toolbar) for navigation UI.
+	/// Handles fragment-based page navigation with Material motion animations.
+	/// </summary>
 	public class StackNavigationManager
 	{
 		NavHostFragment? _navHost;

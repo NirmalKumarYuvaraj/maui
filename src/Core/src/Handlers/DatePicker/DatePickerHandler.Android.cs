@@ -6,6 +6,12 @@ using Microsoft.Maui.Devices;
 
 namespace Microsoft.Maui.Handlers
 {
+	/// <summary>
+	/// Handler for date picker on Android.
+	/// Creates DatePickerDialog with Material 3 theming.
+	/// Material 3 provides calendar grid view with improved accessibility.
+	/// Dialog theme configured in styles.xml (MauiAlertDialogTheme).
+	/// </summary>
 	public partial class DatePickerHandler : ViewHandler<IDatePicker, MauiDatePicker>
 	{
 		DatePickerDialog? _dialog;
@@ -73,6 +79,10 @@ namespace Microsoft.Maui.Handlers
 			base.DisconnectHandler(platformView);
 		}
 
+		/// <summary>
+		/// Creates a Material 3 styled DatePickerDialog.
+		/// Dialog inherits theme from MauiAlertDialogTheme in styles.xml.
+		/// </summary>
 		protected virtual DatePickerDialog CreateDatePickerDialog(int year, int month, int day)
 		{
 			var dialog = new DatePickerDialog(Context!, (o, e) =>

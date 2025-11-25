@@ -1,24 +1,70 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources>
 
-    <!-- Base application theme. -->
-    <style name="Maui.MainTheme.Base" parent="Theme.MaterialComponents.DayNight">
+    <!-- Base application theme - Material 3 -->
+    <style name="Maui.MainTheme.Base" parent="Theme.Material3.DayNight">
         <!-- For .NET 9 we optout of edge to edge enforcement by default -->
         <item name="maui_edgetoedge_optout">true</item>
         <item name="maui_splash">false</item>
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
-        <item name="android:actionMenuTextColor">@color/colorActionMenuTextColor</item>
+        
+        <!-- Material 3 Primary colors -->
+        <item name="colorPrimary">@color/md_theme_primary</item>
+        <item name="colorOnPrimary">@color/md_theme_on_primary</item>
+        <item name="colorPrimaryContainer">@color/md_theme_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/md_theme_on_primary_container</item>
+        
+        <!-- Material 3 Secondary colors -->
+        <item name="colorSecondary">@color/md_theme_secondary</item>
+        <item name="colorOnSecondary">@color/md_theme_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/md_theme_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/md_theme_on_secondary_container</item>
+        
+        <!-- Material 3 Tertiary colors -->
+        <item name="colorTertiary">@color/md_theme_tertiary</item>
+        <item name="colorOnTertiary">@color/md_theme_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/md_theme_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/md_theme_on_tertiary_container</item>
+        
+        <!-- Material 3 Error colors -->
+        <item name="colorError">@color/md_theme_error</item>
+        <item name="colorOnError">@color/md_theme_on_error</item>
+        <item name="colorErrorContainer">@color/md_theme_error_container</item>
+        <item name="colorOnErrorContainer">@color/md_theme_on_error_container</item>
+        
+        <!-- Material 3 Surface colors -->
+        <item name="colorSurface">@color/md_theme_surface</item>
+        <item name="colorOnSurface">@color/md_theme_on_surface</item>
+        <item name="colorSurfaceVariant">@color/md_theme_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/md_theme_on_surface_variant</item>
+        
+        <!-- Material 3 Background colors -->
+        <item name="android:colorBackground">@color/md_theme_background</item>
+        <item name="colorOnBackground">@color/md_theme_on_background</item>
+        
+        <!-- Material 3 Outline colors -->
+        <item name="colorOutline">@color/md_theme_outline</item>
+        <item name="colorOutlineVariant">@color/md_theme_outline_variant</item>
+        
+        <!-- Material 3 Surface container colors -->
+        <item name="colorSurfaceContainerLowest">@color/md_theme_surface_container_lowest</item>
+        <item name="colorSurfaceContainerLow">@color/md_theme_surface_container_low</item>
+        <item name="colorSurfaceContainer">@color/md_theme_surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/md_theme_surface_container_high</item>
+        <item name="colorSurfaceContainerHighest">@color/md_theme_surface_container_highest</item>
+        
+        <!-- Action menu text color uses onSurface in M3 -->
+        <item name="android:actionMenuTextColor">?attr/colorOnSurface</item>
+        
+        <!-- Component styles -->
         <item name="appBarLayoutStyle">@style/MauiAppBarLayout</item>
-        <item name="bottomNavigationViewStyle">@style/Widget.Design.BottomNavigationView</item>
+        <item name="bottomNavigationViewStyle">@style/Widget.Material3.NavigationView</item>
         <item name="materialButtonStyle">@style/MauiMaterialButton</item>
         <item name="checkboxStyle">@style/MauiCheckBox</item>
         <item name="android:textAllCaps">false</item>
         <item name="alertDialogTheme">@style/MauiAlertDialogTheme</item>
         <item name="materialAlertDialogTheme">@style/MauiAlertDialogTheme</item>
     </style>
-    <style name="MauiAppBarLayout" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
+    <style name="MauiAppBarLayout" parent="ThemeOverlay.Material3.Dark">
         <item name="android:background">?attr/colorPrimary</item>
     </style>
     <style name="Maui.MainTheme" parent="Maui.MainTheme.Base">
@@ -56,7 +102,7 @@
     <style name="AppTheme" parent="Maui.MainTheme" />
     <style name="AppTheme.NoActionBar" parent="Maui.MainTheme.NoActionBar" />
 
-    <style name="MauiMaterialButton" parent="Widget.MaterialComponents.Button.UnelevatedButton">
+    <style name="MauiMaterialButton" parent="Widget.Material3.Button">
       <!-- remove all the min sizes as MAUI manages it -->
       <item name="android:minWidth">0dp</item>
       <item name="android:minHeight">0dp</item>
@@ -80,7 +126,7 @@
       <item name="buttonTint">?attr/colorPrimary</item>
     </style>
 
-    <style name="MauiAlertDialogTheme" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+    <style name="MauiAlertDialogTheme" parent="ThemeOverlay.Material3.MaterialAlertDialog">
       <item name="colorPrimary">?attr/colorOnSurface</item>
     </style>
 

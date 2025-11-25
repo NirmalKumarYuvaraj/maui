@@ -14,6 +14,12 @@ using AView = Android.Views.View;
 
 namespace Microsoft.Maui.Platform
 {
+	/// <summary>
+	/// Manages the root navigation structure for .NET MAUI applications on Android.
+	/// Uses Material 3 compatible layouts including CoordinatorLayout and AppBarLayout.
+	/// Supports both standard navigation and DrawerLayout (flyout) navigation patterns.
+	/// Material 3 provides enhanced AppBar variants (small, medium, large) via AppBarLayout.
+	/// </summary>
 	public class NavigationRootManager
 	{
 		IMauiContext _mauiContext;
@@ -72,12 +78,14 @@ namespace Microsoft.Maui.Platform
 			}
 			else
 			{
+				// Inflate Material 3 compatible navigation layout
+				// Layout includes AppBarLayout for Material 3 TopAppBar and CoordinatorLayout for scrolling behavior
 				navigationLayout =
 				   LayoutInflater
 					   .Inflate(Resource.Layout.navigationlayout, null)
 					   .JavaCast<CoordinatorLayout>();
 
-				// Set up the CoordinatorLayout with a local inset listener
+				// Set up the CoordinatorLayout with a local inset listener for Material 3 edge-to-edge support
 				if (navigationLayout is not null)
 				{
 					_managedCoordinatorLayout = navigationLayout;
@@ -87,7 +95,7 @@ namespace Microsoft.Maui.Platform
 				_rootView = navigationLayout;
 			}
 
-			if(!OperatingSystem.IsAndroidVersionAtLeast(30))
+			if (!OperatingSystem.IsAndroidVersionAtLeast(30))
 			{
 				// Dispatches insets to all children recursively (for API < 30)
 				// This implements Google's workaround for the API 28-29 bug where
@@ -104,7 +112,7 @@ namespace Microsoft.Maui.Platform
 					ViewGroupCompat.InstallCompatInsetsDispatch(_rootView);
 				}
 			}
-			
+
 			// if the incoming view is a Drawer Layout then the Drawer Layout
 			// will be the root view and internally handle all if its view management
 			// this is mainly used for FlyoutView

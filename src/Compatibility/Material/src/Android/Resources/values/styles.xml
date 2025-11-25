@@ -5,8 +5,8 @@
     <attr name="materialProgressBarHorizontalStyle" format="reference" />
     <attr name="materialProgressBarCircularStyle" format="reference" />
     <attr name="materialCheckBoxStyle" format="reference" />
-    <!-- Material Base Theme -->
-    <style name="XamarinFormsMaterialTheme" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+    <!-- Material 3 Base Theme -->
+    <style name="XamarinFormsMaterialTheme" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="materialButtonStyle">@style/XamarinFormsMaterialButton</item>
         <item name="materialOutlinedButtonStyle">@style/XamarinFormsMaterialButtonOutlined</item>
         <item name="materialSliderStyle">@style/XamarinFormsMaterialSlider</item>
@@ -24,31 +24,31 @@
     </style>
     <style name="XamarinFormsMaterialProgressBarCircular" parent="Widget.AppCompat.ProgressBar">
     </style>
-    <!-- Material Buttons (All Styles) -->
-    <style name="XamarinFormsMaterialButton" parent="Widget.MaterialComponents.Button">
+    <!-- Material 3 Buttons (All Styles) -->
+    <style name="XamarinFormsMaterialButton" parent="Widget.Material3.Button">
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
         <item name="android:minHeight">36dp</item>
         <item name="android:paddingTop">8dp</item>
         <item name="android:paddingBottom">8dp</item>
     </style>
-    <style name="XamarinFormsMaterialButtonOutlined" parent="Widget.MaterialComponents.Button.OutlinedButton">
+    <style name="XamarinFormsMaterialButtonOutlined" parent="Widget.Material3.Button.OutlinedButton">
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
         <item name="android:minHeight">36dp</item>
         <item name="android:paddingTop">8dp</item>
         <item name="android:paddingBottom">8dp</item>
     </style>
-    <style name="XamarinFormsMaterialEntryFilled" parent="Widget.MaterialComponents.TextInputLayout.FilledBox">
+    <style name="XamarinFormsMaterialEntryFilled" parent="Widget.Material3.TextInputLayout.FilledBox">
     </style>
-    <!-- Material Checkbox -->
-    <style name="Widget.MaterialComponents.CompoundButton.CheckBox" parent="Widget.AppCompat.CompoundButton.CheckBox">
+    <!-- Material 3 Checkbox -->
+    <style name="Widget.Material3.CompoundButton.CheckBox" parent="Widget.AppCompat.CompoundButton.CheckBox">
         <!-- https://github.com/material-components/material-components-android/blob/831ad7dde719ff450a840857a51234483e3ba2c6/lib/java/com/google/android/material/resources/res/values/dimens.xml#L18
     this will become an attribute that's part of the material style once upgraded to android x
     -->
         <item name="android:minWidth">48dp</item>
         <item name="android:minHeight">48dp</item>
     </style>
-    <style name="XamarinFormsMaterialCheckBox" parent="Widget.MaterialComponents.CompoundButton.CheckBox">
+    <style name="XamarinFormsMaterialCheckBox" parent="Widget.Material3.CompoundButton.CheckBox">
     </style>
 </resources>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material 3 Light Theme Colors -->
+    <!-- Generated based on existing brand colors using Material Theme Builder -->
+    
+    <!-- Primary colors -->
+    <color name="md_theme_primary">#2c3e50</color>
+    <color name="md_theme_on_primary">#FFFFFF</color>
+    <color name="md_theme_primary_container">#D6E4F0</color>
+    <color name="md_theme_on_primary_container">#001D32</color>
+    
+    <!-- Secondary colors -->
+    <color name="md_theme_secondary">#3498db</color>
+    <color name="md_theme_on_secondary">#FFFFFF</color>
+    <color name="md_theme_secondary_container">#D8E4FF</color>
+    <color name="md_theme_on_secondary_container">#001A41</color>
+    
+    <!-- Tertiary colors -->
+    <color name="md_theme_tertiary">#6B5B8F</color>
+    <color name="md_theme_on_tertiary">#FFFFFF</color>
+    <color name="md_theme_tertiary_container">#F0DBFF</color>
+    <color name="md_theme_on_tertiary_container">#250046</color>
+    
+    <!-- Error colors -->
+    <color name="md_theme_error">#BA1A1A</color>
+    <color name="md_theme_on_error">#FFFFFF</color>
+    <color name="md_theme_error_container">#FFDAD6</color>
+    <color name="md_theme_on_error_container">#410002</color>
+    
+    <!-- Background colors -->
+    <color name="md_theme_background">#FCFCFF</color>
+    <color name="md_theme_on_background">#1A1C1E</color>
+    
+    <!-- Surface colors -->
+    <color name="md_theme_surface">#FCFCFF</color>
+    <color name="md_theme_on_surface">#1A1C1E</color>
+    <color name="md_theme_surface_variant">#DDE3EA</color>
+    <color name="md_theme_on_surface_variant">#41474D</color>
+    
+    <!-- Outline colors -->
+    <color name="md_theme_outline">#71787E</color>
+    <color name="md_theme_outline_variant">#C1C7CE</color>
+    
+    <!-- Surface container colors -->
+    <color name="md_theme_surface_dim">#D9D9DC</color>
+    <color name="md_theme_surface_bright">#FCFCFF</color>
+    <color name="md_theme_surface_container_lowest">#FFFFFF</color>
+    <color name="md_theme_surface_container_low">#F3F3F6</color>
+    <color name="md_theme_surface_container">#EDEEF1</color>
+    <color name="md_theme_surface_container_high">#E8E8EB</color>
+    <color name="md_theme_surface_container_highest">#E2E2E5</color>
+    
+    <!-- Inverse colors -->
+    <color name="md_theme_inverse_surface">#2F3033</color>
+    <color name="md_theme_inverse_on_surface">#F1F0F4</color>
+    <color name="md_theme_inverse_primary">#A8C7E7</color>
+    
+    <!-- Surface tint -->
+    <color name="md_theme_surface_tint">#2c3e50</color>
+    
+    <!-- Scrim -->
+    <color name="md_theme_scrim">#000000</color>
+    
+    <!-- Shadow -->
+    <color name="md_theme_shadow">#000000</color>
+</resources>

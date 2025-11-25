@@ -6,6 +6,7 @@ using AndroidX.Activity;
 using AndroidX.AppCompat.App;
 using AndroidX.Core.Content.Resources;
 using AndroidX.Core.View;
+using Google.Android.Material.Color;
 using Microsoft.Maui.LifecycleEvents;
 using Microsoft.Maui.Platform;
 
@@ -24,6 +25,13 @@ namespace Microsoft.Maui
 				AllowFragmentRestore,
 				Resource.Attribute.maui_splash,
 				Resource.Style.Maui_MainTheme_NoActionBar);
+
+			// Apply Material 3 dynamic color if available (Android 12+)
+			// This allows the app to use colors from the user's wallpaper
+			if (OperatingSystem.IsAndroidVersionAtLeast(31))
+			{
+				DynamicColors.ApplyToActivityIfAvailable(this);
+			}
 
 			base.OnCreate(savedInstanceState);
 			WindowCompat.SetDecorFitsSystemWindows(Window, false);
@@ -45,7 +53,6 @@ namespace Microsoft.Maui
 				OnBackInvokedDispatcher?.RegisterOnBackInvokedCallback(0, _predictiveBackCallback);
 			}
 		}
-
 		protected override void OnDestroy()
 		{
 			if (OperatingSystem.IsAndroidVersionAtLeast(33) && _predictiveBackCallback is not null)

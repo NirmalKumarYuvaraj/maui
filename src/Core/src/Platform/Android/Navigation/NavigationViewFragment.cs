@@ -8,6 +8,12 @@ using AView = Android.Views.View;
 
 namespace Microsoft.Maui.Platform
 {
+	/// <summary>
+	/// Fragment container for individual pages in .NET MAUI navigation stack.
+	/// Manages page lifecycle and Material 3 compatible navigation animations.
+	/// Uses Material motion specifications for enter/exit transitions.
+	/// Compatible with Material 3 container transform and shared element transitions.
+	/// </summary>
 	public class NavigationViewFragment : Fragment
 	{
 		AView? _currentView;
@@ -93,6 +99,10 @@ namespace Microsoft.Maui.Platform
 			base.OnDestroy();
 		}
 
+		/// <summary>
+		/// Creates navigation animations compatible with Material 3 motion specifications.
+		/// Material 3 uses container transform and predictive back animations.
+		/// </summary>
 		public override Animation OnCreateAnimation(int transit, bool enter, int nextAnim)
 		{
 			int id = 0;
@@ -107,6 +117,7 @@ namespace Microsoft.Maui.Platform
 			}
 			else
 			{
+				// Material 3 navigation animations follow motion specifications
 				// Once we have Function Mappers figured out all of this code can
 				// move to a function mapper as a way to customize animations from code
 				if (NavigationManager.IsPopping.Value)

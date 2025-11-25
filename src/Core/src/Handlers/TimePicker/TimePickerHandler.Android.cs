@@ -8,6 +8,12 @@ using DateFormat = Android.Text.Format.DateFormat;
 
 namespace Microsoft.Maui.Handlers
 {
+	/// <summary>
+	/// Handler for time picker on Android.
+	/// Creates TimePickerDialog with Material 3 theming.
+	/// Material 3 provides clock face with improved accessibility and input mode.
+	/// Dialog theme configured in styles.xml (MauiAlertDialogTheme).
+	/// </summary>
 	public partial class TimePickerHandler : ViewHandler<ITimePicker, MauiTimePicker>
 	{
 		MauiTimePicker? _timePicker;
@@ -41,6 +47,10 @@ namespace Microsoft.Maui.Handlers
 			platformView.HidePicker = null;
 		}
 
+		/// <summary>
+		/// Creates a Material 3 styled TimePickerDialog.
+		/// Dialog inherits theme from MauiAlertDialogTheme in styles.xml.
+		/// </summary>
 		protected virtual TimePickerDialog CreateTimePickerDialog(int hour, int minute)
 		{
 			void onTimeSetCallback(object? obj, TimePickerDialog.TimeSetEventArgs args)

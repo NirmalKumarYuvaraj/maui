@@ -9,9 +9,14 @@ using Google.Android.Material.Button;
 
 namespace Microsoft.Maui.Platform
 {
+	/// <summary>
+	/// Custom Material 3 Button implementation for .NET MAUI.
+	/// Extends MaterialButton with support for bottom icon gravity and dynamic icon sizing.
+	/// Compatible with Material 3 (Material You) theming and state layers.
+	/// </summary>
 	public class MauiMaterialButton : MaterialButton
 	{
-		// The default MaterialButton currently does not have a concept of bottom
+		// The default Material 3 MaterialButton does not have a concept of bottom
 		// gravity which we need for .NET MAUI.
 		// In order to get this feature, we have added a custom gravity option
 		// that serves as a flag to indicate that the icon should be placed at
@@ -80,6 +85,7 @@ namespace Microsoft.Maui.Platform
 			base.OnLayout(changed, left, top, right, bottom);
 
 			// After the layout pass, we swap the icon from the top to the bottom.
+			// Material 3 maintains the same icon positioning API as Material 2.
 			if (ForceBottomIconGravity)
 			{
 #pragma warning disable CS0618 // Type or member is obsolete

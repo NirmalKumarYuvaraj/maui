@@ -7,6 +7,11 @@ using AColor = Android.Graphics.Color;
 
 namespace Microsoft.Maui.Platform
 {
+	/// <summary>
+	/// Extension methods for Material 3 CheckBox styling.
+	/// Currently uses AppCompatCheckBox with Material theming.
+	/// Material 3 provides enhanced checkbox states and animations.
+	/// </summary>
 	public static class CheckBoxExtensions
 	{
 		public static void UpdateBackground(this AppCompatCheckBox platformCheckBox, ICheckBox check)
@@ -26,6 +31,8 @@ namespace Microsoft.Maui.Platform
 
 		public static void UpdateForeground(this AppCompatCheckBox platformCheckBox, ICheckBox check)
 		{
+			// Material 3 checkboxes support enhanced state colors.
+			// Using PorterDuff.Mode.SrcIn for proper color application.
 			var mode = PorterDuff.Mode.SrcIn;
 
 			CompoundButtonCompat.SetButtonTintList(platformCheckBox, platformCheckBox.GetColorStateList(check));

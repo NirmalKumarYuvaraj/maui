@@ -11,6 +11,11 @@ using static Android.Views.View;
 
 namespace Microsoft.Maui.Platform
 {
+	/// <summary>
+	/// Custom date picker EditText for .NET MAUI.
+	/// Triggers Material 3 DatePickerDialog with enhanced styling.
+	/// Material 3 provides improved date picker with calendar grid and input modes.
+	/// </summary>
 	public class MauiDatePicker : AppCompatEditText, IOnClickListener
 	{
 		public MauiDatePicker(Context context) : base(context)

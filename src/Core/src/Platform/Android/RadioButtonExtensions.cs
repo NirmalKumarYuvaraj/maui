@@ -3,6 +3,11 @@ using Microsoft.Maui.Graphics;
 
 namespace Microsoft.Maui.Platform
 {
+	/// <summary>
+	/// Extension methods for Material 3 RadioButton styling.
+	/// Currently uses AppCompatRadioButton with custom border drawable.
+	/// Material 3 provides enhanced radio button states and animations.
+	/// </summary>
 	public static class RadioButtonExtensions
 	{
 		public static void UpdateBackground(this AppCompatRadioButton platformRadioButton, IRadioButton radioButton)
@@ -37,6 +42,7 @@ namespace Microsoft.Maui.Platform
 
 		internal static void UpdateBorderDrawable(this AppCompatRadioButton platformView, IRadioButton radioButton)
 		{
+			// Using BorderDrawable for custom styling with Material 3 theming support.
 			BorderDrawable? mauiDrawable = platformView.Background as BorderDrawable;
 
 			if (mauiDrawable == null)
