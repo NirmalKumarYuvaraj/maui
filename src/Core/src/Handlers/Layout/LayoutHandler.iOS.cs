@@ -20,6 +20,17 @@ namespace Microsoft.Maui.Handlers
 			};
 		}
 
+#pragma warning disable RS0016
+		protected override void SetupContainer()
+		{
+			base.SetupContainer();
+			if (ContainerView is WrapperView wrapperView)
+			{
+				wrapperView.CrossPlatformLayout = VirtualView;
+			}
+		}
+		public override bool NeedsContainer => true;
+
 		public override void SetVirtualView(IView view)
 		{
 			base.SetVirtualView(view);

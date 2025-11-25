@@ -5,6 +5,18 @@ namespace Microsoft.Maui.Handlers
 {
 	public partial class ContentViewHandler : ViewHandler<IContentView, ContentView>
 	{
+#pragma warning disable RS0016
+		public override bool NeedsContainer => true;
+
+		protected override void SetupContainer()
+		{
+			base.SetupContainer();
+			if (ContainerView is WrapperView wrapperView)
+			{
+				wrapperView.CrossPlatformLayout = VirtualView;
+			}
+		}
+
 		protected override ContentView CreatePlatformView()
 		{
 			_ = VirtualView ?? throw new InvalidOperationException($"{nameof(VirtualView)} must be set to create a {nameof(ContentView)}");

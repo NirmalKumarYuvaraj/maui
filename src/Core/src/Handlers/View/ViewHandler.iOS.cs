@@ -149,9 +149,11 @@ namespace Microsoft.Maui.Handlers
 
 		internal static void UpdateTransformation(IViewHandler handler, IView view)
 		{
-			handler.ToPlatform().UpdateTransformation(view);
+			// When a ContainerView exists (e.g., for shadow), apply transform to it instead of the inner view
+			// This ensures the shadow moves with the transformed content
+			var targetView = (handler.ContainerView as PlatformView) ?? handler.ToPlatform();
+			targetView.UpdateTransformation(view);
 		}
-
 		internal static void MapSafeAreaEdges(IViewHandler handler, IView view)
 		{
 			view.InvalidateMeasure();
