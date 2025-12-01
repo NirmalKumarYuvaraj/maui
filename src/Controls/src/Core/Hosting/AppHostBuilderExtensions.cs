@@ -63,6 +63,9 @@ public static partial class AppHostBuilderExtensions
 
 	internal static IMauiHandlersCollection AddControlsHandlers(this IMauiHandlersCollection handlersCollection)
 	{
+		var config = IPlatformApplication.Current?.Services
+				?.GetService<IMaterialConfiguration>();
+
 #if IOS || MACCATALYST
 		handlersCollection.AddHandler<CollectionView, CollectionViewHandler2>();
 		handlersCollection.AddHandler<CarouselView, CarouselViewHandler2>();
@@ -84,7 +87,14 @@ public static partial class AppHostBuilderExtensions
 		handlersCollection.AddHandler<ProgressBar, ProgressBarHandler>();
 		handlersCollection.AddHandler<ScrollView, ScrollViewHandler>();
 		handlersCollection.AddHandler<SearchBar, SearchBarHandler>();
-		handlersCollection.AddHandler<Slider, SliderHandler>();
+		if (config?.UseMaterial3 == true)
+		{
+			handlersCollection.AddHandler<Slider, MaterialSliderHandler>();
+		}
+		else
+		{
+			handlersCollection.AddHandler<Slider, SliderHandler>();
+		}
 		handlersCollection.AddHandler<Stepper, StepperHandler>();
 		handlersCollection.AddHandler<Switch, SwitchHandler>();
 		handlersCollection.AddHandler<TimePicker, TimePickerHandler>();
