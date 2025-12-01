@@ -72,10 +72,12 @@ namespace Microsoft.Maui.Platform
 			}
 			else
 			{
+				// Use themed inflater to ensure Material 3 theme is applied to AppBarLayout
+				var themedContext = MauiMaterialContextThemeWrapper.Create(_mauiContext.Context!);
 				navigationLayout =
-				   LayoutInflater
-					   .Inflate(Resource.Layout.navigationlayout, null)
-					   .JavaCast<CoordinatorLayout>();
+				   LayoutInflater.From(themedContext)
+					   ?.Inflate(Resource.Layout.navigationlayout, null)
+					   ?.JavaCast<CoordinatorLayout>();
 
 				// Set up the CoordinatorLayout with a local inset listener
 				if (navigationLayout is not null)

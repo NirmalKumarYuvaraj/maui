@@ -174,4 +174,5 @@
     
     <!-- Compatibility colors for legacy MAUI components -->
     <color name="maui_material3_splash_color">@color/md_theme_light_surface</color>
+    <color name="maui_material3_splash_color_dark">@color/md_theme_dark_surface</color>
 </resources>
