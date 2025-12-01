@@ -9,14 +9,6 @@ namespace Microsoft.Maui.Platform
 	{
 		public static void UpdateIsOn(this ASwitch aSwitch, ISwitch view)
 		{
-			// Handle MaterialSwitch null text requirement
-			if (aSwitch is MaterialSwitch materialSwitch)
-			{
-				// CRITICAL: Prevent NullPointerException
-				if (materialSwitch.Text == null)
-					materialSwitch.Text = string.Empty;
-			}
-
 			aSwitch.Checked = view.IsOn;
 		}
 

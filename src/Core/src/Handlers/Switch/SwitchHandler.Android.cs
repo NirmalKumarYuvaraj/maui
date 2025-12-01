@@ -20,7 +20,7 @@ namespace Microsoft.Maui.Handlers
 			if (config?.UseMaterial3 == true)
 			{
 				// Material 3: Use MauiMaterialSwitch
-				return new MauiMaterialSwitch(Context) as ASwitch;
+				return new MauiMaterialSwitch(Context);
 			}
 			else
 			{

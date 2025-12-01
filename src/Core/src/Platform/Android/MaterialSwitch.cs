@@ -1,10 +1,6 @@
-﻿using System;
-using Android.Content;
-using Android.Graphics.Drawables;
+﻿using Android.Content;
 using Android.Runtime;
 using Android.Util;
-using Android.Views;
-using AndroidX.Core.Widget;
 using Google.Android.Material.MaterialSwitch;
 
 namespace Microsoft.Maui.Platform;
