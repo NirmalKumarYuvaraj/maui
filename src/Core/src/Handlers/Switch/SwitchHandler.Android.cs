@@ -1,7 +1,9 @@
 using Android.Graphics.Drawables;
 using Android.Nfc.CardEmulators;
 using Android.Widget;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Graphics;
+using Microsoft.Maui.Platform;
 using ASwitch = AndroidX.AppCompat.Widget.SwitchCompat;
 
 namespace Microsoft.Maui.Handlers
@@ -12,7 +14,19 @@ namespace Microsoft.Maui.Handlers
 
 		protected override ASwitch CreatePlatformView()
 		{
-			return new ASwitch(Context);
+			var config = IPlatformApplication.Current?.Services
+				?.GetService<IMaterialConfiguration>();
+
+			if (config?.UseMaterial3 == true)
+			{
+				// Material 3: Use MauiMaterialSwitch
+				return new MauiMaterialSwitch(Context) as ASwitch;
+			}
+			else
+			{
+				// Material 2: Use SwitchCompat (default)
+				return new ASwitch(Context);
+			}
 		}
 
 		protected override void ConnectHandler(ASwitch platformView)
