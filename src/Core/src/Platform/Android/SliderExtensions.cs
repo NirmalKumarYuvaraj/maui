@@ -11,10 +11,16 @@ namespace Microsoft.Maui.Platform
 		public const double PlatformMaxValue = int.MaxValue;
 
 		public static void UpdateMinimum(this SeekBar seekBar, ISlider slider) => UpdateValue(seekBar, slider);
-		internal static void UpdateMinimum(this MauiMaterialSlider mSlider, ISlider slider) => UpdateValue(mSlider, slider);
+		internal static void UpdateMinimum(this MauiMaterialSlider mSlider, ISlider slider)
+		{
+			mSlider.ValueFrom = (float)slider.Minimum;
+		}
 
 		public static void UpdateMaximum(this SeekBar seekBar, ISlider slider) => UpdateValue(seekBar, slider);
-		internal static void UpdateMaximum(this MauiMaterialSlider mSlider, ISlider slider) => UpdateValue(mSlider, slider);
+		internal static void UpdateMaximum(this MauiMaterialSlider mSlider, ISlider slider)
+		{
+			mSlider.ValueTo = (float)slider.Maximum;
+		}
 
 		public static void UpdateValue(this SeekBar seekBar, ISlider slider)
 		{
@@ -27,11 +33,7 @@ namespace Microsoft.Maui.Platform
 
 		internal static void UpdateValue(this MauiMaterialSlider mSlider, ISlider slider)
 		{
-			var min = slider.Minimum;
-			var max = slider.Maximum;
-			var value = slider.Value;
-
-			mSlider.Value = (int)((value - min) / (max - min) * PlatformMaxValue);
+			mSlider.Value = (float)slider.Value;
 		}
 
 		public static void UpdateMinimumTrackColor(this SeekBar seekBar, ISlider slider)

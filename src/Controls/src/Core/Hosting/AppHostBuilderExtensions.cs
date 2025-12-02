@@ -64,7 +64,7 @@ public static partial class AppHostBuilderExtensions
 	internal static IMauiHandlersCollection AddControlsHandlers(this IMauiHandlersCollection handlersCollection)
 	{
 		var config = IPlatformApplication.Current?.Services
-				?.GetService<IMaterialConfiguration>();
+				?.GetMaterialConfiguration();
 
 #if IOS || MACCATALYST
 		handlersCollection.AddHandler<CollectionView, CollectionViewHandler2>();
