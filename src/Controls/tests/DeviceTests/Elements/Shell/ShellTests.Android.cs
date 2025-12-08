@@ -2,14 +2,13 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Android.Views;
+using Android.Widget;
 using AndroidX.AppCompat.Widget;
-using AndroidX.CoordinatorLayout.Widget;
 using AndroidX.Core.View;
 using AndroidX.Core.Widget;
 using AndroidX.DrawerLayout.Widget;
 using AndroidX.RecyclerView.Widget;
 using AndroidX.ViewPager2.Widget;
-using Google.Android.Material.AppBar;
 using Google.Android.Material.BottomNavigation;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Handlers.Compatibility;
@@ -574,16 +573,18 @@ namespace Microsoft.Maui.DeviceTests
 		protected AView GetFlyoutPlatformView(ShellRenderer shellRenderer)
 		{
 			var drawerLayout = GetDrawerLayout(shellRenderer);
-			return drawerLayout.GetChildrenOfType<ShellFlyoutLayout>().First();
+			// Now using FrameLayout instead of ShellFlyoutLayout
+			return drawerLayout.GetChildrenOfType<FrameLayout>().FirstOrDefault(fl =>
+				fl.GetChildrenOfType<RecyclerView>().Any() ||
+				fl.ChildCount > 0);
 		}
-
 		internal Graphics.Rect GetFlyoutFrame(ShellRenderer shellRenderer)
 		{
 			var platformView = GetFlyoutPlatformView(shellRenderer);
 			var context = platformView.Context;
 
 			return new Graphics.Rect(0, 0,
-				context.FromPixels(platformView.MeasuredWidth- (platformView.PaddingLeft + platformView.PaddingRight)),
+				context.FromPixels(platformView.MeasuredWidth - (platformView.PaddingLeft + platformView.PaddingRight)),
 				context.FromPixels(platformView.MeasuredHeight - (platformView.PaddingTop + platformView.PaddingBottom)));
 		}
 

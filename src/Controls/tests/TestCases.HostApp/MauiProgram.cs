@@ -68,7 +68,7 @@ namespace Maui.Controls.Sample
 		{
 			Page mainPage = null;
 			OverrideMainPage(ref mainPage);
-			return mainPage ?? new CoreNavigationPage();
+			return mainPage ?? new ShellFlyoutContent();
 		}
 	}
 
