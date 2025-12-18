@@ -4,43 +4,311 @@ using Android.Text;
 using Android.Views;
 using Android.Views.InputMethods;
 using AndroidX.Core.Content;
-using Google.Android.Material.TextField;
-using Microsoft.Maui.Graphics;
 using static Android.Views.View;
 using static Android.Widget.TextView;
 
-namespace Microsoft.Maui.Handlers
+namespace Microsoft.Maui.Handlers;
+
+internal partial class MaterialEntryHandler : ViewHandler<IEntry, MauiMaterialEditText>
 {
-	internal partial class MaterialEntryHandler : ViewHandler<IEntry, TextInputLayout>
+	Drawable? _clearButtonDrawable;
+	bool _clearButtonVisible;
+	bool _set;
+
+	public static PropertyMapper<IEntry, MaterialEntryHandler> Mapper =
+	  new(ElementMapper)
+	  {
+		  [nameof(IEntry.Background)] = MapBackground,
+		  [nameof(IEntry.Text)] = MapText,
+		  [nameof(IEntry.TextColor)] = MapTextColor,
+		  [nameof(IEntry.IsPassword)] = MapIsPassword,
+		  [nameof(IEntry.HorizontalTextAlignment)] = MapHorizontalTextAlignment,
+		  [nameof(IEntry.VerticalTextAlignment)] = MapVerticalTextAlignment,
+		  [nameof(IEntry.IsTextPredictionEnabled)] = MapIsTextPredictionEnabled,
+		  [nameof(IEntry.IsSpellCheckEnabled)] = MapIsSpellCheckEnabled,
+		  [nameof(IEntry.MaxLength)] = MapMaxLength,
+		  [nameof(IEntry.Placeholder)] = MapPlaceholder,
+		  [nameof(IEntry.PlaceholderColor)] = MapPlaceholderColor,
+		  [nameof(IEntry.Font)] = MapFont,
+		  [nameof(IEntry.IsReadOnly)] = MapIsReadOnly,
+		  [nameof(IEntry.Keyboard)] = MapKeyboard,
+		  [nameof(IEntry.ReturnType)] = MapReturnType,
+		  [nameof(IEntry.CharacterSpacing)] = MapCharacterSpacing,
+		  [nameof(IEntry.CursorPosition)] = MapCursorPosition,
+		  [nameof(IEntry.SelectionLength)] = MapSelectionLength,
+		  [nameof(IEntry.ClearButtonVisibility)] = MapClearButtonVisibility,
+	  };
+
+	public static CommandMapper<IEntry, MaterialEntryHandler> CommandMapper =
+	  new(ViewCommandMapper);
+
+	public MaterialEntryHandler() : base(Mapper, CommandMapper)
 	{
-		public static PropertyMapper<IEntry, MaterialEntryHandler> Mapper =
-		  new(ElementMapper)
-		  {
-			  [nameof(IEntry.Placeholder)] = MapPlaceholder,
-		  };
-
-		private static void MapPlaceholder(MaterialEntryHandler handler, IEntry entry)
-		{
-			handler.PlatformView.Hint = entry.Placeholder;
-		}
-
-		public static CommandMapper<IEntry, MaterialEntryHandler> CommandMapper =
-		  new(ViewCommandMapper);
-
-		public MaterialEntryHandler() : base(Mapper, CommandMapper)
-		{
-		}
-
-		protected override TextInputLayout CreatePlatformView()
-		{
-			var inflater = LayoutInflater.FromContext(Context)!;
-
-			var view = inflater.Inflate(Resource.Layout.textinputlayout, null);
-			var textInputLayout =
-				view?.FindViewById<TextInputLayout>(Resource.Id.input_outline);
-			//textInputLayout?.SetBoxBackgroundColorResource(Colors.Transparent.ToPlatform());
-			return textInputLayout!;
-		}
-
 	}
+
+	protected override MauiMaterialEditText CreatePlatformView()
+	{
+		return new MauiMaterialEditText(Context);
+	}
+
+	// Returns the default 'X' char drawable in the AppCompatEditText.
+	protected virtual Drawable? GetClearButtonDrawable() =>
+		_clearButtonDrawable ??= ContextCompat.GetDrawable(Context, Resource.Drawable.abc_ic_clear_material);
+
+	public override void SetVirtualView(IView view)
+	{
+		base.SetVirtualView(view);
+
+		if (!_set)
+		{
+			PlatformView.SelectionChanged += OnSelectionChanged;
+		}
+
+		_set = true;
+	}
+
+	protected override void ConnectHandler(MauiMaterialEditText platformView)
+	{
+		platformView.ViewAttachedToWindow += OnViewAttachedToWindow;
+		platformView.TextChanged += OnTextChanged;
+		platformView.FocusChange += OnFocusedChange;
+		platformView.Touch += OnTouch;
+		platformView.EditorAction += OnEditorAction;
+	}
+
+	protected override void DisconnectHandler(MauiMaterialEditText platformView)
+	{
+		_clearButtonDrawable = null;
+		platformView.ViewAttachedToWindow -= OnViewAttachedToWindow;
+		platformView.TextChanged -= OnTextChanged;
+		platformView.FocusChange -= OnFocusedChange;
+		platformView.Touch -= OnTouch;
+		platformView.EditorAction -= OnEditorAction;
+
+		if (_set)
+		{
+			platformView.SelectionChanged -= OnSelectionChanged;
+		}
+
+		_set = false;
+	}
+
+	void OnViewAttachedToWindow(object? sender, ViewAttachedToWindowEventArgs e)
+	{
+		if (PlatformView is null || VirtualView is null)
+		{
+			return;
+		}
+
+		PlatformView.UpdateReturnType(VirtualView);
+	}
+
+	public static void MapBackground(MaterialEntryHandler handler, IEntry entry) =>
+		handler.PlatformView?.UpdateBackground(entry);
+
+	public static void MapText(MaterialEntryHandler handler, IEntry entry) =>
+		handler.PlatformView?.UpdateText(entry);
+
+	public static void MapTextColor(MaterialEntryHandler handler, IEntry entry)
+	{
+		handler.PlatformView?.UpdateTextColor(entry);
+		if (handler._clearButtonVisible)
+		{
+			// Update the clear button color to match the text color
+			handler.PlatformView?.UpdateClearButtonColor(entry.TextColor, handler.GetClearButtonDrawable());
+		}
+	}
+
+	public static void MapIsPassword(MaterialEntryHandler handler, IEntry entry)
+	{
+		handler.UpdateValue(nameof(IEntry.Text));
+
+		handler.PlatformView?.UpdateIsPassword(entry);
+	}
+
+	public static void MapHorizontalTextAlignment(MaterialEntryHandler handler, IEntry entry) =>
+		handler.PlatformView?.UpdateHorizontalTextAlignment(entry);
+
+	public static void MapVerticalTextAlignment(MaterialEntryHandler handler, IEntry entry) =>
+		handler?.PlatformView?.UpdateVerticalTextAlignment(entry);
+
+	public static void MapIsTextPredictionEnabled(MaterialEntryHandler handler, IEntry entry) =>
+		handler.PlatformView?.UpdateIsTextPredictionEnabled(entry);
+
+	public static void MapIsSpellCheckEnabled(MaterialEntryHandler handler, IEntry entry) =>
+		handler.PlatformView?.UpdateIsSpellCheckEnabled(entry);
+
+	public static void MapMaxLength(MaterialEntryHandler handler, IEntry entry) =>
+		handler.PlatformView?.UpdateMaxLength(entry);
+
+	public static void MapPlaceholder(MaterialEntryHandler handler, IEntry entry) =>
+		handler.PlatformView?.UpdatePlaceholder(entry);
+
+	public static void MapPlaceholderColor(MaterialEntryHandler handler, IEntry entry) =>
+		handler.PlatformView?.UpdatePlaceholderColor(entry);
+
+	public static void MapFont(MaterialEntryHandler handler, IEntry entry) =>
+		handler.PlatformView?.UpdateFont(entry, handler.GetRequiredService<IFontManager>());
+
+	public static void MapIsReadOnly(MaterialEntryHandler handler, IEntry entry)
+	{
+		handler.UpdateValue(nameof(IEntry.Text));
+
+		handler.PlatformView?.UpdateIsReadOnly(entry);
+	}
+
+	public static void MapKeyboard(MaterialEntryHandler handler, IEntry entry)
+	{
+		handler.UpdateValue(nameof(IEntry.Text));
+
+		handler.PlatformView?.UpdateKeyboard(entry);
+	}
+
+	public static void MapReturnType(MaterialEntryHandler handler, IEntry entry) =>
+		handler.PlatformView?.UpdateReturnType(entry);
+
+	public static void MapCharacterSpacing(MaterialEntryHandler handler, IEntry entry) =>
+		handler.PlatformView?.UpdateCharacterSpacing(entry);
+
+	public static void MapCursorPosition(MaterialEntryHandler handler, IEntry entry) =>
+		handler.PlatformView?.UpdateCursorPosition(entry);
+
+	public static void MapSelectionLength(MaterialEntryHandler handler, IEntry entry) =>
+		handler.PlatformView?.UpdateSelectionLength(entry);
+
+	public static void MapClearButtonVisibility(MaterialEntryHandler handler, IEntry entry) =>
+		handler.PlatformView?.UpdateClearButtonVisibility(entry);
+
+	void OnTextChanged(object? sender, TextChangedEventArgs e)
+	{
+		if (VirtualView == null)
+		{
+			return;
+		}
+
+		// Let the mapping know that the update is coming from changes to the platform control
+		DataFlowDirection = DataFlowDirection.FromPlatform;
+
+		VirtualView.UpdateText(e);
+
+		// Reset to the default direction
+		DataFlowDirection = DataFlowDirection.ToPlatform;
+
+		MapClearButtonVisibility(this, VirtualView);
+	}
+
+	void OnFocusedChange(object? sender, FocusChangeEventArgs e)
+	{
+		if (VirtualView == null)
+		{
+			return;
+		}
+
+		MapClearButtonVisibility(this, VirtualView);
+	}
+
+	// Check whether the touched position inbounds with clear button.
+	void OnTouch(object? sender, TouchEventArgs e) =>
+		e.Handled =
+			_clearButtonVisible && VirtualView != null &&
+			PlatformView.HandleClearButtonTouched(e, GetClearButtonDrawable);
+
+	void OnEditorAction(object? sender, EditorActionEventArgs e)
+	{
+		var returnType = VirtualView?.ReturnType;
+
+		// Inside of the android implementations that map events to listeners, the default return value for "Handled" is always true
+		// This means, just by subscribing to EditorAction/KeyPressed/etc.. you change the behavior of the control
+		// So, we are setting handled to false here in order to maintain default behavior
+		bool handled = false;
+		if (returnType != null)
+		{
+			var actionId = e.ActionId;
+			var evt = e.Event;
+			ImeAction currentInputImeFlag = PlatformView.ImeOptions;
+
+			// On API 34 it looks like they fixed the issue where the actionId is ImeAction.ImeNull when using a keyboard
+			// so I'm just setting the actionId here to the current ImeOptions so the logic can all be simplified
+			if (actionId == ImeAction.ImeNull && evt?.KeyCode == Keycode.Enter)
+			{
+				actionId = currentInputImeFlag;
+			}
+
+			// keyboard path
+			if (evt?.KeyCode == Keycode.Enter && evt?.Action == KeyEventActions.Down)
+			{
+				handled = true;
+			}
+			else if (evt?.KeyCode == Keycode.Enter && evt?.Action == KeyEventActions.Up)
+			{
+				VirtualView?.Completed();
+			}
+			// InputPaneView Path
+			else if (evt?.KeyCode is null && (actionId == ImeAction.Done || actionId == currentInputImeFlag))
+			{
+				VirtualView?.Completed();
+				// In case of Search, Go, Send the EditorAction will be invoked for KeyEventActions which will cause Completed to inovke twice
+				//So for these setting handled to true
+				if (actionId == ImeAction.Search ||
+				 actionId == ImeAction.Go ||
+				  actionId == ImeAction.Send)
+				{
+					handled = true;
+				}
+			}
+		}
+
+		e.Handled = handled;
+	}
+
+	private void OnSelectionChanged(object? sender, EventArgs e)
+	{
+		var cursorPosition = PlatformView.GetCursorPosition();
+		var selectedTextLength = PlatformView.GetSelectedTextLength();
+
+		if (VirtualView.CursorPosition != cursorPosition)
+		{
+			VirtualView.CursorPosition = cursorPosition;
+		}
+
+		if (VirtualView.SelectionLength != selectedTextLength)
+		{
+			VirtualView.SelectionLength = selectedTextLength;
+		}
+	}
+
+	internal void ShowClearButton()
+	{
+		if (_clearButtonVisible)
+		{
+			return;
+		}
+
+		var drawable = GetClearButtonDrawable();
+
+		PlatformView.UpdateClearButtonColor(VirtualView.TextColor, drawable);
+
+		if (PlatformView.LayoutDirection == LayoutDirection.Rtl)
+		{
+			PlatformView.SetCompoundDrawablesWithIntrinsicBounds(drawable, null, null, null);
+		}
+		else
+		{
+			PlatformView.SetCompoundDrawablesWithIntrinsicBounds(null, null, drawable, null);
+		}
+
+		_clearButtonVisible = true;
+	}
+
+	internal void HideClearButton()
+	{
+		if (!_clearButtonVisible)
+		{
+			return;
+		}
+
+		PlatformView.SetCompoundDrawablesWithIntrinsicBounds(null, null, null, null);
+		_clearButtonVisible = false;
+	}
+
 }
