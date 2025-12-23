@@ -74,31 +74,50 @@ public static partial class AppHostBuilderExtensions
 		if (RuntimeFeature.IsMaterial3Enabled)
 		{
 			handlersCollection.AddHandler<Entry, MaterialEntryHandler>();
+			handlersCollection.AddHandler<Editor, MaterialEditorHandler>();
+			handlersCollection.AddHandler<DatePicker, MaterialDatePickerHandler>();
+			handlersCollection.AddHandler<TimePicker, MaterialTimePickerHandler>();
+			handlersCollection.AddHandler<Picker, MaterialPickerHandler>();
+			handlersCollection.AddHandler<Switch, MaterialSwitchHandler>();
+			handlersCollection.AddHandler<RadioButton, MaterialRadioButtonHandler>();
+			handlersCollection.AddHandler<Slider, MaterialSliderHandler>();
+			handlersCollection.AddHandler<ProgressBar, MaterialProgressBarHandler>();
+			handlersCollection.AddHandler<ActivityIndicator, MaterialActivityIndicatorHandler>();
 		}
 		else
 		{
 			handlersCollection.AddHandler<Entry, EntryHandler>();
+			handlersCollection.AddHandler<Editor, EditorHandler>();
+			handlersCollection.AddHandler<DatePicker, DatePickerHandler>();
+			handlersCollection.AddHandler<TimePicker, TimePickerHandler>();
+			handlersCollection.AddHandler<Picker, PickerHandler>();
+			handlersCollection.AddHandler<Switch, SwitchHandler>();
+			handlersCollection.AddHandler<RadioButton, RadioButtonHandler>();
+			handlersCollection.AddHandler<Slider, SliderHandler>();
+			handlersCollection.AddHandler<ProgressBar, ProgressBarHandler>();
+			handlersCollection.AddHandler<ActivityIndicator, ActivityIndicatorHandler>();
 		}
 #else
 		handlersCollection.AddHandler<Entry, EntryHandler>();
+		handlersCollection.AddHandler<Editor, EditorHandler>();
+		handlersCollection.AddHandler<DatePicker, DatePickerHandler>();
+		handlersCollection.AddHandler<TimePicker, TimePickerHandler>();
+		handlersCollection.AddHandler<Picker, PickerHandler>();
+		handlersCollection.AddHandler<Switch, SwitchHandler>();
+		handlersCollection.AddHandler<RadioButton, RadioButtonHandler>();
+		handlersCollection.AddHandler<Slider, SliderHandler>();
+		handlersCollection.AddHandler<ProgressBar, ProgressBarHandler>();
+		handlersCollection.AddHandler<ActivityIndicator, ActivityIndicatorHandler>();
 #endif
 		handlersCollection.AddHandler<Application, ApplicationHandler>();
-		handlersCollection.AddHandler<ActivityIndicator, ActivityIndicatorHandler>();
 		handlersCollection.AddHandler<BoxView, BoxViewHandler>();
 		handlersCollection.AddHandler<Button, ButtonHandler>();
-		handlersCollection.AddHandler<DatePicker, DatePickerHandler>();
-		handlersCollection.AddHandler<Editor, EditorHandler>();
 		handlersCollection.AddHandler<GraphicsView, GraphicsViewHandler>();
 		handlersCollection.AddHandler<Image, ImageHandler>();
 		handlersCollection.AddHandler<Layout, LayoutHandler>();
-		handlersCollection.AddHandler<Picker, PickerHandler>();
-		handlersCollection.AddHandler<ProgressBar, ProgressBarHandler>();
 		handlersCollection.AddHandler<ScrollView, ScrollViewHandler>();
 		handlersCollection.AddHandler<SearchBar, SearchBarHandler>();
-		handlersCollection.AddHandler<Slider, SliderHandler>();
 		handlersCollection.AddHandler<Stepper, StepperHandler>();
-		handlersCollection.AddHandler<Switch, SwitchHandler>();
-		handlersCollection.AddHandler<TimePicker, TimePickerHandler>();
 		handlersCollection.AddHandler<Page, PageHandler>();
 		handlersCollection.AddHandler<WebView, WebViewHandler>();
 		if (RuntimeFeature.IsHybridWebViewSupported)
@@ -119,7 +138,6 @@ public static partial class AppHostBuilderExtensions
 		handlersCollection.AddHandler<Window, WindowHandler>();
 		handlersCollection.AddHandler<ImageButton, ImageButtonHandler>();
 		handlersCollection.AddHandler<IndicatorView, IndicatorViewHandler>();
-		handlersCollection.AddHandler<RadioButton, RadioButtonHandler>();
 		handlersCollection.AddHandler<RefreshView, RefreshViewHandler>();
 		handlersCollection.AddHandler<SwipeItem, SwipeItemMenuItemHandler>();
 		handlersCollection.AddHandler<SwipeView, SwipeViewHandler>();

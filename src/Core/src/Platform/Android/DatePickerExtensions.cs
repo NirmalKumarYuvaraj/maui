@@ -11,7 +11,17 @@ namespace Microsoft.Maui.Platform
 			platformDatePicker.SetText(datePicker);
 		}
 
+		internal static void UpdateFormat(this MauiMaterialDatePicker platformDatePicker, IDatePicker datePicker)
+		{
+			platformDatePicker.SetText(datePicker);
+		}
+
 		public static void UpdateDate(this MauiDatePicker platformDatePicker, IDatePicker datePicker)
+		{
+			platformDatePicker.SetText(datePicker);
+		}
+
+		internal static void UpdateDate(this MauiMaterialDatePicker platformDatePicker, IDatePicker datePicker)
 		{
 			platformDatePicker.SetText(datePicker);
 		}
@@ -29,7 +39,25 @@ namespace Microsoft.Maui.Platform
 			}
 		}
 
+		internal static void UpdateTextColor(this MauiMaterialDatePicker platformDatePicker, IDatePicker datePicker)
+		{
+			var textColor = datePicker.TextColor;
+
+			if (textColor is not null)
+			{
+				if (PlatformInterop.CreateEditTextColorStateList(platformDatePicker.TextColors, textColor.ToPlatform()) is ColorStateList c)
+				{
+					platformDatePicker.SetTextColor(c);
+				}
+			}
+		}
+
 		public static void UpdateMinimumDate(this MauiDatePicker platformDatePicker, IDatePicker datePicker)
+		{
+			platformDatePicker.UpdateMinimumDate(datePicker, null);
+		}
+
+		internal static void UpdateMinimumDate(this MauiMaterialDatePicker platformDatePicker, IDatePicker datePicker)
 		{
 			platformDatePicker.UpdateMinimumDate(datePicker, null);
 		}
@@ -51,7 +79,29 @@ namespace Microsoft.Maui.Platform
 			}
 		}
 
+		internal static void UpdateMinimumDate(this MauiMaterialDatePicker platformDatePicker, IDatePicker datePicker, DatePickerDialog? datePickerDialog)
+		{
+			if (datePickerDialog is not null)
+			{
+				if (datePicker.MinimumDate is null)
+				{
+					datePickerDialog.DatePicker.MinDate = (long)DateTime.MinValue.ToUniversalTime()
+						.Subtract(DateTime.MinValue.AddYears(1969)).TotalMilliseconds;
+
+					return;
+				}
+
+				datePickerDialog.DatePicker.MinDate = (long)datePicker.MinimumDate.Value
+					.ToUniversalTime().Subtract(DateTime.MinValue.AddYears(1969)).TotalMilliseconds;
+			}
+		}
+
 		public static void UpdateMaximumDate(this MauiDatePicker platformDatePicker, IDatePicker datePicker)
+		{
+			platformDatePicker.UpdateMinimumDate(datePicker, null);
+		}
+
+		internal static void UpdateMaximumDate(this MauiMaterialDatePicker platformDatePicker, IDatePicker datePicker)
 		{
 			platformDatePicker.UpdateMinimumDate(datePicker, null);
 		}
@@ -73,7 +123,29 @@ namespace Microsoft.Maui.Platform
 			}
 		}
 
+		internal static void UpdateMaximumDate(this MauiMaterialDatePicker platformDatePicker, IDatePicker datePicker, DatePickerDialog? datePickerDialog)
+		{
+			if (datePickerDialog is not null)
+			{
+				if (datePicker.MaximumDate is null)
+				{
+					datePickerDialog.DatePicker.MaxDate = (long)DateTime.MaxValue.ToUniversalTime()
+						.Subtract(DateTime.MinValue.AddYears(1969)).TotalMilliseconds;
+
+					return;
+				}
+
+				datePickerDialog.DatePicker.MaxDate = (long)datePicker.MaximumDate.Value
+					.ToUniversalTime().Subtract(DateTime.MinValue.AddYears(1969)).TotalMilliseconds;
+			}
+		}
+
 		internal static void SetText(this MauiDatePicker platformDatePicker, IDatePicker datePicker)
+		{
+			platformDatePicker.Text = datePicker.Date?.ToString(datePicker.Format) ?? string.Empty;
+		}
+
+		internal static void SetText(this MauiMaterialDatePicker platformDatePicker, IDatePicker datePicker)
 		{
 			platformDatePicker.Text = datePicker.Date?.ToString(datePicker.Format) ?? string.Empty;
 		}

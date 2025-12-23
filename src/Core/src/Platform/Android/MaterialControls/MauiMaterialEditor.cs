@@ -1,0 +1,34 @@
+using System;
+using Android.Content;
+using Android.Runtime;
+using Android.Util;
+using Google.Android.Material.TextField;
+
+namespace Microsoft.Maui.Platform;
+
+internal class MauiMaterialEditor : TextInputEditText
+{
+    public event EventHandler? SelectionChanged;
+
+    public MauiMaterialEditor(Context context) : base(MauiMaterialContextThemeWrapper.Create(context))
+    {
+    }
+
+    protected MauiMaterialEditor(nint javaReference, JniHandleOwnership transfer) : base(javaReference, transfer)
+    {
+    }
+
+    public MauiMaterialEditor(Context context, IAttributeSet? attrs) : base(MauiMaterialContextThemeWrapper.Create(context), attrs)
+    {
+    }
+
+    public MauiMaterialEditor(Context context, IAttributeSet? attrs, int defStyleAttr) : base(MauiMaterialContextThemeWrapper.Create(context), attrs, defStyleAttr)
+    {
+    }
+
+    protected override void OnSelectionChanged(int selStart, int selEnd)
+    {
+        base.OnSelectionChanged(selStart, selEnd);
+        SelectionChanged?.Invoke(this, EventArgs.Empty);
+    }
+}

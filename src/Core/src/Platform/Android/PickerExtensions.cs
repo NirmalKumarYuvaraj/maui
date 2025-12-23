@@ -1,5 +1,6 @@
 ﻿using Android.App;
 using Android.Content.Res;
+using Google.Android.Material.Dialog;
 using AppCompatAlertDialog = AndroidX.AppCompat.App.AlertDialog;
 
 namespace Microsoft.Maui.Platform
@@ -9,6 +10,8 @@ namespace Microsoft.Maui.Platform
 		public static void UpdateTitle(this MauiPicker platformPicker, IPicker picker) =>
 			UpdatePicker(platformPicker, picker);
 
+		internal static void UpdateTitle(this MauiMaterialPicker platformPicker, IPicker picker) =>
+					UpdatePicker(platformPicker, picker);
 		public static void UpdateTitleColor(this MauiPicker platformPicker, IPicker picker)
 		{
 			var titleColor = picker.TitleColor;
@@ -22,7 +25,36 @@ namespace Microsoft.Maui.Platform
 			}
 		}
 
+		internal static void UpdateTitleColor(this MauiMaterialPicker platformPicker, IPicker picker)
+		{
+			var titleColor = picker.TitleColor;
+
+			if (titleColor != null)
+			{
+				if (PlatformInterop.CreateEditTextColorStateList(platformPicker.TextColors, titleColor.ToPlatform()) is ColorStateList c)
+					platformPicker.SetHintTextColor(c);
+				else if (picker.TextColor == picker.TitleColor)
+					platformPicker.SetHintTextColor(titleColor.ToPlatform());
+			}
+		}
+
+
 		public static void UpdateTextColor(this MauiPicker platformPicker, IPicker picker, ColorStateList? defaultColor)
+		{
+			var textColor = picker.TextColor;
+
+			if (textColor == null)
+			{
+				platformPicker.SetTextColor(defaultColor);
+			}
+			else
+			{
+				if (PlatformInterop.CreateEditTextColorStateList(platformPicker.TextColors, textColor.ToPlatform()) is ColorStateList c)
+					platformPicker.SetTextColor(c);
+			}
+		}
+
+		internal static void UpdateTextColor(this MauiMaterialPicker platformPicker, IPicker picker, ColorStateList? defaultColor)
 		{
 			var textColor = picker.TextColor;
 
@@ -40,7 +72,20 @@ namespace Microsoft.Maui.Platform
 		public static void UpdateSelectedIndex(this MauiPicker platformPicker, IPicker picker) =>
 			UpdatePicker(platformPicker, picker);
 
+		internal static void UpdateSelectedIndex(this MauiMaterialPicker platformPicker, IPicker picker) =>
+		UpdatePicker(platformPicker, picker);
+
 		internal static void UpdatePicker(this MauiPicker platformPicker, IPicker picker)
+		{
+			platformPicker.Hint = picker.Title;
+
+			if (picker.SelectedIndex == -1 || picker.SelectedIndex >= picker.GetCount())
+				platformPicker.Text = null;
+			else
+				platformPicker.Text = picker.GetItem(picker.SelectedIndex);
+		}
+
+		internal static void UpdatePicker(this MauiMaterialPicker platformPicker, IPicker picker)
 		{
 			platformPicker.Hint = picker.Title;
 
@@ -66,6 +111,24 @@ namespace Microsoft.Maui.Platform
 				lv.LayoutDirection = platformLayoutDirection;
 				lv.TextDirection = platformLayoutDirection.ToTextDirection();
 			}
+		}
+
+		internal static void UpdateFlowDirection(this MaterialAlertDialogBuilder alertDialog, MauiPicker platformPicker)
+		{
+			// var platformLayoutDirection = platformPicker.LayoutDirection;
+
+			// // Propagate the MauiPicker LayoutDirection to the AlertDialog
+			// var dv = alertDialog.Window?.DecorView;
+
+			// dv?.LayoutDirection = platformLayoutDirection;
+
+			// var lv = alertDialog?.ListView;
+
+			// if (lv is not null)
+			// {
+			// 	lv.LayoutDirection = platformLayoutDirection;
+			// 	lv.TextDirection = platformLayoutDirection.ToTextDirection();
+			// }
 		}
 	}
 }
