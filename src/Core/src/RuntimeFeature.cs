@@ -148,9 +148,6 @@ namespace Microsoft.Maui
 				? isEnabled
 				: EnableAspireByDefault;
 
-#if NET10_0_OR_GREATER
-		[FeatureSwitchDefinition($"{FeatureSwitchPrefix}.{nameof(IsMaterial3Enabled)}")]
-#endif
 		public static bool IsMaterial3Enabled =>
 			AppContext.TryGetSwitch($"{FeatureSwitchPrefix}.{nameof(IsMaterial3Enabled)}", out bool isEnabled)
 				? isEnabled
