@@ -72,9 +72,34 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			base.OnCreateView(inflater, container, savedInstanceState);
 
 			var context = MauiContext.Context;
-			_outerLayout = PlatformInterop.CreateNavigationBarOuterLayout(context);
-			_navigationArea = PlatformInterop.CreateNavigationBarArea(context, _outerLayout);
-			_bottomView = PlatformInterop.CreateNavigationBar(context, Resource.Attribute.bottomNavigationViewStyle, _outerLayout, this);
+
+			// Create navigation layout structure
+			_outerLayout = new LinearLayout(context)
+			{
+				Orientation = Orientation.Vertical,
+				LayoutParameters = new LinearLayout.LayoutParams(LP.MatchParent, LP.MatchParent)
+			};
+
+			_navigationArea = new FrameLayout(context)
+			{
+				Id = AView.GenerateViewId(),
+				LayoutParameters = new LinearLayout.LayoutParams(LP.MatchParent, 0)
+				{
+					Gravity = GravityFlags.Fill,
+					Weight = 1
+				}
+			};
+			_outerLayout.AddView(_navigationArea);
+
+			// Create BottomNavigationView with Material 3 support
+			var themedContext = MauiMaterialContextThemeWrapper.Create(context);
+			_bottomView = new BottomNavigationView(themedContext)
+			{
+				LayoutParameters = new LinearLayout.LayoutParams(LP.MatchParent, LP.WrapContent)
+			};
+			// Don't set hardcoded background color - let Material 3 theme handle it
+			_bottomView.SetOnItemSelectedListener(this);
+			_outerLayout.AddView(_bottomView);
 
 			if (ShellItem is null)
 				throw new InvalidOperationException("Active Shell Item not set. Have you added any Shell Items to your Shell?");

@@ -18,12 +18,8 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 		public virtual void ResetAppearance(TabLayout tabLayout)
 		{
-			SetColors(tabLayout, ShellRenderer.DefaultForegroundColor,
-				ShellRenderer.DefaultBackgroundColor,
-				ShellRenderer.DefaultTitleColor,
-				ShellRenderer.DefaultUnselectedColor);
-		}
-
+			// Reset to defaults - let theme handle background via MauiAppBarLayout style
+			SetColors(tabLayout, null, null, null, null);
 		public virtual void SetAppearance(TabLayout tabLayout, ShellAppearance appearance)
 		{
 			var foreground = appearance.ForegroundColor;
@@ -36,14 +32,25 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 		protected virtual void SetColors(TabLayout tabLayout, Color foreground, Color background, Color title, Color unselected)
 		{
-			var titleArgb = title.ToPlatform(ShellRenderer.DefaultTitleColor).ToArgb();
-			var unselectedArgb = unselected.ToPlatform(ShellRenderer.DefaultUnselectedColor).ToArgb();
+			// Only set colors if explicitly provided - otherwise let theme styles handle it
+			if (title != null || unselected != null)
+			{
+				var titleArgb = title?.ToPlatform().ToArgb() ?? ShellRenderer.DefaultTitleColor.ToPlatform().ToArgb();
+				var unselectedArgb = unselected?.ToPlatform().ToArgb() ?? ShellRenderer.DefaultUnselectedColor.ToPlatform().ToArgb();
+				tabLayout.SetTabTextColors(unselectedArgb, titleArgb);
+			}
 
-			tabLayout.SetTabTextColors(unselectedArgb, titleArgb);
-			tabLayout.SetBackground(new ColorDrawable(background.ToPlatform(ShellRenderer.DefaultBackgroundColor)));
-			tabLayout.SetSelectedTabIndicatorColor(foreground.ToPlatform(ShellRenderer.DefaultForegroundColor));
-		}
+			// Only set background if explicitly provided by ShellAppearance
+			if (background != null)
+			{
+				tabLayout.SetBackground(new ColorDrawable(background.ToPlatform()));
+			}
 
+			// Only set indicator color if explicitly provided
+			if (foreground != null)
+			{
+				tabLayout.SetSelectedTabIndicatorColor(foreground.ToPlatform());
+			}
 		#region IDisposable
 
 		public void Dispose()
@@ -60,6 +67,6 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			_shellContext = null;
 		}
 
-		#endregion IDisposable
+			#endregion IDisposable
 	}
 }

@@ -72,6 +72,9 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 		protected virtual void SetBackgroundColor(BottomNavigationView bottomView, Color color)
 		{
+			// For Material 3, let the theme handle background colors
+			if (RuntimeFeature.IsMaterial3Enabled && color == null)
+				return;
 #pragma warning disable XAOBS001 // Obsolete
 			var menuView = bottomView.GetChildAt(0) as BottomNavigationMenuView;
 #pragma warning restore XAOBS001 // Obsolete

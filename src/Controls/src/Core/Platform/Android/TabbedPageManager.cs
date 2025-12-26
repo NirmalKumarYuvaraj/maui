@@ -139,7 +139,7 @@ public class TabbedPageManager
 
 			if (IsBottomTabPlacement)
 			{
-				_bottomNavigationView = new BottomNavigationView(_context.Context)
+				_bottomNavigationView = new BottomNavigationView(MauiMaterialContextThemeWrapper.Create(_context.Context))
 				{
 					LayoutParameters = new CoordinatorLayout.LayoutParams(AppBarLayout.LayoutParams.MatchParent, AppBarLayout.LayoutParams.WrapContent)
 					{
@@ -152,7 +152,7 @@ public class TabbedPageManager
 				if (_tabLayout == null)
 				{
 					var layoutInflater = Element.Handler.MauiContext.GetLayoutInflater();
-					_tabLayout = new TabLayout(_context.Context)
+					_tabLayout = new TabLayout(MauiMaterialContextThemeWrapper.Create(_context.Context))
 					{
 						TabMode = TabLayout.ModeFixed,
 						TabGravity = TabLayout.GravityFill,
