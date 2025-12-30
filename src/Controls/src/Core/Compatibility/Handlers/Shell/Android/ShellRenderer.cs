@@ -92,28 +92,20 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 
 
 		// These are the primary colors in our styles.xml file
-		// For Material 3, use transparent to let theme handle colors; For Material 2, use hardcoded colors
-		public static Color DefaultBackgroundColor => RuntimeFeature.IsMaterial3Enabled
-			? Colors.Transparent
-			: ResolveThemeColor(Color.FromArgb("#2c3e50"), Color.FromArgb("#1B3147"));
+		public static Color DefaultBackgroundColor => ResolveThemeColor(RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#FEF7FF") : Color.FromArgb("#2c3e50"), RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#141218") : Color.FromArgb("#1B3147"));
 
-		public static readonly Color DefaultForegroundColor = Colors.White;
-		public static readonly Color DefaultTitleColor = Colors.White;
-		public static readonly Color DefaultUnselectedColor = Color.FromRgba(255, 255, 255, 180);
-		internal static Color DefaultBottomNavigationViewBackgroundColor => RuntimeFeature.IsMaterial3Enabled
-			? Colors.Transparent
-			: ResolveThemeColor(Colors.White, Color.FromArgb("#1B3147"));
-		internal static bool IsDarkTheme => (Application.Current?.RequestedTheme == AppTheme.Dark);
+		public static readonly Color DefaultForegroundColor = RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#1D1B20") : Colors.White;
 
-		static Color ResolveThemeColor(Color light, Color dark)
-		{
-			if (IsDarkTheme)
-			{
-				return dark;
-			}
+		public static readonly Color DefaultTitleColor = RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#1D1B20") : Colors.White;
 
-			return light;
-		}
+		public static Color DefaultUnselectedColor => RuntimeFeature.IsMaterial3Enabled ? Color.FromRgba(29, 27, 32, 153) : Color.FromRgba(255, 255, 255, 180);
+
+		internal static Color DefaultBottomNavigationViewBackgroundColor => ResolveThemeColor(RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#FFFBFE") : Colors.White, RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#1D1B20") : Color.FromArgb("#1B3147"));
+
+		internal static bool IsDarkTheme => Application.Current?.RequestedTheme == AppTheme.Dark;
+
+		static Color ResolveThemeColor(Color light, Color dark) => IsDarkTheme ? dark : light;
+
 
 		IShellFlyoutRenderer _flyoutView;
 		FrameLayout _frameLayout;
