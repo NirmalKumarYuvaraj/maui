@@ -12,6 +12,8 @@ using Android.Widget;
 using AndroidX.AppCompat.Widget;
 using AndroidX.CardView.Widget;
 using AndroidX.Core.Content;
+using Google.Android.Material.Card;
+using Google.Android.Material.TextField;
 using Java.Lang;
 using AColor = Android.Graphics.Color;
 using AImageButton = Android.Widget.ImageButton;
@@ -93,11 +95,11 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 		IMauiContext MauiContext => _shellContext.Shell.Handler.MauiContext;
 		IShellContext _shellContext;
-		CardView _cardView;
+		FrameLayout _cardView;
 		AImageButton _clearButton;
 		AImageButton _clearPlaceholderButton;
 		AImageButton _searchButton;
-		AppCompatAutoCompleteTextView _textBlock;
+		AutoCompleteTextView _textBlock;
 		bool _disposed;
 		SearchHandlerAppearanceTracker _searchHandlerAppearanceTracker;
 
@@ -171,33 +173,59 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 			LP lp;
 			var context = Context;
-			_cardView = new CardView(context);
+			_cardView = RuntimeFeature.IsMaterial3Enabled
+				? new MaterialCardView(context)
+				: new CardView(context);
 			using (lp = new LayoutParams(LP.MatchParent, LP.MatchParent))
+			{
 				_cardView.LayoutParameters = lp;
+			}
+
+			// Apply M3-specific card styling
+			if (RuntimeFeature.IsMaterial3Enabled && _cardView is MaterialCardView materialCard)
+			{
+				materialCard.StrokeWidth = 0;
+				// M3 uses surface container color with elevation overlay
+				var surfaceColor = ContextExtensions.GetThemeAttrColor(context, Resource.Attribute.colorSurfaceContainerHigh);
+				materialCard.SetCardBackgroundColor(new AColor(surfaceColor));
+				// M3 elevation - use level 2 for search bar prominence
+				materialCard.CardElevation = context.ToPixels(3);
+				// M3 corner radius - medium (12dp)
+				materialCard.Radius = context.ToPixels(12);
+			}
 
 			var linearLayout = new LinearLayout(context);
-			using (lp = new LP(LP.MatchParent, LP.MatchParent))
+			using (lp = new LayoutParams(LP.MatchParent, LP.MatchParent))
+			{
 				linearLayout.LayoutParameters = lp;
+			}
 			linearLayout.Orientation = Orientation.Horizontal;
 
 			_cardView.AddView(linearLayout);
 
-			int padding = (int)context.ToPixels(8);
+			// M3: Use 16dp spacing (M3 component padding), M2: Use 8dp
+			int padding = RuntimeFeature.IsMaterial3Enabled
+				? (int)context.ToPixels(16)
+				: (int)context.ToPixels(8);
 
-			_searchButton = CreateImageButton(context, searchHandler, SearchHandler.QueryIconProperty, Resource.Drawable.abc_ic_search_api_material, padding, 0, "SearchIcon");
+			// M3: Use system ic_menu_search, M2: Use AppCompat search icon
+			var searchIconResource = RuntimeFeature.IsMaterial3Enabled
+				? global::Android.Resource.Drawable.IcMenuSearch
+				: Resource.Drawable.abc_ic_search_api_material;
+			_searchButton = CreateImageButton(context, searchHandler, SearchHandler.QueryIconProperty, searchIconResource, padding, 0, "SearchIcon");
 
 			lp = new LinearLayout.LayoutParams(0, LP.MatchParent)
 			{
 				Gravity = GravityFlags.Fill,
 				Weight = 1
 			};
-			_textBlock = new AppCompatAutoCompleteTextView(context)
-			{
-				LayoutParameters = lp,
-				Text = query,
-				Hint = placeholder,
-				ImeOptions = ImeAction.Done
-			};
+			_textBlock = RuntimeFeature.IsMaterial3Enabled
+				? new MaterialAutoCompleteTextView(context)
+				: new AppCompatAutoCompleteTextView(context);
+			_textBlock.LayoutParameters = lp;
+			_textBlock.Text = query;
+			_textBlock.Hint = placeholder;
+			_textBlock.ImeOptions = ImeAction.Done;
 			lp.Dispose();
 			_textBlock.Enabled = searchHandler.IsSearchEnabled;
 			_textBlock.SetBackground(null);
@@ -206,20 +234,22 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			_textBlock.Threshold = 1;
 			_textBlock.Adapter = new ShellSearchViewAdapter(SearchHandler, _shellContext);
 			_textBlock.ItemClick += OnTextBlockItemClicked;
-			_textBlock.SetDropDownBackgroundDrawable(new ClipDrawableWrapper(_textBlock.DropDownBackground));
+			_textBlock.SetDropDownBackgroundDrawable(new ClipDrawableWrapper(_textBlock.DropDownBackground, context));
 
 			// A note on accessibility. The _textBlocks hint is what android defaults to reading in the screen
 			// reader. Therefore, we do not need to set something else.
 
-			_clearButton = CreateImageButton(context, searchHandler, SearchHandler.ClearIconProperty, Resource.Drawable.abc_ic_clear_material, 0, padding, nameof(SearchHandler.ClearIcon));
+			// M3: Use system ic_menu_close_clear_cancel, M2: Use AppCompat clear icon
+			var clearIconResource = RuntimeFeature.IsMaterial3Enabled
+				? global::Android.Resource.Drawable.IcMenuCloseClearCancel
+				: Resource.Drawable.abc_ic_clear_material;
+			_clearButton = CreateImageButton(context, searchHandler, SearchHandler.ClearIconProperty, clearIconResource, 0, padding, nameof(SearchHandler.ClearIcon));
 			_clearPlaceholderButton = CreateImageButton(context, searchHandler, SearchHandler.ClearPlaceholderIconProperty, -1, 0, padding, nameof(SearchHandler.ClearPlaceholderIcon));
 
 			linearLayout.AddView(_searchButton);
 			linearLayout.AddView(_textBlock);
 			linearLayout.AddView(_clearButton);
 			linearLayout.AddView(_clearPlaceholderButton);
-
-			UpdateClearButtonState();
 
 			// hook all events down here to avoid getting events while doing setup
 			searchHandler.PropertyChanged += OnSearchHandlerPropertyChanged;
@@ -269,7 +299,9 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 		protected override void OnLayout(bool changed, int left, int top, int right, int bottom)
 		{
 			var width = right - left;
-			width -= (int)Context.ToPixels(25);
+			// M3: Account for larger padding (16dp * 2 + icon adjustments ≈ 40dp), M2: Use 25dp
+			var widthAdjustment = RuntimeFeature.IsMaterial3Enabled ? 40 : 25;
+			width -= (int)Context.ToPixels(widthAdjustment);
 			var height = bottom - top;
 			for (int i = 0; i < ChildCount; i++)
 			{
@@ -280,7 +312,8 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			}
 
 			_textBlock.DropDownHorizontalOffset = -_textBlock.Left;
-			_textBlock.DropDownVerticalOffset = -(int)System.Math.Ceiling(_cardView.Radius);
+			var radius = _cardView is CardView cardView ? cardView.Radius : 0;
+			_textBlock.DropDownVerticalOffset = -(int)System.Math.Ceiling(radius);
 			_textBlock.DropDownWidth = width;
 		}
 
@@ -290,7 +323,9 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			var measureWidth = GetSize(widthMeasureSpec);
 			var measureHeight = GetSize(heightMeasureSpec);
 
-			SetMeasuredDimension(measureWidth, (int)Context.ToPixels(35));
+			// M3: Use 56dp (standard M3 search bar height), M2: Use 35dp
+			var height = RuntimeFeature.IsMaterial3Enabled ? 56 : 35;
+			SetMeasuredDimension(measureWidth, (int)Context.ToPixels(height));
 		}
 
 		int GetSize(int measureSpec)
@@ -334,7 +369,9 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				result.SetImageDrawable(null);
 			}
 
-			var lp = new LinearLayout.LayoutParams((int)Context.ToPixels(22), LP.MatchParent)
+			// M3: Use 24dp (standard M3 icon size), M2: Use 22dp
+			var iconSize = RuntimeFeature.IsMaterial3Enabled ? 24 : 22;
+			var lp = new LinearLayout.LayoutParams((int)Context.ToPixels(iconSize), LP.MatchParent)
 			{
 				LeftMargin = leftMargin,
 				RightMargin = rightMargin
@@ -376,8 +413,11 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 		class ClipDrawableWrapper : ASupportDrawable.DrawableWrapperCompat
 		{
-			public ClipDrawableWrapper(Drawable dr) : base(dr)
+			readonly Context _context;
+
+			public ClipDrawableWrapper(Drawable dr, Context context) : base(dr)
 			{
+				_context = context;
 			}
 
 			public override void Draw(Canvas canvas)
@@ -395,11 +435,18 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				canvas.DrawRect(0, -100, canvas.Width, 0, paint);
 
 				// Step 2: Draw separator line
-
-				paint = new Paint
+				paint = new Paint();
+				if (RuntimeFeature.IsMaterial3Enabled)
 				{
-					Color = AColor.LightGray
-				};
+					// M3: Use theme-aware outline variant color
+					var outlineColor = ContextExtensions.GetThemeAttrColor(_context, Resource.Attribute.colorOutlineVariant);
+					paint.Color = new AColor(outlineColor);
+				}
+				else
+				{
+					// M2: Use hardcoded light gray
+					paint.Color = AColor.LightGray;
+				}
 #pragma warning restore CA1416
 				canvas.DrawLine(0, 0, canvas.Width, 0, paint);
 			}

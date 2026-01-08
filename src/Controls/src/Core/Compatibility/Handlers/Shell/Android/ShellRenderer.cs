@@ -2,24 +2,17 @@
 using System;
 using System.ComponentModel;
 using Android.Content;
-using Android.Graphics;
-using Android.Graphics.Drawables;
 using Android.Views;
 using Android.Widget;
 using AndroidX.DrawerLayout.Widget;
 using AndroidX.Fragment.App;
 using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.Controls.Internals;
-using Microsoft.Maui.Controls.Platform;
 using Microsoft.Maui.Controls.Platform.Compatibility;
 using Microsoft.Maui.Graphics;
-using AColor = Android.Graphics.Color;
-using ARect = Android.Graphics.Rect;
 using AToolbar = AndroidX.AppCompat.Widget.Toolbar;
 using AView = Android.Views.View;
 using Color = Microsoft.Maui.Graphics.Color;
 using LP = Android.Views.ViewGroup.LayoutParams;
-using Paint = Android.Graphics.Paint;
 
 namespace Microsoft.Maui.Controls.Handlers.Compatibility
 {
@@ -92,14 +85,12 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 
 
 		// These are the primary colors in our styles.xml file
-		public static Color DefaultBackgroundColor => ResolveThemeColor(Color.FromArgb("#2c3e50"), Color.FromArgb("#1B3147"));
-
-		public static readonly Color DefaultForegroundColor = Colors.White;
-		public static readonly Color DefaultTitleColor = Colors.White;
+		public static Color DefaultBackgroundColor => ResolveThemeColor(RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#FEF7FF") : Color.FromArgb("#2c3e50"), RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#141218") : Color.FromArgb("#1B3147"));
+		public static Color DefaultForegroundColor => ResolveThemeColor(RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#1D1B20") : Colors.White, RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#E6E0E9") : Colors.White);
+		public static Color DefaultTitleColor => ResolveThemeColor(RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#1D1B20") : Colors.White, RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#E6E0E9") : Colors.White);
 		public static readonly Color DefaultUnselectedColor = Color.FromRgba(255, 255, 255, 180);
-		internal static Color DefaultBottomNavigationViewBackgroundColor => ResolveThemeColor(Colors.White, Color.FromArgb("#1B3147"));
-
-		internal static bool IsDarkTheme => (Application.Current?.RequestedTheme == AppTheme.Dark);
+		internal static Color DefaultBottomNavigationViewBackgroundColor => ResolveThemeColor(RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#F3EDF7") : Colors.White, RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#1D1B20") : Color.FromArgb("#1B3147"));
+		internal static bool IsDarkTheme => Application.Current?.RequestedTheme == AppTheme.Dark;
 
 		static Color ResolveThemeColor(Color light, Color dark)
 		{
@@ -245,8 +236,7 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 				previousView = null;
 			}
 
-			if (previousView != null)
-				previousView.Destroyed += OnDestroyed;
+			previousView?.Destroyed += OnDestroyed;
 		}
 
 		void OnElementSizeChanged(object sender, EventArgs e)
