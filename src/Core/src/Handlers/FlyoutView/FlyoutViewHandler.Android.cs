@@ -301,10 +301,10 @@ namespace Microsoft.Maui.Handlers
 
 		protected override void DisconnectHandler(View platformView)
 		{
-			MauiWindowInsetListener.UnregisterView(platformView);
+			WindowInsetListenerHelper.UnregisterView(platformView);
 			if (_navigationRoot is CoordinatorLayout cl)
 			{
-				MauiWindowInsetListener.UnregisterView(cl);
+				WindowInsetListenerHelper.UnregisterView(cl);
 				_navigationRoot = null;
 			}
 

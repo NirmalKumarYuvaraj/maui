@@ -268,7 +268,7 @@ namespace Microsoft.Maui.Handlers
 			}
 
 			// Use our static registry approach to find and reset the appropriate listener
-			var listener = MauiWindowInsetListener.FindListenerForView(platformView);
+			var listener = WindowInsetListenerHelper.FindListenerForView(platformView);
 
 			// Check for specific view group types that handle safe area
 			if (handler.PlatformView is ContentViewGroup cvg)
