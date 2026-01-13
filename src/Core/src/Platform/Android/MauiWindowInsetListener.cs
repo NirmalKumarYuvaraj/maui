@@ -252,7 +252,7 @@ namespace Microsoft.Maui.Platform
 			// Handle keyboard logic
 			if (v is CoordinatorLayout cl)
 			{
-				return HandleKeyboardInsets(cl, insets, systemBars, displayCutout, ime, appBarHasContent);
+				return HandleKeyboardInsets(cl, insets, systemBars, displayCutout, ime, appBarHasContent, hasBottomNav);
 			}
 
 			// Create new insets with consumed values
@@ -313,7 +313,7 @@ namespace Microsoft.Maui.Platform
 			return false;
 		}
 
-		static WindowInsetsCompat? HandleKeyboardInsets(CoordinatorLayout cl, WindowInsetsCompat insets, Insets? systemBars, Insets? displayCutout, Insets? ime, bool appBarHasContent)
+		static WindowInsetsCompat? HandleKeyboardInsets(CoordinatorLayout cl, WindowInsetsCompat insets, Insets? systemBars, Insets? displayCutout, Insets? ime, bool appBarHasContent, bool hasBottomNav)
 		{
 			var isKeyboardOpen = ime?.Bottom > 0;
 
@@ -345,6 +345,11 @@ namespace Microsoft.Maui.Platform
 						?.SetInsets(WindowInsetsCompat.Type.DisplayCutout(), newDisplayCutout)
 						?.SetInsets(WindowInsetsCompat.Type.Ime(), Insets.None)
 						?.Build() ?? insets;
+				}
+				else if (hasBottomNav)
+				{
+					// Keyboard closed with tabs: consume bottom insets since tabs handle safe area
+					return CreateConsumedInsets(insets, systemBars, displayCutout, appBarHasContent, hasBottomNav);
 				}
 			}
 
