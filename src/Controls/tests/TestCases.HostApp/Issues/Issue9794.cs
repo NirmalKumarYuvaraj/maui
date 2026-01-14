@@ -8,8 +8,8 @@
 		{
 			var page1 = AddBottomTab("tab1");
 			AddBottomTab("tab2");
-
-			page1.Content = new StackLayout()
+			var scrollView = new ScrollView();
+			var stackLayout = new StackLayout()
 			{
 				Children =
 				{
@@ -25,9 +25,18 @@
 						{
 							await Navigation.PushAsync(new Issue9794Modal());
 						})
-					}
+					},
+					new Label()
+					{
+						Text = "PlaceHolder to increase Page",
+						HeightRequest = 600
+					},
+					new Entry()
 				}
 			};
+
+			scrollView.Content = stackLayout;
+			page1.Content = scrollView;
 		}
 
 		public class Issue9794Modal : ContentPage

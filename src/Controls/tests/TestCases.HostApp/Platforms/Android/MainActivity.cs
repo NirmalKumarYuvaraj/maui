@@ -1,5 +1,6 @@
 using Android.App;
 using Android.Content.PM;
+using Android.OS;
 using Android.Runtime;
 using Microsoft.Maui;
 
@@ -16,5 +17,10 @@ namespace Maui.Controls.Sample.Platform
 	[Register("com.microsoft.maui.uitests.MainActivity")]
 	public class MainActivity : MauiAppCompatActivity
 	{
+		protected override void OnCreate(Bundle savedInstanceState)
+		{
+			base.OnCreate(savedInstanceState);
+			Window?.SetSoftInputMode(Android.Views.SoftInput.AdjustResize);
+		}
 	}
 }

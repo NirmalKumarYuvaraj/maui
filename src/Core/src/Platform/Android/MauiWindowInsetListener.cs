@@ -8,6 +8,7 @@ using AndroidX.Core.View;
 using AndroidX.Core.Widget;
 using AndroidX.RecyclerView.Widget;
 using Google.Android.Material.AppBar;
+using Google.Android.Material.BottomNavigation;
 using AView = Android.Views.View;
 
 namespace Microsoft.Maui.Platform
@@ -30,6 +31,10 @@ namespace Microsoft.Maui.Platform
 	{
 		readonly HashSet<AView> _trackedViews = [];
 		bool IsImeAnimating { get; set; }
+		Window? _decorViewWindow; // Track window for DecorView cleanup
+		int _targetDecorViewPaddingBottom; // Target padding for animation
+		int _initialDecorViewPaddingBottom; // Initial padding before animation
+		bool _keyboardWasShowing; // Track previous keyboard state to detect actual dismissal
 
 		AView? _pendingView;
 
@@ -199,6 +204,61 @@ namespace Microsoft.Maui.Platform
 
 			_pendingView = null;
 
+			// Check for AdjustResize mode with keyboard showing
+			var context = v.Context;
+			if (context is not null)
+			{
+				var softInputMode = context.GetCurrentSoftInputMode();
+				var keyboardInsets = insets.GetKeyboardInsetsPx(context);
+				var isKeyboardShowing = !keyboardInsets.IsEmpty;
+
+				System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnApplyWindowInsets: SoftInputMode={softInputMode}, IsKeyboardShowing={isKeyboardShowing}, KeyboardInsets={keyboardInsets}");
+
+				// Handle AdjustResize: Apply SafeArea at DecorView level
+				if (isKeyboardShowing && softInputMode.IsAdjustResize())
+				{
+					System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnApplyWindowInsets: Keyboard showing with AdjustResize mode");
+
+					var window = context.GetActivity()?.Window;
+					if (window is not null)
+					{
+						System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnApplyWindowInsets: Applying SafeArea to DecorView");
+
+						// Track window for cleanup
+						_decorViewWindow = window;
+						_keyboardWasShowing = true; // Track that keyboard is showing
+
+						// Apply SafeArea padding to DecorView content root
+						// This avoids conflicts with ContentViewGroup padding
+						var newInsets = SafeAreaExtensions.ApplyAdjustResizeSafeAreaToDecorView(
+							window, insets, context, SafeAreaRegions.All);
+
+						System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnApplyWindowInsets: SafeArea applied to DecorView, returning new insets");
+						return newInsets;
+					}
+					else
+					{
+						System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnApplyWindowInsets: Window is null, cannot apply SafeArea to DecorView");
+					}
+				}
+				else if (!isKeyboardShowing && _keyboardWasShowing && _decorViewWindow is not null)
+				{
+					System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnApplyWindowInsets: Keyboard dismissed (was showing, now hidden), resetting DecorView SafeArea");
+
+					// Keyboard dismissed - reset DecorView padding
+					// Only reset when keyboard was previously showing and is now truly dismissed
+					SafeAreaExtensions.ResetDecorViewSafeArea(_decorViewWindow);
+					_decorViewWindow = null;
+					_keyboardWasShowing = false;
+
+					System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnApplyWindowInsets: DecorView SafeArea reset complete");
+				}
+			}
+			else
+			{
+				System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnApplyWindowInsets: Context is null");
+			}
+
 			// Handle custom inset views first
 			if (v is IHandleWindowInsets customHandler)
 			{
@@ -264,15 +324,42 @@ namespace Microsoft.Maui.Platform
 				}
 			}
 
-			// Handle bottom navigation
-			var hasBottomNav = v.FindViewById(Resource.Id.navigationlayout_bottomtabs)?.MeasuredHeight > 0;
-			if (hasBottomNav)
+			// Handle bottom navigation - find actual BottomNavigationView for edge-to-edge design
+			var fragmentContainer = v.FindViewById<ViewGroup>(Resource.Id.navigationlayout_bottomtabs);
+			bool hasBottomNav = fragmentContainer?.MeasuredHeight > 0;
+
+			if (hasBottomNav && fragmentContainer is not null)
 			{
 				var bottomInset = Math.Max(systemBars?.Bottom ?? 0, displayCutout?.Bottom ?? 0);
-				v.SetPadding(0, 0, 0, bottomInset);
+
+				// Try to find the actual BottomNavigationView inside the fragment container
+				var actualBottomNav = FindBottomNavigationView(fragmentContainer);
+
+				if (actualBottomNav is not null)
+				{
+					// Best case: Pad the actual BottomNavigationView for edge-to-edge design
+					// This allows the nav bar background to extend behind system bars
+					// while keeping the content (icons/labels) above them
+					actualBottomNav.SetPadding(
+						actualBottomNav.PaddingLeft,
+						actualBottomNav.PaddingTop,
+						actualBottomNav.PaddingRight,
+						bottomInset
+					);
+
+					// Root view doesn't need padding when we found the actual bottom nav
+					v.SetPadding(0, 0, 0, 0);
+				}
+				else
+				{
+					// Fallback: Fragment not loaded yet or BottomNavigationView not found
+					// Pad the root view to ensure safe area is respected
+					v.SetPadding(0, 0, 0, bottomInset);
+				}
 			}
 			else
 			{
+				// No bottom navigation - root view doesn't need bottom padding
 				v.SetPadding(0, 0, 0, 0);
 			}
 
@@ -304,10 +391,10 @@ namespace Microsoft.Maui.Platform
 
 		public bool HasTrackedView => _trackedViews.Count > 0;
 
-        public bool IsViewTracked(AView view)
-        {
-            return _trackedViews.Contains(view);
-        }
+		public bool IsViewTracked(AView view)
+		{
+			return _trackedViews.Contains(view);
+		}
 		public void ResetView(AView view)
 		{
 			if (view is IHandleWindowInsets customHandler)
@@ -375,6 +462,13 @@ namespace Microsoft.Maui.Platform
 			if (disposing)
 			{
 				ResetAllViews();
+
+				// Reset DecorView padding if it was applied
+				if (_decorViewWindow is not null)
+				{
+					SafeAreaExtensions.ResetDecorViewSafeArea(_decorViewWindow);
+					_decorViewWindow = null;
+				}
 			}
 			base.Dispose(disposing);
 		}
@@ -385,6 +479,16 @@ namespace Microsoft.Maui.Platform
 			if (IsImeAnimation(animation))
 			{
 				IsImeAnimating = true;
+
+				// Store initial DecorView padding for smooth animation
+				if (_decorViewWindow is not null)
+				{
+					var contentRoot = _decorViewWindow.DecorView?.FindViewById<ViewGroup>(global::Android.Resource.Id.Content);
+					if (contentRoot is not null)
+					{
+						_initialDecorViewPaddingBottom = contentRoot.PaddingBottom;
+					}
+				}
 			}
 		}
 
@@ -393,6 +497,14 @@ namespace Microsoft.Maui.Platform
 			if (IsImeAnimation(animation))
 			{
 				IsImeAnimating = true;
+
+				// Store target padding based on final keyboard position
+				if (_decorViewWindow is not null && bounds is not null)
+				{
+					// Target padding will be set during OnProgress based on keyboard height
+					// We'll calculate it from the upperBound which represents the final state
+					_targetDecorViewPaddingBottom = bounds.UpperBound?.Bottom ?? 0;
+				}
 			}
 
 			return bounds;
@@ -411,33 +523,132 @@ namespace Microsoft.Maui.Platform
 				if (IsImeAnimation(animation))
 				{
 					var imeInsets = insets.GetInsets(WindowInsetsCompat.Type.Ime());
-					// IME height available as: imeInsets?.Bottom ?? 0
+					var currentImeHeight = imeInsets?.Bottom ?? 0;
+
+					// Animate DecorView padding for AdjustResize mode
+					if (_decorViewWindow is not null)
+					{
+						var context = _decorViewWindow.Context;
+						if (context is not null)
+						{
+							var softInputMode = context.GetCurrentSoftInputMode();
+							if (softInputMode.IsAdjustResize())
+							{
+								AnimateDecorViewPadding(animation, currentImeHeight, context);
+							}
+						}
+					}
+
 					break; // Only need to process one IME animation
 				}
 			}
 			return insets;
 		}
 
+		/// <summary>
+		/// Animates the DecorView padding during keyboard show/hide transitions for AdjustResize mode.
+		/// </summary>
+		private void AnimateDecorViewPadding(WindowInsetsAnimationCompat animation, int currentImeHeight, Context context)
+		{
+			System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.AnimateDecorViewPadding: Starting - ImeHeight={currentImeHeight}, Fraction={animation.InterpolatedFraction}");
+
+			var contentRoot = _decorViewWindow?.DecorView?.FindViewById<ViewGroup>(global::Android.Resource.Id.Content);
+			if (contentRoot is null)
+			{
+				System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.AnimateDecorViewPadding: ContentRoot is null, aborting");
+				return;
+			}
+
+			// Get current system bar and cutout insets for consistent padding
+			// We need to maintain these during animation
+			var systemBars = contentRoot.PaddingTop; // Top should remain constant
+			var paddingLeft = contentRoot.PaddingLeft;
+			var paddingRight = contentRoot.PaddingRight;
+
+			System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.AnimateDecorViewPadding: Current padding - L={paddingLeft}, T={systemBars}, R={paddingRight}, B={contentRoot.PaddingBottom}");
+			System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.AnimateDecorViewPadding: Initial bottom padding={_initialDecorViewPaddingBottom}, Target={_targetDecorViewPaddingBottom}");
+
+			// Calculate interpolated bottom padding based on animation progress
+			// interpolatedFraction goes from 0.0 (start) to 1.0 (end)
+			var fraction = animation.InterpolatedFraction;
+			int interpolatedBottomPadding;
+
+			if (currentImeHeight > 0)
+			{
+				// Keyboard appearing: animate from initial to target
+				interpolatedBottomPadding = (int)(_initialDecorViewPaddingBottom +
+					(currentImeHeight - _initialDecorViewPaddingBottom) * fraction);
+				System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.AnimateDecorViewPadding: Keyboard appearing - Interpolated padding={interpolatedBottomPadding}");
+			}
+			else
+			{
+				// Keyboard disappearing: animate from initial to 0 (or system bars height)
+				var systemBars_insets = context.GetActivity()?.Window?.DecorView?.RootWindowInsets;
+				var finalBottomPadding = Math.Max(
+					systemBars_insets?.GetInsets(WindowInsetsCompat.Type.SystemBars())?.Bottom ?? 0,
+					systemBars_insets?.GetInsets(WindowInsetsCompat.Type.DisplayCutout())?.Bottom ?? 0);
+
+				interpolatedBottomPadding = (int)(_initialDecorViewPaddingBottom +
+					(finalBottomPadding - _initialDecorViewPaddingBottom) * fraction);
+				System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.AnimateDecorViewPadding: Keyboard disappearing - Final padding={finalBottomPadding}, Interpolated={interpolatedBottomPadding}");
+			}
+
+			// Apply interpolated padding
+			contentRoot.SetPadding(paddingLeft, systemBars, paddingRight, interpolatedBottomPadding);
+			System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.AnimateDecorViewPadding: Applied padding - L={paddingLeft}, T={systemBars}, R={paddingRight}, B={interpolatedBottomPadding}");
+		}
+
 		public override void OnEnd(WindowInsetsAnimationCompat? animation)
 		{
+			System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnEnd: Animation ended - IsImeAnimation={IsImeAnimation(animation)}");
+
 			base.OnEnd(animation);
 
 			if (IsImeAnimation(animation))
 			{
 				if (_pendingView is AView view)
 				{
+					System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnEnd: Pending view found, posting insets request");
 					_pendingView = null;
 					view.Post(() =>
 					{
 						IsImeAnimating = false;
+						System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnEnd: Requesting apply insets on pending view");
 						ViewCompat.RequestApplyInsets(view);
 					});
 				}
 				else
 				{
+					System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnEnd: No pending view, marking animation complete");
 					IsImeAnimating = false;
 				}
 			}
+		}
+
+
+		/// <summary>
+		/// Recursively searches for a BottomNavigationView within a ViewGroup hierarchy.
+		/// This is needed because navigationlayout_bottomtabs is a FragmentContainerView that hosts the actual BottomNavigationView.
+		/// </summary>
+		/// <param name="parent">The parent ViewGroup to search within</param>
+		/// <returns>The first BottomNavigationView found, or null if none exists</returns>
+		static BottomNavigationView? FindBottomNavigationView(ViewGroup parent)
+		{
+			for (int i = 0; i < parent.ChildCount; i++)
+			{
+				var child = parent.GetChildAt(i);
+				if (child is BottomNavigationView bottomNav)
+					return bottomNav;
+
+				// Recursively search in child ViewGroups
+				if (child is ViewGroup childGroup)
+				{
+					var found = FindBottomNavigationView(childGroup);
+					if (found is not null)
+						return found;
+				}
+			}
+			return null;
 		}
 
 		/// <summary>
