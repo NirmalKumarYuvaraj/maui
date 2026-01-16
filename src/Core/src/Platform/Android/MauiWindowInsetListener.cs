@@ -30,12 +30,12 @@ namespace Microsoft.Maui.Platform
 	internal class MauiWindowInsetListener : WindowInsetsAnimationCompat.Callback, IOnApplyWindowInsetsListener
 	{
 		readonly HashSet<AView> _trackedViews = [];
+		readonly List<AView> _pendingViews = [];
 		bool IsImeAnimating { get; set; }
 		Window? _decorViewWindow; // Track window for DecorView cleanup
 		int _targetDecorViewPaddingBottom; // Target padding for animation
 		int _initialDecorViewPaddingBottom; // Initial padding before animation
-
-		AView? _pendingView;
+		int _lastImeHeight; // Track last IME height to prevent duplicate processing
 
 		// Static tracking for views that have local inset listeners.
 		// This registry allows child views to find their appropriate listener without
@@ -193,79 +193,38 @@ namespace Microsoft.Maui.Platform
 		{
 			if (insets is null || !insets.HasInsets || v is null || IsImeAnimating)
 			{
-				if (IsImeAnimating)
+				if (IsImeAnimating && v is not null)
 				{
-					_pendingView = v;
+					// Add view to pending list if not already there
+					if (!_pendingViews.Contains(v))
+					{
+						_pendingViews.Add(v);
+					}
 				}
 
 				return insets;
 			}
 
-			_pendingView = null;
+			// Clear pending views when processing insets normally
+			_pendingViews.Clear();
 
-			// Check for AdjustResize mode with keyboard showing
+			// Check for IME (keyboard) insets
+			var imeInsets = insets.GetInsets(WindowInsetsCompat.Type.Ime());
+			var imeHeight = imeInsets?.Bottom ?? 0;
+
+			// Check for AdjustResize mode with keyboard
 			var context = v.Context;
 			if (context is not null)
 			{
-				var softInputMode = context.GetCurrentSoftInputMode();
-				var keyboardInsets = insets.GetKeyboardInsetsPx(context);
-				var isKeyboardShowing = !keyboardInsets.IsEmpty;
-
-				System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnApplyWindowInsets: SoftInputMode={softInputMode}, IsKeyboardShowing={isKeyboardShowing}, KeyboardInsets={keyboardInsets}");
-
-				// Handle AdjustResize: Apply SafeArea at DecorView level
-				if (isKeyboardShowing && softInputMode.IsAdjustResize())
+				// Only apply keyboard padding when IME height changes
+				// This prevents interference with non-keyboard events (rotation, bottom nav, etc.)
+				if (imeHeight != _lastImeHeight)
 				{
-					System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnApplyWindowInsets: Keyboard showing with AdjustResize mode");
-
-					var window = context.GetActivity()?.Window;
-					if (window is not null)
-					{
-						System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnApplyWindowInsets: Applying SafeArea to DecorView");
-
-						// Track window for cleanup
-						_decorViewWindow = window;
-
-						// Apply SafeArea padding to DecorView content root
-						// This avoids conflicts with ContentViewGroup padding
-						var newInsets = SafeAreaExtensions.ApplyAdjustResizeSafeAreaToDecorView(
-							window, insets, context, SafeAreaRegions.All);
-
-						System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnApplyWindowInsets: SafeArea applied to DecorView, returning new insets");
-						return newInsets;
-					}
-					else
-					{
-						System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnApplyWindowInsets: Window is null, cannot apply SafeArea to DecorView");
-					}
-				}
-				else if (!isKeyboardShowing)
-				{
-					// Keyboard is not showing - always reset DecorView padding if it exists
-					// This handles both keyboard dismissal AND navigation scenarios where
-					// a new page is loaded while keyboard was open on the previous page
-					var window = context.GetActivity()?.Window;
-					if (window is not null)
-					{
-						var contentRoot = window.DecorView?.FindViewById<ViewGroup>(global::Android.Resource.Id.Content);
-
-						// Only reset if DecorView actually has padding applied
-						if (contentRoot is not null && contentRoot.PaddingBottom != 0)
-						{
-							System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnApplyWindowInsets: Resetting DecorView padding (keyboard not showing)");
-							SafeAreaExtensions.ResetDecorViewSafeArea(window);
-						}
-					}
-
-					// Clear tracking state
-					_decorViewWindow = null;
-					System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnApplyWindowInsets: DecorView SafeArea reset complete");
+					ApplyKeyboardPaddingToDecorViewIfNeeded(imeHeight, context);
 				}
 			}
-			else
-			{
-				System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnApplyWindowInsets: Context is null");
-			}
+
+			_lastImeHeight = imeHeight;
 
 			// Handle custom inset views first
 			if (v is IHandleWindowInsets customHandler)
@@ -275,6 +234,61 @@ namespace Microsoft.Maui.Platform
 
 			// Apply default window insets for standard views
 			return ApplyDefaultWindowInsets(v, insets);
+		}
+
+		/// <summary>
+		/// Applies keyboard padding to DecorView when AdjustResize mode is active.
+		/// This method handles the keyboard insets at the DecorView level to ensure
+		/// content is properly pushed up when the keyboard appears.
+		/// </summary>
+		void ApplyKeyboardPaddingToDecorViewIfNeeded(int imeHeight, Context context)
+		{
+			var window = context.GetActivity()?.Window;
+			if (window?.Attributes is not WindowManagerLayoutParams attr)
+			{
+				return;
+			}
+
+			var softInputMode = attr.SoftInputMode;
+
+			// Get the DecorView content root
+			var contentRoot = window.DecorView?.FindViewById<ViewGroup>(global::Android.Resource.Id.Content);
+			if (contentRoot is null)
+			{
+				return;
+			}
+
+			// Only apply padding if AdjustResize is set AND keyboard is showing
+			if ((softInputMode & SoftInput.AdjustResize) == SoftInput.AdjustResize && imeHeight > 0)
+			{
+				// Track window for cleanup
+				_decorViewWindow = window;
+
+				// Apply padding to DecorView content root
+				// This pushes all content up to avoid keyboard overlap
+				SetDecorViewBottomPadding(contentRoot, imeHeight);
+			}
+			else
+			{
+				// Clear any existing padding when keyboard is not showing or AdjustResize is not set
+				SetDecorViewBottomPadding(contentRoot, 0);
+
+				// Clear tracking state
+				_decorViewWindow = null;
+			}
+		}
+
+		/// <summary>
+		/// Sets the bottom padding on the DecorView content root to accommodate keyboard.
+		/// </summary>
+		static void SetDecorViewBottomPadding(ViewGroup contentRoot, int bottomPadding)
+		{
+			contentRoot.SetPadding(
+				contentRoot.PaddingLeft,
+				contentRoot.PaddingTop,
+				contentRoot.PaddingRight,
+				bottomPadding
+			);
 		}
 
 		static WindowInsetsCompat? ApplyDefaultWindowInsets(AView v, WindowInsetsCompat insets)
@@ -558,78 +572,129 @@ namespace Microsoft.Maui.Platform
 		/// </summary>
 		private void AnimateDecorViewPadding(WindowInsetsAnimationCompat animation, int currentImeHeight, Context context)
 		{
-			System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.AnimateDecorViewPadding: Starting - ImeHeight={currentImeHeight}, Fraction={animation.InterpolatedFraction}");
-
 			var contentRoot = _decorViewWindow?.DecorView?.FindViewById<ViewGroup>(global::Android.Resource.Id.Content);
 			if (contentRoot is null)
 			{
-				System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.AnimateDecorViewPadding: ContentRoot is null, aborting");
 				return;
 			}
 
-			// Get current system bar and cutout insets for consistent padding
-			// We need to maintain these during animation
-			var systemBars = contentRoot.PaddingTop; // Top should remain constant
+			// Preserve existing horizontal and top padding
 			var paddingLeft = contentRoot.PaddingLeft;
+			var paddingTop = contentRoot.PaddingTop;
 			var paddingRight = contentRoot.PaddingRight;
 
-			System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.AnimateDecorViewPadding: Current padding - L={paddingLeft}, T={systemBars}, R={paddingRight}, B={contentRoot.PaddingBottom}");
-			System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.AnimateDecorViewPadding: Initial bottom padding={_initialDecorViewPaddingBottom}, Target={_targetDecorViewPaddingBottom}");
-
 			// Calculate interpolated bottom padding based on animation progress
-			// interpolatedFraction goes from 0.0 (start) to 1.0 (end)
 			var fraction = animation.InterpolatedFraction;
 			int interpolatedBottomPadding;
 
 			if (currentImeHeight > 0)
 			{
-				// Keyboard appearing: animate from initial to target
+				// Keyboard appearing: animate from initial to current IME height
 				interpolatedBottomPadding = (int)(_initialDecorViewPaddingBottom +
 					(currentImeHeight - _initialDecorViewPaddingBottom) * fraction);
-				System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.AnimateDecorViewPadding: Keyboard appearing - Interpolated padding={interpolatedBottomPadding}");
 			}
 			else
 			{
-				// Keyboard disappearing: animate from initial to 0 (or system bars height)
-				var systemBars_insets = context.GetActivity()?.Window?.DecorView?.RootWindowInsets;
-				var finalBottomPadding = Math.Max(
-					systemBars_insets?.GetInsets(WindowInsetsCompat.Type.SystemBars())?.Bottom ?? 0,
-					systemBars_insets?.GetInsets(WindowInsetsCompat.Type.DisplayCutout())?.Bottom ?? 0);
-
-				interpolatedBottomPadding = (int)(_initialDecorViewPaddingBottom +
-					(finalBottomPadding - _initialDecorViewPaddingBottom) * fraction);
-				System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.AnimateDecorViewPadding: Keyboard disappearing - Final padding={finalBottomPadding}, Interpolated={interpolatedBottomPadding}");
+				// Keyboard disappearing: animate from initial to 0
+				interpolatedBottomPadding = (int)(_initialDecorViewPaddingBottom * (1 - fraction));
 			}
 
 			// Apply interpolated padding
-			contentRoot.SetPadding(paddingLeft, systemBars, paddingRight, interpolatedBottomPadding);
-			System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.AnimateDecorViewPadding: Applied padding - L={paddingLeft}, T={systemBars}, R={paddingRight}, B={interpolatedBottomPadding}");
+			contentRoot.SetPadding(paddingLeft, paddingTop, paddingRight, interpolatedBottomPadding);
 		}
 
 		public override void OnEnd(WindowInsetsAnimationCompat? animation)
 		{
-			System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnEnd: Animation ended - IsImeAnimation={IsImeAnimation(animation)}");
-
 			base.OnEnd(animation);
 
 			if (IsImeAnimation(animation))
 			{
-				if (_pendingView is AView view)
+				// Determine if we should reset padding based on SoftInputMode
+				// We only reset if we applied keyboard padding (AdjustResize mode)
+				var shouldReset = false;
+				Context? context = null;
+
+				// Get context from tracked or pending views
+				var allViews = _trackedViews.Concat(_pendingViews);
+				foreach (var view in allViews)
 				{
-					System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnEnd: Pending view found, posting insets request");
-					_pendingView = null;
-					view.Post(() =>
+					context = view.Context;
+					if (context is not null)
+						break;
+				}
+
+				if (context?.GetActivity()?.Window?.Attributes is WindowManagerLayoutParams attr)
+				{
+					var softInputMode = attr.SoftInputMode;
+					shouldReset = (softInputMode & SoftInput.AdjustResize) == SoftInput.AdjustResize;
+				}
+
+				if (!shouldReset)
+				{
+					// Not AdjustResize mode - don't reset anything
+					// Native Android handles AdjustPan, and we didn't apply any padding
+					IsImeAnimating = false;
+					_pendingViews.Clear();
+					return;
+				}
+
+				// AdjustResize mode - proceed with reset logic
+				// Take snapshot of views that need reset and recalculation
+				var trackedViewsSnapshot = _trackedViews.ToArray();
+				var pendingViewsSnapshot = _pendingViews.ToArray();
+
+				// Reset keyboard padding on DecorView when keyboard dismisses
+				if (_decorViewWindow is not null)
+				{
+					var contentRoot = _decorViewWindow.DecorView?.FindViewById<ViewGroup>(global::Android.Resource.Id.Content);
+					if (contentRoot is not null)
+					{
+						SetDecorViewBottomPadding(contentRoot, 0);
+					}
+					_decorViewWindow = null;
+				}
+
+				// Reset each tracked view by removing from tracking
+				foreach (var view in trackedViewsSnapshot)
+				{
+					// Reset padding to allow recalculation with correct view bounds
+					if (view is IHandleWindowInsets customHandler)
+					{
+						customHandler.ResetWindowInsets(view);
+					}
+
+					_trackedViews.Remove(view);
+				}
+
+				// Post a single callback to request inset recalculation on all tracked and pending views
+				if (trackedViewsSnapshot.Length > 0 || pendingViewsSnapshot.Length > 0)
+				{
+					// Use any available view to post the callback
+					var viewToPost = trackedViewsSnapshot.FirstOrDefault() ?? pendingViewsSnapshot.FirstOrDefault();
+					viewToPost?.Post(() =>
 					{
 						IsImeAnimating = false;
-						System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnEnd: Requesting apply insets on pending view");
-						ViewCompat.RequestApplyInsets(view);
+
+						// Request insets recalculation for all affected views
+						foreach (var view in trackedViewsSnapshot)
+						{
+							ViewCompat.RequestApplyInsets(view);
+						}
+
+						foreach (var view in pendingViewsSnapshot)
+						{
+							ViewCompat.RequestApplyInsets(view);
+						}
 					});
 				}
 				else
 				{
-					System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnEnd: No pending view, marking animation complete");
+					// No views to update, just clear the animation flag
 					IsImeAnimating = false;
 				}
+
+				// Clear pending views since we handled them
+				_pendingViews.Clear();
 			}
 		}
 
