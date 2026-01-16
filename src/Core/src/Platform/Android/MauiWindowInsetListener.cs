@@ -34,7 +34,6 @@ namespace Microsoft.Maui.Platform
 		Window? _decorViewWindow; // Track window for DecorView cleanup
 		int _targetDecorViewPaddingBottom; // Target padding for animation
 		int _initialDecorViewPaddingBottom; // Initial padding before animation
-		bool _keyboardWasShowing; // Track previous keyboard state to detect actual dismissal
 
 		AView? _pendingView;
 
@@ -226,7 +225,6 @@ namespace Microsoft.Maui.Platform
 
 						// Track window for cleanup
 						_decorViewWindow = window;
-						_keyboardWasShowing = true; // Track that keyboard is showing
 
 						// Apply SafeArea padding to DecorView content root
 						// This avoids conflicts with ContentViewGroup padding
@@ -241,16 +239,26 @@ namespace Microsoft.Maui.Platform
 						System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnApplyWindowInsets: Window is null, cannot apply SafeArea to DecorView");
 					}
 				}
-				else if (!isKeyboardShowing && _keyboardWasShowing && _decorViewWindow is not null)
+				else if (!isKeyboardShowing)
 				{
-					System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnApplyWindowInsets: Keyboard dismissed (was showing, now hidden), resetting DecorView SafeArea");
+					// Keyboard is not showing - always reset DecorView padding if it exists
+					// This handles both keyboard dismissal AND navigation scenarios where
+					// a new page is loaded while keyboard was open on the previous page
+					var window = context.GetActivity()?.Window;
+					if (window is not null)
+					{
+						var contentRoot = window.DecorView?.FindViewById<ViewGroup>(global::Android.Resource.Id.Content);
 
-					// Keyboard dismissed - reset DecorView padding
-					// Only reset when keyboard was previously showing and is now truly dismissed
-					SafeAreaExtensions.ResetDecorViewSafeArea(_decorViewWindow);
+						// Only reset if DecorView actually has padding applied
+						if (contentRoot is not null && contentRoot.PaddingBottom != 0)
+						{
+							System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnApplyWindowInsets: Resetting DecorView padding (keyboard not showing)");
+							SafeAreaExtensions.ResetDecorViewSafeArea(window);
+						}
+					}
+
+					// Clear tracking state
 					_decorViewWindow = null;
-					_keyboardWasShowing = false;
-
 					System.Diagnostics.Debug.WriteLine($"[SafeArea] MauiWindowInsetListener.OnApplyWindowInsets: DecorView SafeArea reset complete");
 				}
 			}
