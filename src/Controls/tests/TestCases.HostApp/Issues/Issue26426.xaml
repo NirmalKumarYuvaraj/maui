@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Maui.Controls.Sample.Issues.Issue26426"
+             Title="Issue 26426">
+    <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*">
+        <ListView x:Name="_grid" 
+                  Grid.Row="0" 
+                  Grid.ColumnSpan="2"
+                  AutomationId="TestListView">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <TextCell Text="{Binding .}" AutomationId="ListItem"/>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <Button Text="TEST BUTTON" 
+                Grid.Row="1" 
+                Grid.ColumnSpan="2"
+                AutomationId="TestButton"
+                BackgroundColor="Red"
+                TextColor="White"
+                HeightRequest="50"/>
+    </Grid>
+</ContentPage>

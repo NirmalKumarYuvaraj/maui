@@ -1061,7 +1061,33 @@ namespace Microsoft.Maui.Layouts
 				}
 				else if (TreatCellHeightAsAuto(cell))
 				{
-					cell.MeasureHeight = double.PositiveInfinity;
+					// For Auto rows in a grid with multiple Auto rows and constrained height,
+					// divide the available height among Auto rows to prevent scrollable controls
+					// (ListView, CollectionView) from expanding to full content height.
+					// This addresses issue #26426 where ListView in first Auto row pushes second Auto row out of view.
+					int autoRowCount = 0;
+					for (int i = 0; i < _rows.Length; i++)
+					{
+						if (_rows[i].IsAuto)
+						{
+							autoRowCount++;
+						}
+					}
+
+					if (!double.IsInfinity(_gridHeightConstraint) && autoRowCount > 1)
+					{
+						// Divide available height among Auto rows, accounting for row spacing
+						double totalSpacing = _rowSpacing * (_rows.Length - 1);
+						double availableHeight = _gridHeightConstraint - _padding.VerticalThickness - totalSpacing;
+						double heightPerAutoRow = availableHeight / autoRowCount;
+
+						// Use the divided height as constraint for this Auto row
+						cell.MeasureHeight = Math.Max(0, heightPerAutoRow);
+					}
+					else
+					{
+						cell.MeasureHeight = double.PositiveInfinity;
+					}
 				}
 
 				// For all other situations, we'll have to wait until we've measured the Auto rows
