@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<FlyoutPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            x:Class="Maui.Controls.Sample.Issues.Issue33615"
+            AutomationId="FlyoutPage33615">
+    
+    <FlyoutPage.Flyout>
+        <ContentPage Title="Menu">
+            <VerticalStackLayout Padding="20" Spacing="10">
+                <Label Text="FlyoutPage Title Test" FontSize="18" FontAttributes="Bold"/>
+                <Label Text="Current title should update when switching detail pages" 
+                       TextColor="Gray" FontSize="12"/>
+            </VerticalStackLayout>
+        </ContentPage>
+    </FlyoutPage.Flyout>
+
+    <FlyoutPage.Detail>
+        <NavigationPage>
+            <x:Arguments>
+                <ContentPage Title="DetailPage1" AutomationId="DetailPage1">
+                    <VerticalStackLayout Padding="20" Spacing="15">
+                        <Label Text="DetailPage1" 
+                               FontSize="24" 
+                               FontAttributes="Bold"
+                               AutomationId="DetailPage1Label"/>
+                        
+                        <Label Text="Click buttons to navigate between pages and test title updates"/>
+                        
+                        <Button Text="Go to DetailPage2" 
+                                AutomationId="GoToDetailPage2Button"
+                                Clicked="OnGoToDetailPage2"/>
+                        
+                        <Button Text="Trigger Bug (Swap Window.Page)" 
+                                AutomationId="TriggerBugButton"
+                                BackgroundColor="Red"
+                                TextColor="White"
+                                Clicked="OnTriggerBug"/>
+                        
+                        <Label Text="Status: Ready" 
+                               AutomationId="StatusLabel"
+                               FontSize="14"
+                               TextColor="Green"/>
+                    </VerticalStackLayout>
+                </ContentPage>
+            </x:Arguments>
+        </NavigationPage>
+    </FlyoutPage.Detail>
+    
+</FlyoutPage>

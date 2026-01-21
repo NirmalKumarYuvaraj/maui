@@ -46,7 +46,7 @@ namespace Maui.Controls.Sample
 #if IOS || MACCATALYST
 			appBuilder.ConfigureCollectionViewHandlers();
 #endif
-			
+
 			// Register the custom handler
 			appBuilder.ConfigureMauiHandlers(handlers =>
 			{
@@ -111,7 +111,7 @@ namespace Maui.Controls.Sample
 				}
 			}
 #endif
-			return mainPage ?? new CoreNavigationPage();
+			return mainPage ?? new Issue33615();
 		}
 	}
 
