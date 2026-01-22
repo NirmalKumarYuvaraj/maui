@@ -52,27 +52,7 @@ namespace Microsoft.Maui.TestCases.Tests.Issues
 			// Now navigate to DetailPage2 again - this is where the bug manifests
 			// The title should update, but it won't due to the bug
 			App.Tap("GoToDetailPage2Button");
-			App.WaitForElement("DetailPage2");
-
-			// Verify we're on DetailPage2
-			detailPage2Label = App.FindElement("DetailPage2Label");
-			Assert.That(detailPage2Label, Is.Not.Null, "Should be on DetailPage2 after bug trigger");
-
-			// The bug: The FlyoutPage title is not updating
-			// On Android, the title in the toolbar/action bar should show "DetailPage2" but shows "DetailPage1"
-			// This test documents the expected behavior
-			// The actual title verification would require platform-specific code to read the toolbar title
-
-			// Navigate back one more time to confirm title is permanently stuck
-			App.Tap("GoToDetailPage1Button");
-			App.WaitForElement("DetailPage1");
-
-			detailPage1Label = App.FindElement("DetailPage1Label");
-			Assert.That(detailPage1Label, Is.Not.Null, "Should be back on DetailPage1");
-
-			// Test passes if we can navigate (content changes work)
-			// The visual bug (title not updating) is the issue being reproduced
-			// Without a fix, manual verification will show title stuck on "DetailPage1"
+			VerifyScreenshot();
 		}
 	}
 }
