@@ -76,14 +76,13 @@ namespace Microsoft.Maui.Handlers
 
 		internal void SetupWithDrawerLayout(DrawerLayout? drawerLayout)
 		{
-			if (_drawerLayout == drawerLayout)
-			{
-				PlatformView.SetNavigationOnClickListener(BackNavigationClick);
-				return;
-			}
-
 			_drawerLayout = drawerLayout;
+			
+			// Always call SetupToolbar() even if drawerLayout is the same (fixes #33615)
+			// When Window.Page is swapped, the NavController state may have changed
+			// even if the DrawerLayout reference is the same
 			SetupToolbar();
+			PlatformView.SetNavigationOnClickListener(BackNavigationClick);
 		}
 
 		internal void SetupWithNavController(NavController navController, StackNavigationManager stackNavigationManager)
