@@ -111,7 +111,7 @@ namespace Maui.Controls.Sample
 				}
 			}
 #endif
-			return mainPage ?? new Issue33615();
+			return mainPage ?? new CoreNavigationPage();
 		}
 	}
 
