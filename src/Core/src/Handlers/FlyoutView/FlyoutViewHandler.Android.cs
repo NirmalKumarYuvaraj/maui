@@ -115,15 +115,6 @@ namespace Microsoft.Maui.Handlers
 		void UpdateDetail()
 		{
 			LayoutViews();
-
-			// Re-establish toolbar connection when detail changes (fixes #33615)
-			// When Window.Page is swapped, the handler reconnects but the toolbar
-			// loses its DrawerLayout connection. Re-establishing it here ensures
-			// the connection is restored after the detail page is set.
-			if (VirtualView is IToolbarElement te && te.Toolbar != null)
-			{
-				MapToolbar(this, VirtualView);
-			}
 		}
 
 		void UpdateFlyout()
@@ -256,14 +247,7 @@ namespace Microsoft.Maui.Handlers
 			}
 
 			if (VirtualView is IToolbarElement te && te.Toolbar?.Handler is ToolbarHandler th)
-			{
-				// Force toolbar re-setup after handler reconnection (fixes #33615)
-				// When Window.Page is swapped, the ToolbarHandler loses its internal state.
-				// Calling SetupWithDrawerLayout with null first, then the actual DrawerLayout
-				// forces a fresh setup instead of the early return that prevents re-initialization.
-				th.SetupWithDrawerLayout(null);
 				th.SetupWithDrawerLayout(DrawerLayout);
-			}
 		}
 
 		void UpdateIsPresented()
