@@ -256,7 +256,14 @@ namespace Microsoft.Maui.Handlers
 			}
 
 			if (VirtualView is IToolbarElement te && te.Toolbar?.Handler is ToolbarHandler th)
+			{
+				// Force toolbar re-setup after handler reconnection (fixes #33615)
+				// When Window.Page is swapped, the ToolbarHandler loses its internal state.
+				// Calling SetupWithDrawerLayout with null first, then the actual DrawerLayout
+				// forces a fresh setup instead of the early return that prevents re-initialization.
+				th.SetupWithDrawerLayout(null);
 				th.SetupWithDrawerLayout(DrawerLayout);
+			}
 		}
 
 		void UpdateIsPresented()
