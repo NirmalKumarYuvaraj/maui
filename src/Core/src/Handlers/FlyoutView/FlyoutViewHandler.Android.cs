@@ -297,6 +297,14 @@ namespace Microsoft.Maui.Handlers
 				dl.DrawerStateChanged += OnDrawerStateChanged;
 				dl.ViewAttachedToWindow += DrawerLayoutAttached;
 			}
+
+			// Re-establish toolbar connection when handler reconnects (fixes #33615)
+			// When Window.Page is swapped, the handler disconnects/reconnects but the
+			// toolbar-to-DrawerLayout connection is lost, preventing title updates
+			if (VirtualView is IToolbarElement te && te.Toolbar != null)
+			{
+				MapToolbar(this, VirtualView);
+			}
 		}
 
 		protected override void DisconnectHandler(View platformView)
