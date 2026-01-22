@@ -573,7 +573,11 @@ namespace Microsoft.Maui.Controls
 					}
 
 					var flyoutPage = _toolbar.FindParentOfType<FlyoutPage>();
-					if (flyoutPage != null && flyoutPage.Parent is IWindow && flyoutPage.Toolbar == _toolbar)
+					// Always clear toolbar from FlyoutPage (fixes #33615)
+					// The Parent is IWindow check prevents toolbar cleanup when FlyoutPage
+					// is temporarily removed from Window.Page. Removing this check ensures
+					// the toolbar is always properly cleared and can be recreated.
+					if (flyoutPage != null && flyoutPage.Toolbar == _toolbar)
 					{
 						flyoutPage.Toolbar = null;
 					}
@@ -591,11 +595,7 @@ namespace Microsoft.Maui.Controls
 				// If the root is a FlyoutPage then we set the toolbar on the flyout page
 				var flyoutPage = this.FindParentOfType<FlyoutPage>();
 
-				// Always recreate toolbar for FlyoutPage (fixes #33615)
-				// The Parent is IWindow check prevents toolbar recreation when FlyoutPage
-				// is temporarily removed from Window.Page and restored. Removing this check
-				// ensures the toolbar is always set up correctly.
-				if (flyoutPage != null)
+				if (flyoutPage != null && flyoutPage.Parent is IWindow)
 				{
 					_toolbar = new NavigationPageToolbar(flyoutPage, flyoutPage);
 					flyoutPage.Toolbar = _toolbar;
