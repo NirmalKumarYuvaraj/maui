@@ -1,4 +1,4 @@
-﻿#if IOS // This test case verifies that the UINavigationBar behaves as expected (translucent or transparent) exclusively on the iOS platform.
+﻿#if IOS || ANDROID // This test case verifies that the NavigationBar behaves as expected (translucent or transparent) on iOS and Android platforms.
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using UITest.Appium;

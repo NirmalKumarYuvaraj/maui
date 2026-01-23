@@ -276,17 +276,38 @@ namespace Microsoft.Maui.Platform
 				v.SetPadding(0, 0, 0, 0);
 			}
 
+			// Determine if we should consume top insets
+			// - If no appbar content: pass through (content extends to top)
+			// - If opaque appbar: consume (children start below toolbar)
+			// - If translucent appbar: pass through (content extends under toolbar for edge-to-edge)
+			// Check for MaterialToolbar and read translucency tag set by Controls layer
+			const int TranslucentToolbarTagId = unchecked((int)0xBABE0001);
+			bool isTranslucent = false;
+			if (appBarLayout != null)
+			{
+				for (int i = 0; i < appBarLayout.ChildCount; i++)
+				{
+					if (appBarLayout.GetChildAt(i) is MaterialToolbar toolbar)
+					{
+						var tag = toolbar.GetTag(TranslucentToolbarTagId) as Java.Lang.Boolean;
+						isTranslucent = tag?.BooleanValue() ?? false;
+						break;
+					}
+				}
+			}
+			bool shouldConsumeTopInset = appBarHasContent && !isTranslucent;
+
 			// Create new insets with consumed values
 			var newSystemBars = Insets.Of(
 				systemBars?.Left ?? 0,
-				appBarHasContent ? 0 : systemBars?.Top ?? 0,
+				shouldConsumeTopInset ? 0 : systemBars?.Top ?? 0,
 				systemBars?.Right ?? 0,
 				hasBottomNav ? 0 : systemBars?.Bottom ?? 0
 			) ?? Insets.None;
 
 			var newDisplayCutout = Insets.Of(
 				displayCutout?.Left ?? 0,
-				appBarHasContent ? 0 : displayCutout?.Top ?? 0,
+				shouldConsumeTopInset ? 0 : displayCutout?.Top ?? 0,
 				displayCutout?.Right ?? 0,
 				hasBottomNav ? 0 : displayCutout?.Bottom ?? 0
 			) ?? Insets.None;

@@ -2,6 +2,9 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Maui.Graphics;
+#if ANDROID
+using Microsoft.Maui.Controls.Platform;
+#endif
 
 namespace Microsoft.Maui.Controls
 {
@@ -257,6 +260,14 @@ namespace Microsoft.Maui.Controls
 			{
 				BarBackground = new SolidColorBrush(navigationPage.BarBackgroundColor);
 			}
+
+#if ANDROID
+			// Update Android toolbar translucency and elevation based on BarBackground alpha
+			if (Handler?.PlatformView is Google.Android.Material.AppBar.MaterialToolbar materialToolbar)
+			{
+				materialToolbar.UpdateToolbarTranslucency(this);
+			}
+#endif
 
 #if WINDOWS
 			if (Brush.IsNullOrEmpty(BarBackground))

@@ -5,7 +5,7 @@ using NavigationPage = Microsoft.Maui.Controls.NavigationPage;
 
 namespace Maui.Controls.Sample.Issues;
 
-[Issue(IssueTracker.Github, 17022, "UINavigationBar is Translucent", PlatformAffected.iOS)]
+[Issue(IssueTracker.Github, 17022, "UINavigationBar is Translucent", PlatformAffected.iOS | PlatformAffected.Android)]
 public class Issue17022NavPage : NavigationPage
 {
 	public Issue17022NavPage() : base(new Issue17022())

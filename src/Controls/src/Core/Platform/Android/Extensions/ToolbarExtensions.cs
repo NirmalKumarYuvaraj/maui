@@ -432,5 +432,48 @@ namespace Microsoft.Maui.Controls.Platform
 			else
 				UpdateMenuItems(toolbar, toolbarItems, mauiContext, tintColor, toolbarItemChanged, currentMenuItems, currentToolbarItems, updateMenuItemIcon);
 		}
+
+		// Tag ID for storing translucency state on MaterialToolbar
+		const int TranslucentToolbarTagId = unchecked((int)0xBABE0001);
+
+		internal static void UpdateToolbarTranslucency(this Google.Android.Material.AppBar.MaterialToolbar materialToolbar, Toolbar toolbar)
+		{
+			var appBarLayout = materialToolbar.Parent as Google.Android.Material.AppBar.AppBarLayout;
+			if (appBarLayout == null)
+				return;
+
+			// Detect if translucent based on BarBackground alpha
+			bool isTranslucent = false;
+			if (toolbar.BarBackground is SolidColorBrush solidBrush)
+			{
+				isTranslucent = solidBrush.Color.Alpha < 1f;
+			}
+
+			// Store translucency state as tag for Core layer to read
+			materialToolbar.SetTag(TranslucentToolbarTagId, Java.Lang.Boolean.ValueOf(isTranslucent));
+
+			// Update elevation based on translucency
+			if (isTranslucent)
+			{
+				// Remove elevation for flat, translucent appearance
+				appBarLayout.Elevation = 0f;
+			}
+			else
+			{
+				// Restore default Material Design elevation (4dp)
+				var context = materialToolbar.Context;
+				if (context != null)
+				{
+					var defaultElevation = context.ToPixels(4); // 4dp standard Material elevation
+					appBarLayout.Elevation = (float)defaultElevation;
+				}
+			}
+		}
+
+		internal static bool IsTranslucentToolbar(this Google.Android.Material.AppBar.MaterialToolbar materialToolbar)
+		{
+			var tag = materialToolbar.GetTag(TranslucentToolbarTagId) as Java.Lang.Boolean;
+			return tag?.BooleanValue() ?? false;
+		}
 	}
 }
