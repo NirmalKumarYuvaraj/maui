@@ -63,23 +63,23 @@ internal static class SafeAreaExtensions
 			var bottom = GetSafeAreaForEdge(GetSafeAreaRegionForEdge(3, layout), baseSafeArea.Bottom, 3, isKeyboardShowing, keyboardInsets);
 
 			var globalWindowInsetsListener = MauiWindowInsetListener.FindListenerForView(view);
-            bool hasTrackedViews = globalWindowInsetsListener?.HasTrackedView == true;
+			bool hasTrackedViews = globalWindowInsetsListener?.HasTrackedView == true;
 
-            // If this view has no safe area padding to apply, pass insets through to children
-            // instead of consuming them. This allows child views with SafeAreaEdges set
-            // to properly handle the insets even when the parent has SafeAreaEdges.None
-            // However, if this view was previously tracked (had padding before), we need to
-            // continue processing to reset the padding to 0
-            if (left == 0 && right == 0 && top == 0 && bottom == 0)
-            {
-                // Only pass through if this view hasn't been tracked yet
-                // If it was tracked, we need to reset its padding
-                if (globalWindowInsetsListener?.IsViewTracked(view) != true)
-                {
-                    // Don't consume insets - pass them through for potential child views to handle
-                    return windowInsets;
-                }
-            }
+			// If this view has no safe area padding to apply, pass insets through to children
+			// instead of consuming them. This allows child views with SafeAreaEdges set
+			// to properly handle the insets even when the parent has SafeAreaEdges.None
+			// However, if this view was previously tracked (had padding before), we need to
+			// continue processing to reset the padding to 0
+			if (left == 0 && right == 0 && top == 0 && bottom == 0)
+			{
+				// Only pass through if this view hasn't been tracked yet
+				// If it was tracked, we need to reset its padding
+				if (globalWindowInsetsListener?.IsViewTracked(view) != true)
+				{
+					// Don't consume insets - pass them through for potential child views to handle
+					return windowInsets;
+				}
+			}
 
 
 			if (isKeyboardShowing &&
@@ -258,6 +258,7 @@ internal static class SafeAreaExtensions
 
 				// Apply all insets to content view group
 				view.SetPadding((int)left, (int)top, (int)right, (int)bottom);
+				System.Diagnostics.Debug.WriteLine($"[SafeArea] Applied Safe Area Insets - L:{left} T:{top} R:{right} B:{bottom} to {view}");
 				if (left > 0 || right > 0 || top > 0 || bottom > 0)
 				{
 					globalWindowInsetsListener?.TrackView(view);
@@ -287,24 +288,24 @@ internal static class SafeAreaExtensions
 
 		// Handle SoftInput specifically - only apply keyboard insets for bottom edge when keyboard is showing
 		if (edge == 3)
-        {
-            if (SafeAreaEdges.IsOnlySoftInput(safeAreaRegion))
-            {
-                // SoftInput only applies padding when keyboard is showing
-                return isKeyboardShowing ? keyBoardInsets.Bottom : 0;
-            }
+		{
+			if (SafeAreaEdges.IsOnlySoftInput(safeAreaRegion))
+			{
+				// SoftInput only applies padding when keyboard is showing
+				return isKeyboardShowing ? keyBoardInsets.Bottom : 0;
+			}
 
-            if (isKeyboardShowing)
-            {
-                // Return keyboard insets for any region that includes SoftInput
-                if (SafeAreaEdges.IsSoftInput(safeAreaRegion))
-                    return keyBoardInsets.Bottom;
+			if (isKeyboardShowing)
+			{
+				// Return keyboard insets for any region that includes SoftInput
+				if (SafeAreaEdges.IsSoftInput(safeAreaRegion))
+					return keyBoardInsets.Bottom;
 
-                // if the keyboard is showing then we will just return 0 for the bottom inset
-                // because that part of the view is covered by the keyboard so we don't want to pad the view
-                return 0;
-            }
-        }
+				// if the keyboard is showing then we will just return 0 for the bottom inset
+				// because that part of the view is covered by the keyboard so we don't want to pad the view
+				return 0;
+			}
+		}
 
 		// All other regions respect safe area in some form
 		// This includes:

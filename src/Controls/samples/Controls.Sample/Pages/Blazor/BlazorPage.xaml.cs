@@ -9,8 +9,6 @@ namespace Maui.Controls.Sample.Pages
 		public BlazorPage()
 		{
 			InitializeComponent();
-
-			bwv.RootComponents.RegisterForJavaScript<MyDynamicComponent>("my-dynamic-root-component");
 		}
 	}
 }
