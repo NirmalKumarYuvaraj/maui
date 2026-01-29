@@ -13,7 +13,7 @@ using AndroidX.Core.Widget;
 
 namespace Microsoft.Maui.Platform
 {
-	public class MauiScrollView : NestedScrollView, IScrollBarView, NestedScrollView.IOnScrollChangeListener, ICrossPlatformLayoutBacking, IHandleWindowInsets
+	public class MauiScrollView : NestedScrollView, IScrollBarView, NestedScrollView.IOnScrollChangeListener, ICrossPlatformLayoutBacking
 	{
 		View? _content;
 		readonly Context _context;
@@ -23,8 +23,6 @@ namespace Microsoft.Maui.Platform
 		ScrollBarVisibility _defaultHorizontalScrollVisibility;
 		ScrollBarVisibility _defaultVerticalScrollVisibility;
 		ScrollBarVisibility _horizontalScrollVisibility;
-		bool _didSafeAreaEdgeConfigurationChange = true;
-		bool _isInsetListenerSet;
 
 		internal float LastX { get; set; }
 		internal float LastY { get; set; }
@@ -61,52 +59,14 @@ namespace Microsoft.Maui.Platform
 		public override void OnAttachedToWindow()
 		{
 			base.OnAttachedToWindow();
-			_isInsetListenerSet = MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(this, _context);
+			MauiWindowInsetListener.SetupViewWithLocalListener(this);
 		}
 
 		protected override void OnDetachedFromWindow()
 		{
+			MauiWindowInsetListener.RemoveViewWithLocalListener(this);
 			base.OnDetachedFromWindow();
-			if (_isInsetListenerSet)
-				MauiWindowInsetListenerExtensions.RemoveMauiWindowInsetListener(this, _context);
-
-			_isInsetListenerSet = false;
-			_didSafeAreaEdgeConfigurationChange = true;
 		}
-
-		#region IHandleWindowInsets Implementation
-
-		(int left, int top, int right, int bottom) _originalPadding;
-		bool _hasStoredOriginalPadding;
-
-
-		WindowInsetsCompat? IHandleWindowInsets.HandleWindowInsets(View view, WindowInsetsCompat insets)
-		{
-			// If we don't have a cross platform layout or insets are null just return
-			if (CrossPlatformLayout is null || insets is null)
-			{
-				return insets;
-			}
-
-			if (!_hasStoredOriginalPadding)
-			{
-				_originalPadding = (PaddingLeft, PaddingTop, PaddingRight, PaddingBottom);
-				_hasStoredOriginalPadding = true;
-			}
-
-			return SafeAreaExtensions.ApplyAdjustedSafeAreaInsetsPx(insets, CrossPlatformLayout, _context, view);
-
-		}
-
-		void IHandleWindowInsets.ResetWindowInsets(View view)
-		{
-			if (_hasStoredOriginalPadding)
-			{
-				SetPadding(_originalPadding.left, _originalPadding.top, _originalPadding.right, _originalPadding.bottom);
-			}
-		}
-
-		#endregion
 
 		public void SetHorizontalScrollBarVisibility(ScrollBarVisibility scrollBarVisibility)
 		{
@@ -297,29 +257,11 @@ namespace Microsoft.Maui.Platform
 				hScrollViewHeight = _isBidirectional ? Math.Max(hScrollViewHeight, scrollViewContentHeight) : hScrollViewHeight;
 				_hScrollView.Layout(0, 0, hScrollViewWidth, hScrollViewHeight);
 			}
-
-			if (_didSafeAreaEdgeConfigurationChange && _isInsetListenerSet)
-			{
-				ViewCompat.RequestApplyInsets(this);
-				_didSafeAreaEdgeConfigurationChange = false;
-			}
 		}
 
 		protected override void OnConfigurationChanged(Configuration? newConfig)
 		{
 			base.OnConfigurationChanged(newConfig);
-
-			MauiWindowInsetListener.FindListenerForView(this)?.ResetView(this);
-			_didSafeAreaEdgeConfigurationChange = true;
-		}
-
-		/// <summary>
-		/// Marks that the SafeAreaEdges configuration changed so we re-request window insets next layout.
-		/// </summary>
-		internal void MarkSafeAreaEdgeConfigurationChanged()
-		{
-			_didSafeAreaEdgeConfigurationChange = true;
-			RequestLayout();
 		}
 
 		public void ScrollTo(int x, int y, bool instant, Action finished)

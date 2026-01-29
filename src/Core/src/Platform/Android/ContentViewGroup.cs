@@ -12,12 +12,10 @@ using Rectangle = Microsoft.Maui.Graphics.Rect;
 
 namespace Microsoft.Maui.Platform
 {
-	public class ContentViewGroup : PlatformContentViewGroup, ICrossPlatformLayoutBacking, IVisualTreeElementProvidable, IHandleWindowInsets
+	public class ContentViewGroup : PlatformContentViewGroup, ICrossPlatformLayoutBacking, IVisualTreeElementProvidable
 	{
 		IBorderStroke? _clip;
 		readonly Context _context;
-		bool _didSafeAreaEdgeConfigurationChange = true;
-		bool _isInsetListenerSet;
 
 		public ContentViewGroup(Context context) : base(context)
 		{
@@ -49,22 +47,19 @@ namespace Microsoft.Maui.Platform
 		protected override void OnAttachedToWindow()
 		{
 			base.OnAttachedToWindow();
-
-			// If we're inside a ScrollView, we don't need to set the global listener
-			// ScrollViews handle their own insets
-			if (Parent is not MauiScrollView)
+			if (Parent is not MauiScrollView && Parent?.Parent is not IMauiRecyclerView)
 			{
-				_isInsetListenerSet = MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(this, _context);
+				MauiWindowInsetListener.SetupViewWithLocalListener(this);
 			}
 		}
 
 		protected override void OnDetachedFromWindow()
 		{
+			if (Parent is not MauiScrollView && Parent?.Parent is not IMauiRecyclerView)
+			{
+				MauiWindowInsetListener.RemoveViewWithLocalListener(this);
+			}
 			base.OnDetachedFromWindow();
-			if (_isInsetListenerSet)
-				MauiWindowInsetListenerExtensions.RemoveMauiWindowInsetListener(this, _context);
-			_didSafeAreaEdgeConfigurationChange = true;
-			_isInsetListenerSet = false;
 		}
 
 		public ICrossPlatformLayout? CrossPlatformLayout
@@ -143,33 +138,11 @@ namespace Microsoft.Maui.Platform
 				Math.Max(0, destination.Height - paddingTop - paddingBottom));
 
 			CrossPlatformArrange(destination);
-
-			if (_didSafeAreaEdgeConfigurationChange && _isInsetListenerSet)
-			{
-				ViewCompat.RequestApplyInsets(this);
-				_didSafeAreaEdgeConfigurationChange = false;
-			}
 		}
 
 		protected override void OnConfigurationChanged(Configuration? newConfig)
 		{
-			base.OnConfigurationChanged(newConfig);
-
-			MauiWindowInsetListener.FindListenerForView(this)?.ResetView(this);
-			_didSafeAreaEdgeConfigurationChange = true;
 		}
-
-		/// <summary>
-		/// Marks that the SafeAreaEdges configuration for this view (or its associated virtual view)
-		/// has changed and that window insets should be re-applied on the next layout pass.
-		/// </summary>
-		internal void MarkSafeAreaEdgeConfigurationChanged()
-		{
-			_didSafeAreaEdgeConfigurationChange = true;
-			// Ensure a layout pass so that OnLayout will trigger InvalidateWindowInsets
-			RequestLayout();
-		}
-
 		internal IBorderStroke? Clip
 		{
 			get => _clip;
@@ -214,36 +187,5 @@ namespace Microsoft.Maui.Platform
 
 			return null;
 		}
-
-		#region IHandleWindowInsets Implementation
-
-		(int left, int top, int right, int bottom) _originalPadding;
-		bool _hasStoredOriginalPadding;
-
-		WindowInsetsCompat? IHandleWindowInsets.HandleWindowInsets(View view, WindowInsetsCompat insets)
-		{
-			if (CrossPlatformLayout is null || insets is null)
-			{
-				return insets;
-			}
-
-			if (!_hasStoredOriginalPadding)
-			{
-				_originalPadding = (PaddingLeft, PaddingTop, PaddingRight, PaddingBottom);
-				_hasStoredOriginalPadding = true;
-			}
-
-			return SafeAreaExtensions.ApplyAdjustedSafeAreaInsetsPx(insets, CrossPlatformLayout, _context, view);
-		}
-
-		void IHandleWindowInsets.ResetWindowInsets(View view)
-		{
-			if (_hasStoredOriginalPadding)
-			{
-				SetPadding(_originalPadding.left, _originalPadding.top, _originalPadding.right, _originalPadding.bottom);
-			}
-		}
-
-		#endregion
 	}
 }

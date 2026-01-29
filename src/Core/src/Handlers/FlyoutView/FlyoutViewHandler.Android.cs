@@ -285,13 +285,6 @@ namespace Microsoft.Maui.Handlers
 
 		protected override void ConnectHandler(View platformView)
 		{
-			MauiWindowInsetListener.RegisterParentForChildViews(platformView);
-
-			if (_navigationRoot is CoordinatorLayout cl)
-			{
-				MauiWindowInsetListener.SetupViewWithLocalListener(cl);
-			}
-
 			if (platformView is DrawerLayout dl)
 			{
 				dl.DrawerStateChanged += OnDrawerStateChanged;
@@ -301,12 +294,6 @@ namespace Microsoft.Maui.Handlers
 
 		protected override void DisconnectHandler(View platformView)
 		{
-			MauiWindowInsetListener.UnregisterView(platformView);
-			if (_navigationRoot is CoordinatorLayout cl)
-			{
-				MauiWindowInsetListener.UnregisterView(cl);
-				_navigationRoot = null;
-			}
 
 			if (platformView is DrawerLayout dl)
 			{

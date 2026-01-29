@@ -13,12 +13,10 @@ using Size = Microsoft.Maui.Graphics.Size;
 
 namespace Microsoft.Maui.Platform
 {
-	public class LayoutViewGroup : PlatformViewGroup, ICrossPlatformLayoutBacking, IVisualTreeElementProvidable, IHandleWindowInsets
+	public class LayoutViewGroup : PlatformViewGroup, ICrossPlatformLayoutBacking, IVisualTreeElementProvidable
 	{
 		readonly ARect _clipRect = new();
 		readonly Context _context;
-		bool _didSafeAreaEdgeConfigurationChange = true;
-		bool _isInsetListenerSet;
 
 		public bool InputTransparent { get; set; }
 
@@ -52,17 +50,19 @@ namespace Microsoft.Maui.Platform
 		protected override void OnAttachedToWindow()
 		{
 			base.OnAttachedToWindow();
-			_isInsetListenerSet = MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(this, _context);
+			if (Parent is not MauiScrollView && Parent?.Parent is not IMauiRecyclerView)
+			{
+				MauiWindowInsetListener.SetupViewWithLocalListener(this);
+			}
 		}
 
 		protected override void OnDetachedFromWindow()
 		{
+			if (Parent is not MauiScrollView && Parent?.Parent is not IMauiRecyclerView)
+			{
+				MauiWindowInsetListener.RemoveViewWithLocalListener(this);
+			}
 			base.OnDetachedFromWindow();
-			if (_isInsetListenerSet)
-				MauiWindowInsetListenerExtensions.RemoveMauiWindowInsetListener(this, _context);
-
-			_didSafeAreaEdgeConfigurationChange = true;
-			_isInsetListenerSet = false;
 		}
 
 		public bool ClipsToBounds { get; set; }
@@ -160,63 +160,12 @@ namespace Microsoft.Maui.Platform
 			{
 				ClipBounds = null;
 			}
-
-			if (_didSafeAreaEdgeConfigurationChange && _isInsetListenerSet)
-			{
-				ViewCompat.RequestApplyInsets(this);
-				_didSafeAreaEdgeConfigurationChange = false;
-			}
 		}
 
 		protected override void OnConfigurationChanged(Configuration? newConfig)
 		{
 			base.OnConfigurationChanged(newConfig);
-
-			MauiWindowInsetListener.FindListenerForView(this)?.ResetView(this);
-			_didSafeAreaEdgeConfigurationChange = true;
 		}
-
-		/// <summary>
-		/// Marks that the SafeAreaEdges configuration has changed and window insets must be
-		/// reapplied on the next layout pass.
-		/// </summary>
-		internal void MarkSafeAreaEdgeConfigurationChanged()
-		{
-			_didSafeAreaEdgeConfigurationChange = true;
-			RequestLayout();
-		}
-
-		#region IHandleWindowInsets Implementation
-
-		(int left, int top, int right, int bottom) _originalPadding;
-		bool _hasStoredOriginalPadding;
-
-		WindowInsetsCompat? IHandleWindowInsets.HandleWindowInsets(View view, WindowInsetsCompat insets)
-		{
-			if (CrossPlatformLayout is null || insets is null)
-			{
-				return insets;
-			}
-
-			if (!_hasStoredOriginalPadding)
-			{
-				_originalPadding = (PaddingLeft, PaddingTop, PaddingRight, PaddingBottom);
-				_hasStoredOriginalPadding = true;
-			}
-
-			return SafeAreaExtensions.ApplyAdjustedSafeAreaInsetsPx(insets, CrossPlatformLayout, _context, view);
-		}
-
-		void IHandleWindowInsets.ResetWindowInsets(View view)
-		{
-			if (_hasStoredOriginalPadding)
-			{
-				SetPadding(_originalPadding.left, _originalPadding.top, _originalPadding.right, _originalPadding.bottom);
-			}
-		}
-
-		#endregion
-
 		public override bool OnTouchEvent(MotionEvent? e)
 		{
 			if (InputTransparent)

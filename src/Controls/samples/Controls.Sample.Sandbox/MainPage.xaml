@@ -1,5 +1,50 @@
 ﻿<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Maui.Controls.Sample.MainPage"
-             xmlns:local="clr-namespace:Maui.Controls.Sample">
+             xmlns:local="clr-namespace:Maui.Controls.Sample"
+             Title="Home">
+
+    <ScrollView>
+        <Grid
+            RowDefinitions="*,Auto">
+            <Border
+                Grid.Row="0"
+                Margin="16"
+                Padding="16"
+                BackgroundColor="#F7F7F7"
+                Stroke="#CCCCCC"
+                StrokeThickness="1">
+                <VerticalStackLayout Spacing="8">
+                    <Label FontSize="18"
+                           Text="Sample content"/>
+                    <Label Text="Add more text here to see how the layout behaves when the keyboard opens."/>
+                    <Label Text="This area is just a placeholder border."/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Grid
+                Grid.Row="1"
+                Padding="16">
+                <Border
+                    Padding="10"
+                    BackgroundColor="White"
+                    HorizontalOptions="Fill"
+                    Stroke="Blue"
+                    StrokeShape="RoundRectangle 12"
+                    StrokeThickness="1"
+                    VerticalOptions="End">
+                    <Grid ColumnDefinitions="*,Auto"
+                          ColumnSpacing="8">
+                        <Entry
+                            x:Name="MessageEntry"
+                            Placeholder="Type a message…"
+                            ReturnType="Send"/>
+                        <Button
+                            Grid.Column="1"
+                            Text="Send"/>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </ScrollView>
 </ContentPage>
