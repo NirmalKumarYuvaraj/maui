@@ -14,830 +14,829 @@ using Microsoft.Maui.Platform;
 using ObjCRuntime;
 using UIKit;
 
-namespace Microsoft.Maui.Controls.Platform
+namespace Microsoft.Maui.Controls.Platform;
+
+/// <summary>
+/// A Shell section renderer that uses the unified StackNavigationManager for navigation.
+/// This provides a unified navigation implementation that can be shared between Shell and NavigationPage.
+/// </summary>
+internal class ShellSectionStackNavigationManager : UINavigationController, IShellSectionRenderer, IAppearanceObserver, IDisconnectable
 {
-	/// <summary>
-	/// A Shell section renderer that uses the unified StackNavigationManager for navigation.
-	/// This provides a unified navigation implementation that can be shared between Shell and NavigationPage.
-	/// </summary>
-	internal class ShellSectionStackNavigationManager : UINavigationController, IShellSectionRenderer, IAppearanceObserver, IDisconnectable
+	#region IShellSectionRenderer
+
+	public bool IsInMoreTab { get; set; }
+
+	public ShellSection ShellSection
 	{
-		#region IShellSectionRenderer
-
-		public bool IsInMoreTab { get; set; }
-
-		public ShellSection ShellSection
+		get { return _shellSection; }
+		set
 		{
-			get { return _shellSection; }
-			set
-			{
-				if (_shellSection == value)
-				{
-					return;
-				}
-
-				_shellSection = value;
-				LoadPages();
-				OnShellSectionSet();
-				_shellSection.PropertyChanged += HandlePropertyChanged;
-				((IShellSectionController)_shellSection).NavigationRequested += OnNavigationRequested;
-			}
-		}
-
-		IShellSectionController ShellSectionController => ShellSection;
-
-		public UIViewController ViewController => this;
-
-		#endregion IShellSectionRenderer
-
-		#region IAppearanceObserver
-
-		void IAppearanceObserver.OnAppearanceChanged(ShellAppearance appearance)
-		{
-
-			if (appearance is null)
-			{
-				_appearanceTracker.ResetAppearance(this);
-			}
-			else
-			{
-				_appearanceTracker.SetAppearance(this, appearance);
-			}
-		}
-
-		#endregion IAppearanceObserver
-
-		readonly IShellContext _context;
-		readonly Dictionary<Element, IShellPageRendererTracker> _trackers = new Dictionary<Element, IShellPageRendererTracker>();
-		readonly Dictionary<UIViewController, TaskCompletionSource<bool>> _completionTasks = new Dictionary<UIViewController, TaskCompletionSource<bool>>();
-
-		// The unified navigation manager that handles VC stack operations
-		StackNavigationManager _stackManager;
-
-		IShellNavBarAppearanceTracker _appearanceTracker;
-		Page _displayedPage;
-		bool _disposed;
-		bool _firstLayoutCompleted;
-		TaskCompletionSource<bool> _popCompletionTask;
-		IShellSectionRootRenderer _renderer;
-		ShellSection _shellSection;
-		bool _ignorePopCall;
-
-		public ShellSectionStackNavigationManager(IShellContext context) : base(typeof(MauiNavigationBar), null)
-		{
-			Delegate = new NavDelegate(this);
-			_context = context;
-			_context.Shell.PropertyChanged += HandleShellPropertyChanged;
-			_context.Shell.Navigated += OnNavigated;
-			_context.Shell.Navigating += OnNavigating;
-		}
-
-		public ShellSectionStackNavigationManager(IShellContext context, Type navigationBarType, Type toolbarType)
-			: base(navigationBarType, toolbarType)
-		{
-			Delegate = new NavDelegate(this);
-			_context = context;
-			_context.Shell.PropertyChanged += HandleShellPropertyChanged;
-			_context.Shell.Navigated += OnNavigated;
-			_context.Shell.Navigating += OnNavigating;
-		}
-
-		/// <summary>
-		/// Gets or lazily creates the unified StackNavigationManager.
-		/// </summary>
-		StackNavigationManager StackManager
-		{
-			get
-			{
-				if (_stackManager is null && _shellSection is not null)
-				{
-					var mauiContext = _shellSection.FindMauiContext();
-					if (mauiContext is not null)
-					{
-						_stackManager = new StackNavigationManager(mauiContext);
-						// Connect the manager to THIS UINavigationController (Shell IS the nav controller)
-						// Pass null for navigationView since Shell handles navigation events differently
-						_stackManager.Connect(null, this);
-					}
-				}
-				return _stackManager;
-			}
-		}
-
-		/// <summary>
-		/// Gets the currently active view controllers, using the unified manager.
-		/// </summary>
-		UIViewController[] ActiveViewControllers() => StackManager?.GetActiveViewControllers() ?? base.ViewControllers ?? Array.Empty<UIViewController>();
-
-		[Export("navigationBar:shouldPopItem:")]
-		[Internals.Preserve(Conditional = true)]
-		public bool ShouldPopItem(UINavigationBar _, UINavigationItem __) => SendPop();
-
-		[Export("navigationBar:didPopItem:")]
-		[Internals.Preserve(Conditional = true)]
-		bool DidPopItem(UINavigationBar _, UINavigationItem __)
-		{
-			if (_shellSection?.Stack is null || NavigationBar?.Items is null)
-			{
-				return true;
-			}
-
-			if (_shellSection.Stack.Count == NavigationBar.Items.Length)
-			{
-				return true;
-			}
-
-			return SendPop();
-		}
-
-		internal bool SendPop()
-		{
-			if (ActiveViewControllers().Length < NavigationBar.Items.Length)
-			{
-				return true;
-			}
-
-			foreach (var tracker in _trackers)
-			{
-				if (tracker.Value.ViewController == TopViewController)
-				{
-					var behavior = Shell.GetBackButtonBehavior(tracker.Value.Page);
-					var command = behavior.GetPropertyIfSet<System.Windows.Input.ICommand>(BackButtonBehavior.CommandProperty, null);
-					var commandParameter = behavior.GetPropertyIfSet<object>(BackButtonBehavior.CommandParameterProperty, null);
-
-					if (command is not null)
-					{
-						if (command.CanExecute(commandParameter))
-						{
-							command.Execute(commandParameter);
-						}
-						return false;
-					}
-					break;
-				}
-			}
-
-			DispatchQueue.MainQueue.DispatchAsync(async () =>
-			{
-				var navItemsCount = NavigationBar.Items.Length;
-				await _context.Shell.GoToAsync("..", true);
-
-				if (NavigationBar.Items.Length == navItemsCount)
-				{
-					for (int i = 0; i < NavigationBar.Subviews.Length; i++)
-					{
-						var child = NavigationBar.Subviews[i];
-						if (child.Alpha != 1)
-						{
-							UIView.Animate(.2f, () => child.Alpha = 1);
-						}
-					}
-				}
-			});
-
-			return false;
-		}
-
-		public override void ViewDidDisappear(bool animated)
-		{
-			var sourcesToComplete = new List<TaskCompletionSource<bool>>(_completionTasks.Values);
-			_completionTasks.Clear();
-
-			foreach (var source in sourcesToComplete)
-			{
-				source.TrySetResult(false);
-			}
-
-			_popCompletionTask?.TrySetResult(false);
-			_popCompletionTask = null;
-
-			base.ViewDidDisappear(animated);
-		}
-
-		public override void ViewWillAppear(bool animated)
-		{
-			if (_disposed)
+			if (_shellSection == value)
 			{
 				return;
 			}
 
-			UpdateFlowDirection();
-			base.ViewWillAppear(animated);
+			_shellSection = value;
+			LoadPages();
+			OnShellSectionSet();
+			_shellSection.PropertyChanged += HandlePropertyChanged;
+			((IShellSectionController)_shellSection).NavigationRequested += OnNavigationRequested;
 		}
+	}
 
-		internal void UpdateFlowDirection()
+	IShellSectionController ShellSectionController => ShellSection;
+
+	public UIViewController ViewController => this;
+
+	#endregion IShellSectionRenderer
+
+	#region IAppearanceObserver
+
+	void IAppearanceObserver.OnAppearanceChanged(ShellAppearance appearance)
+	{
+
+		if (appearance is null)
 		{
-			View.UpdateFlowDirection(_context.Shell);
-			NavigationBar.UpdateFlowDirection(_context.Shell);
+			_appearanceTracker.ResetAppearance(this);
 		}
-
-		public override void ViewDidLayoutSubviews()
+		else
 		{
-			if (_disposed)
-			{
-				return;
-			}
-
-			base.ViewDidLayoutSubviews();
-
-			_appearanceTracker.UpdateLayout(this);
-
-			if (!_firstLayoutCompleted)
-			{
-				UpdateShadowImages();
-				_firstLayoutCompleted = true;
-			}
+			_appearanceTracker.SetAppearance(this, appearance);
 		}
+	}
 
-		public override void ViewDidLoad()
+	#endregion IAppearanceObserver
+
+	readonly IShellContext _context;
+	readonly Dictionary<Element, IShellPageRendererTracker> _trackers = [];
+	readonly Dictionary<UIViewController, TaskCompletionSource<bool>> _completionTasks = [];
+
+	// The unified navigation manager that handles VC stack operations
+	StackNavigationManager _stackManager;
+
+	IShellNavBarAppearanceTracker _appearanceTracker;
+	Page _displayedPage;
+	bool _disposed;
+	bool _firstLayoutCompleted;
+	TaskCompletionSource<bool> _popCompletionTask;
+	IShellSectionRootRenderer _renderer;
+	ShellSection _shellSection;
+	bool _ignorePopCall;
+
+	public ShellSectionStackNavigationManager(IShellContext context) : base(typeof(MauiNavigationBar), null)
+	{
+		Delegate = new NavDelegate(this);
+		_context = context;
+		_context.Shell.PropertyChanged += HandleShellPropertyChanged;
+		_context.Shell.Navigated += OnNavigated;
+		_context.Shell.Navigating += OnNavigating;
+	}
+
+	public ShellSectionStackNavigationManager(IShellContext context, Type navigationBarType, Type toolbarType)
+		: base(navigationBarType, toolbarType)
+	{
+		Delegate = new NavDelegate(this);
+		_context = context;
+		_context.Shell.PropertyChanged += HandleShellPropertyChanged;
+		_context.Shell.Navigated += OnNavigated;
+		_context.Shell.Navigating += OnNavigating;
+	}
+
+	/// <summary>
+	/// Gets or lazily creates the unified StackNavigationManager.
+	/// </summary>
+	StackNavigationManager StackManager
+	{
+		get
 		{
-			if (_disposed)
+			if (_stackManager is null && _shellSection is not null)
 			{
-				return;
-			}
-
-			base.ViewDidLoad();
-			InteractivePopGestureRecognizer.Delegate = new GestureDelegate(this, ShouldPop);
-			UpdateFlowDirection();
-		}
-
-		public override void ViewDidAppear(bool animated)
-		{
-			base.ViewDidAppear(animated);
-			if (_context is ShellRenderer shellRenderer)
-			{
-				shellRenderer.ViewController.SetNeedsUpdateOfHomeIndicatorAutoHidden();
-				shellRenderer.ViewController.SetNeedsStatusBarAppearanceUpdate();
-			}
-		}
-
-		void IDisconnectable.Disconnect()
-		{
-			(_renderer as IDisconnectable)?.Disconnect();
-
-			if (_displayedPage is not null)
-			{
-				_displayedPage.PropertyChanged -= OnDisplayedPagePropertyChanged;
-			}
-
-			if (_shellSection is not null)
-			{
-				_shellSection.PropertyChanged -= HandlePropertyChanged;
-				((IShellSectionController)ShellSection).NavigationRequested -= OnNavigationRequested;
-				((IShellSectionController)ShellSection).RemoveDisplayedPageObserver(this);
-			}
-
-			if (_context.Shell is not null)
-			{
-				_context.Shell.PropertyChanged -= HandleShellPropertyChanged;
-				_context.Shell.Navigated -= OnNavigated;
-				_context.Shell.Navigating -= OnNavigating;
-				((IShellController)_context.Shell).RemoveAppearanceObserver(this);
-			}
-		}
-
-		protected override void Dispose(bool disposing)
-		{
-			if (_disposed)
-			{
-				return;
-			}
-
-			if (disposing)
-			{
-				this.RemoveFromParentViewController();
-				_disposed = true;
-				_renderer.Dispose();
-				_appearanceTracker.Dispose();
-				(this as IDisconnectable).Disconnect();
-
-				// Disconnect StackManager before disposing pages
-				_stackManager?.Disconnect(null, this);
-
-				foreach (var tracker in ShellSection.Stack)
+				var mauiContext = _shellSection.FindMauiContext();
+				if (mauiContext is not null)
 				{
-					if (tracker is null)
-					{
-						continue;
-					}
-
-					DisposePage(tracker, true);
+					_stackManager = new StackNavigationManager(mauiContext);
+					// Connect the manager to THIS UINavigationController (Shell IS the nav controller)
+					// Pass null for navigationView since Shell handles navigation events differently
+					_stackManager.Connect(null, this);
 				}
 			}
+			return _stackManager;
+		}
+	}
 
+	/// <summary>
+	/// Gets the currently active view controllers, using the unified manager.
+	/// </summary>
+	UIViewController[] ActiveViewControllers() => StackManager?.GetActiveViewControllers() ?? base.ViewControllers ?? Array.Empty<UIViewController>();
+
+	[Export("navigationBar:shouldPopItem:")]
+	[Internals.Preserve(Conditional = true)]
+	public bool ShouldPopItem(UINavigationBar _, UINavigationItem __) => SendPop();
+
+	[Export("navigationBar:didPopItem:")]
+	[Internals.Preserve(Conditional = true)]
+	bool DidPopItem(UINavigationBar _, UINavigationItem __)
+	{
+		if (_shellSection?.Stack is null || NavigationBar?.Items is null)
+		{
+			return true;
+		}
+
+		if (_shellSection.Stack.Count == NavigationBar.Items.Length)
+		{
+			return true;
+		}
+
+		return SendPop();
+	}
+
+	internal bool SendPop()
+	{
+		if (ActiveViewControllers().Length < NavigationBar.Items.Length)
+		{
+			return true;
+		}
+
+		foreach (var tracker in _trackers)
+		{
+			if (tracker.Value.ViewController == TopViewController)
+			{
+				var behavior = Shell.GetBackButtonBehavior(tracker.Value.Page);
+				var command = behavior.GetPropertyIfSet<System.Windows.Input.ICommand>(BackButtonBehavior.CommandProperty, null);
+				var commandParameter = behavior.GetPropertyIfSet<object>(BackButtonBehavior.CommandParameterProperty, null);
+
+				if (command is not null)
+				{
+					if (command.CanExecute(commandParameter))
+					{
+						command.Execute(commandParameter);
+					}
+					return false;
+				}
+				break;
+			}
+		}
+
+		DispatchQueue.MainQueue.DispatchAsync(async () =>
+		{
+			var navItemsCount = NavigationBar.Items.Length;
+			await _context.Shell.GoToAsync("..", true);
+
+			if (NavigationBar.Items.Length == navItemsCount)
+			{
+				for (int i = 0; i < NavigationBar.Subviews.Length; i++)
+				{
+					var child = NavigationBar.Subviews[i];
+					if (child.Alpha != 1)
+					{
+						UIView.Animate(.2f, () => child.Alpha = 1);
+					}
+				}
+			}
+		});
+
+		return false;
+	}
+
+	public override void ViewDidDisappear(bool animated)
+	{
+		var sourcesToComplete = new List<TaskCompletionSource<bool>>(_completionTasks.Values);
+		_completionTasks.Clear();
+
+		foreach (var source in sourcesToComplete)
+		{
+			source.TrySetResult(false);
+		}
+
+		_popCompletionTask?.TrySetResult(false);
+		_popCompletionTask = null;
+
+		base.ViewDidDisappear(animated);
+	}
+
+	public override void ViewWillAppear(bool animated)
+	{
+		if (_disposed)
+		{
+			return;
+		}
+
+		UpdateFlowDirection();
+		base.ViewWillAppear(animated);
+	}
+
+	internal void UpdateFlowDirection()
+	{
+		View.UpdateFlowDirection(_context.Shell);
+		NavigationBar.UpdateFlowDirection(_context.Shell);
+	}
+
+	public override void ViewDidLayoutSubviews()
+	{
+		if (_disposed)
+		{
+			return;
+		}
+
+		base.ViewDidLayoutSubviews();
+
+		_appearanceTracker.UpdateLayout(this);
+
+		if (!_firstLayoutCompleted)
+		{
+			UpdateShadowImages();
+			_firstLayoutCompleted = true;
+		}
+	}
+
+	public override void ViewDidLoad()
+	{
+		if (_disposed)
+		{
+			return;
+		}
+
+		base.ViewDidLoad();
+		InteractivePopGestureRecognizer.Delegate = new GestureDelegate(this, ShouldPop);
+		UpdateFlowDirection();
+	}
+
+	public override void ViewDidAppear(bool animated)
+	{
+		base.ViewDidAppear(animated);
+		if (_context is ShellRenderer shellRenderer)
+		{
+			shellRenderer.ViewController.SetNeedsUpdateOfHomeIndicatorAutoHidden();
+			shellRenderer.ViewController.SetNeedsStatusBarAppearanceUpdate();
+		}
+	}
+
+	void IDisconnectable.Disconnect()
+	{
+		(_renderer as IDisconnectable)?.Disconnect();
+
+		if (_displayedPage is not null)
+		{
+			_displayedPage.PropertyChanged -= OnDisplayedPagePropertyChanged;
+		}
+
+		if (_shellSection is not null)
+		{
+			_shellSection.PropertyChanged -= HandlePropertyChanged;
+			((IShellSectionController)ShellSection).NavigationRequested -= OnNavigationRequested;
+			((IShellSectionController)ShellSection).RemoveDisplayedPageObserver(this);
+		}
+
+		if (_context.Shell is not null)
+		{
+			_context.Shell.PropertyChanged -= HandleShellPropertyChanged;
+			_context.Shell.Navigated -= OnNavigated;
+			_context.Shell.Navigating -= OnNavigating;
+			((IShellController)_context.Shell).RemoveAppearanceObserver(this);
+		}
+	}
+
+	protected override void Dispose(bool disposing)
+	{
+		if (_disposed)
+		{
+			return;
+		}
+
+		if (disposing)
+		{
+			this.RemoveFromParentViewController();
 			_disposed = true;
-			_displayedPage = null;
-			_shellSection = null;
-			_appearanceTracker = null;
-			_renderer = null;
-			_stackManager = null;
+			_renderer.Dispose();
+			_appearanceTracker.Dispose();
+			(this as IDisconnectable).Disconnect();
 
-			base.Dispose(disposing);
-		}
+			// Disconnect StackManager before disposing pages
+			_stackManager?.Disconnect(null, this);
 
-		protected virtual void HandleShellPropertyChanged(object sender, PropertyChangedEventArgs e)
-		{
-			if (e.Is(VisualElement.FlowDirectionProperty))
+			foreach (var tracker in ShellSection.Stack)
 			{
-				UpdateFlowDirection();
+				if (tracker is null)
+				{
+					continue;
+				}
+
+				DisposePage(tracker, true);
 			}
 		}
 
-		protected virtual void HandlePropertyChanged(object sender, PropertyChangedEventArgs e)
+		_disposed = true;
+		_displayedPage = null;
+		_shellSection = null;
+		_appearanceTracker = null;
+		_renderer = null;
+		_stackManager = null;
+
+		base.Dispose(disposing);
+	}
+
+	protected virtual void HandleShellPropertyChanged(object sender, PropertyChangedEventArgs e)
+	{
+		if (e.Is(VisualElement.FlowDirectionProperty))
 		{
-			if (e.PropertyName == BaseShellItem.TitleProperty.PropertyName)
-			{
-				UpdateTabBarItem();
-			}
-			else if (e.PropertyName == BaseShellItem.IconProperty.PropertyName)
-			{
-				UpdateTabBarItem();
-			}
+			UpdateFlowDirection();
+		}
+	}
+
+	protected virtual void HandlePropertyChanged(object sender, PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName == BaseShellItem.TitleProperty.PropertyName)
+		{
+			UpdateTabBarItem();
+		}
+		else if (e.PropertyName == BaseShellItem.IconProperty.PropertyName)
+		{
+			UpdateTabBarItem();
+		}
+	}
+
+	protected virtual IShellSectionRootRenderer CreateShellSectionRootRenderer(ShellSection shellSection, IShellContext shellContext)
+	{
+		return new ShellSectionRootRenderer(shellSection, shellContext);
+	}
+
+	protected virtual void LoadPages()
+	{
+		_renderer = CreateShellSectionRootRenderer(ShellSection, _context);
+		PushViewController(_renderer.ViewController, false);
+
+		var stack = ShellSection.Stack;
+		for (int i = 1; i < stack.Count; i++)
+		{
+			PushPage(stack[i], false);
+		}
+	}
+
+	protected virtual void OnDisplayedPageChanged(Page page)
+	{
+		if (_displayedPage == page)
+		{
+			return;
 		}
 
-		protected virtual IShellSectionRootRenderer CreateShellSectionRootRenderer(ShellSection shellSection, IShellContext shellContext)
+		if (_displayedPage is not null)
 		{
-			return new ShellSectionRootRenderer(shellSection, shellContext);
+			_displayedPage.PropertyChanged -= OnDisplayedPagePropertyChanged;
 		}
 
-		protected virtual void LoadPages()
-		{
-			_renderer = CreateShellSectionRootRenderer(ShellSection, _context);
-			PushViewController(_renderer.ViewController, false);
+		_displayedPage = page;
 
-			var stack = ShellSection.Stack;
-			for (int i = 1; i < stack.Count; i++)
-			{
-				PushPage(stack[i], false);
-			}
+		if (_displayedPage is not null)
+		{
+			_displayedPage.PropertyChanged += OnDisplayedPagePropertyChanged;
+			UpdateNavigationBarHasShadow();
 		}
+	}
 
-		protected virtual void OnDisplayedPageChanged(Page page)
+	protected virtual void OnInsertRequested(NavigationRequestedEventArgs e)
+	{
+		var page = e.Page;
+		var before = e.BeforePage;
+
+		var beforeRenderer = (IPlatformViewHandler)before.Handler;
+		var renderer = (IPlatformViewHandler)page.ToHandler(_shellSection.FindMauiContext());
+
+		var tracker = _context.CreatePageRendererTracker();
+		tracker.ViewController = renderer.ViewController;
+		tracker.Page = page;
+
+		_trackers[page] = tracker;
+
+		var index = ActiveViewControllers().ToList().IndexOf(beforeRenderer.ViewController);
+		StackManager?.InsertViewController(index, renderer.ViewController);
+	}
+
+	protected virtual void OnNavigationRequested(object sender, NavigationRequestedEventArgs e)
+	{
+		switch (e.RequestType)
 		{
-			if (_displayedPage == page)
-			{
-				return;
-			}
-
-			if (_displayedPage is not null)
-			{
-				_displayedPage.PropertyChanged -= OnDisplayedPagePropertyChanged;
-			}
-
-			_displayedPage = page;
-
-			if (_displayedPage is not null)
-			{
-				_displayedPage.PropertyChanged += OnDisplayedPagePropertyChanged;
-				UpdateNavigationBarHasShadow();
-			}
+			case NavigationRequestType.Push:
+				OnPushRequested(e);
+				break;
+			case NavigationRequestType.Pop:
+				OnPopRequested(e);
+				break;
+			case NavigationRequestType.PopToRoot:
+				OnPopToRootRequested(e);
+				break;
+			case NavigationRequestType.Insert:
+				OnInsertRequested(e);
+				break;
+			case NavigationRequestType.Remove:
+				OnRemoveRequested(e);
+				break;
 		}
+	}
 
-		protected virtual void OnInsertRequested(NavigationRequestedEventArgs e)
+	protected virtual async void OnPopRequested(NavigationRequestedEventArgs e)
+	{
+		var page = e.Page;
+
+		_popCompletionTask = new TaskCompletionSource<bool>();
+		e.Task = _popCompletionTask.Task;
+
+		PopViewController(e.Animated);
+
+		await _popCompletionTask.Task;
+
+		DisposePage(page);
+	}
+
+	public override UIViewController[] PopToRootViewController(bool animated)
+	{
+		StackManager?.ClearPendingViewControllers();
+		if (!_ignorePopCall && ActiveViewControllers().Length > 1)
 		{
-			var page = e.Page;
-			var before = e.BeforePage;
-
-			var beforeRenderer = (IPlatformViewHandler)before.Handler;
-			var renderer = (IPlatformViewHandler)page.ToHandler(_shellSection.FindMauiContext());
-
-			var tracker = _context.CreatePageRendererTracker();
-			tracker.ViewController = renderer.ViewController;
-			tracker.Page = page;
-
-			_trackers[page] = tracker;
-
-			var index = ActiveViewControllers().ToList().IndexOf(beforeRenderer.ViewController);
-			StackManager?.InsertViewController(index, renderer.ViewController);
+			ProcessPopToRoot();
 		}
+		return base.PopToRootViewController(animated);
+	}
 
-		protected virtual void OnNavigationRequested(object sender, NavigationRequestedEventArgs e)
+	async void ProcessPopToRoot()
+	{
+		var task = new TaskCompletionSource<bool>();
+		var pages = _shellSection.Stack.ToList();
+		_completionTasks[_renderer.ViewController] = task;
+		((IShellSectionController)ShellSection).SendPoppingToRoot(task.Task);
+		await task.Task;
+
+		for (int i = pages.Count - 1; i >= 1; i--)
 		{
-			switch (e.RequestType)
-			{
-				case NavigationRequestType.Push:
-					OnPushRequested(e);
-					break;
-				case NavigationRequestType.Pop:
-					OnPopRequested(e);
-					break;
-				case NavigationRequestType.PopToRoot:
-					OnPopToRootRequested(e);
-					break;
-				case NavigationRequestType.Insert:
-					OnInsertRequested(e);
-					break;
-				case NavigationRequestType.Remove:
-					OnRemoveRequested(e);
-					break;
-			}
-		}
-
-		protected virtual async void OnPopRequested(NavigationRequestedEventArgs e)
-		{
-			var page = e.Page;
-
-			_popCompletionTask = new TaskCompletionSource<bool>();
-			e.Task = _popCompletionTask.Task;
-
-			PopViewController(e.Animated);
-
-			await _popCompletionTask.Task;
-
+			var page = pages[i];
 			DisposePage(page);
 		}
+	}
 
-		public override UIViewController[] PopToRootViewController(bool animated)
-		{
-			StackManager?.ClearPendingViewControllers();
-			if (!_ignorePopCall && ActiveViewControllers().Length > 1)
-			{
-				ProcessPopToRoot();
-			}
-			return base.PopToRootViewController(animated);
-		}
+	protected virtual async void OnPopToRootRequested(NavigationRequestedEventArgs e)
+	{
+		var animated = e.Animated;
+		var task = new TaskCompletionSource<bool>();
+		var pages = _shellSection.Stack.ToList();
 
-		async void ProcessPopToRoot()
+		try
 		{
-			var task = new TaskCompletionSource<bool>();
-			var pages = _shellSection.Stack.ToList();
+			_ignorePopCall = true;
 			_completionTasks[_renderer.ViewController] = task;
-			((IShellSectionController)ShellSection).SendPoppingToRoot(task.Task);
-			await task.Task;
+			e.Task = task.Task;
+			PopToRootViewController(animated);
+		}
+		finally
+		{
+			_ignorePopCall = false;
+		}
 
-			for (int i = pages.Count - 1; i >= 1; i--)
+		await e.Task;
+
+		for (int i = pages.Count - 1; i >= 1; i--)
+		{
+			var page = pages[i];
+			DisposePage(page);
+		}
+	}
+
+	protected virtual void OnPushRequested(NavigationRequestedEventArgs e)
+	{
+		var page = e.Page;
+		var animated = e.Animated;
+
+		var taskSource = new TaskCompletionSource<bool>();
+		PushPage(page, animated, taskSource);
+		e.Task = taskSource.Task;
+	}
+
+	protected virtual void OnRemoveRequested(NavigationRequestedEventArgs e)
+	{
+		var page = e.Page;
+
+		var renderer = (IPlatformViewHandler)page.Handler;
+		var viewController = renderer?.ViewController;
+
+		if (viewController is null && _trackers.ContainsKey(page))
+		{
+			viewController = _trackers[page].ViewController;
+		}
+
+		if (viewController is not null)
+		{
+			if (viewController == TopViewController)
 			{
-				var page = pages[i];
-				DisposePage(page);
+				e.Animated = false;
+				OnPopRequested(e);
+			}
+
+			StackManager?.RemoveViewController(viewController);
+			DisposePage(page);
+		}
+	}
+
+	protected virtual void OnShellSectionSet()
+	{
+		_appearanceTracker = _context.CreateNavBarAppearanceTracker();
+		UpdateTabBarItem();
+		((IShellController)_context.Shell).AddAppearanceObserver(this, ShellSection);
+		((IShellSectionController)ShellSection).AddDisplayedPageObserver(this, OnDisplayedPageChanged);
+	}
+
+	protected virtual void UpdateTabBarItem()
+	{
+		Title = ShellSection.Title;
+
+		ShellSection.Icon.LoadImage(ShellSection.FindMauiContext(), icon =>
+		{
+			var image = TabbedViewExtensions.AutoResizeTabBarImage(TraitCollection, icon?.Value);
+			TabBarItem = new UITabBarItem(ShellSection.Title, image, null);
+			TabBarItem.AccessibilityIdentifier = ShellSection.AutomationId ?? ShellSection.Title;
+		});
+	}
+
+	void DisposePage(Page page, bool calledFromDispose = false)
+	{
+		if (_trackers.TryGetValue(page, out var tracker))
+		{
+			if (!calledFromDispose && tracker.ViewController is not null && ActiveViewControllers().Contains(tracker.ViewController))
+			{
+				System.Diagnostics.Debug.Write($"Disposing {_trackers[page].ViewController.GetHashCode()}");
+				StackManager?.RemoveViewController(_trackers[page].ViewController);
+			}
+
+			tracker.Dispose();
+			_trackers.Remove(page);
+		}
+
+		page?.DisconnectHandlers();
+	}
+
+	Element ElementForViewController(UIViewController viewController)
+	{
+		if (_renderer.ViewController == viewController)
+		{
+			return ShellSection;
+		}
+
+		foreach (var child in ShellSection.Stack)
+		{
+			if (child?.Handler is IPlatformViewHandler handler && viewController == handler.ViewController)
+			{
+				return child;
 			}
 		}
 
-		protected virtual async void OnPopToRootRequested(NavigationRequestedEventArgs e)
+		return null;
+	}
+
+	void OnDisplayedPagePropertyChanged(object sender, PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName == Shell.NavBarIsVisibleProperty.PropertyName)
 		{
-			var animated = e.Animated;
-			var task = new TaskCompletionSource<bool>();
-			var pages = _shellSection.Stack.ToList();
+			UpdateNavigationBarHidden();
+		}
+		else if (e.PropertyName == Shell.NavBarHasShadowProperty.PropertyName)
+		{
+			UpdateNavigationBarHasShadow();
+		}
+	}
 
-			try
-			{
-				_ignorePopCall = true;
-				_completionTasks[_renderer.ViewController] = task;
-				e.Task = task.Task;
-				PopToRootViewController(animated);
-			}
-			finally
-			{
-				_ignorePopCall = false;
-			}
+	void OnNavigating(object sender, ShellNavigatingEventArgs e)
+	{
+		StackManager?.ClearPendingViewControllers();
+	}
 
-			await e.Task;
+	void OnNavigated(object sender, ShellNavigatedEventArgs e)
+	{
+		StackManager?.ClearPendingViewControllers();
+	}
 
-			for (int i = pages.Count - 1; i >= 1; i--)
+	public override UIViewController[] ViewControllers
+	{
+		get => base.ViewControllers;
+		set
+		{
+			// Update StackManager's pending state tracking
+			if (StackManager is not null)
 			{
-				var page = pages[i];
-				DisposePage(page);
+				// Just sync the pending state, don't call SetViewControllers since we'll call base
+				StackManager.ClearPendingViewControllers();
 			}
+			base.ViewControllers = value;
+		}
+	}
+
+	public override UIViewController[] PopToViewController(UIViewController viewController, bool animated)
+	{
+		StackManager?.ClearPendingViewControllers();
+		return base.PopToViewController(viewController, animated);
+	}
+
+	public override void PushViewController(UIViewController viewController, bool animated)
+	{
+		// Clear pending state since we're doing a real push
+		StackManager?.ClearPendingViewControllers();
+
+		if (IsInMoreTab && ParentViewController is UITabBarController tabBarController)
+		{
+			tabBarController.MoreNavigationController.PushViewController(viewController, animated);
+		}
+		else
+		{
+			base.PushViewController(viewController, animated);
+		}
+	}
+
+	public override UIViewController PopViewController(bool animated)
+	{
+		// Clear pending state since we're doing a real pop
+		StackManager?.ClearPendingViewControllers();
+
+		UIViewController result;
+		if (IsInMoreTab && ParentViewController is UITabBarController tabBarController)
+		{
+			result = tabBarController.MoreNavigationController.PopViewController(animated);
+		}
+		else
+		{
+			result = base.PopViewController(animated);
+		}
+		return result;
+	}
+
+	void PushPage(Page page, bool animated, TaskCompletionSource<bool> completionSource = null)
+	{
+		var renderer = (IPlatformViewHandler)page.ToHandler(_shellSection.FindMauiContext());
+
+		var tracker = _context.CreatePageRendererTracker();
+		var pageViewController = renderer.ViewController;
+		tracker.ViewController = pageViewController;
+		tracker.Page = page;
+
+		_trackers[page] = tracker;
+
+		var parentTabBar = ParentViewController as UITabBarController;
+		var showsPresentation = parentTabBar is null || ReferenceEquals(parentTabBar.SelectedViewController, this);
+
+		if (completionSource is not null && showsPresentation)
+		{
+			_completionTasks[pageViewController] = completionSource;
 		}
 
-		protected virtual void OnPushRequested(NavigationRequestedEventArgs e)
-		{
-			var page = e.Page;
-			var animated = e.Animated;
+		PushViewController(pageViewController, animated);
 
-			var taskSource = new TaskCompletionSource<bool>();
-			PushPage(page, animated, taskSource);
-			e.Task = taskSource.Task;
+		if (completionSource is not null && !showsPresentation)
+		{
+			completionSource.TrySetResult(true);
+		}
+	}
+
+	async void SendPoppedOnCompletion(Task popTask)
+	{
+		if (popTask is null)
+		{
+			throw new ArgumentNullException(nameof(popTask));
 		}
 
-		protected virtual void OnRemoveRequested(NavigationRequestedEventArgs e)
+		var poppedPage = _shellSection.Stack[_shellSection.Stack.Count - 1];
+		((IShellSectionController)_shellSection).SendPopping(popTask);
+		await popTask;
+
+		DisposePage(poppedPage);
+	}
+
+	bool ShouldPop()
+	{
+		var shellItem = _context.Shell.CurrentItem;
+		var shellSection = shellItem?.CurrentItem;
+		var shellContent = shellSection?.CurrentItem;
+		var stack = shellSection?.Stack.ToList();
+
+		stack?.RemoveAt(stack.Count - 1);
+
+		return ((IShellController)_context.Shell).ProposeNavigation(ShellNavigationSource.Pop, shellItem, shellSection, shellContent, stack, true);
+	}
+
+	void UpdateNavigationBarHidden()
+	{
+		SetNavigationBarHidden(!Shell.GetNavBarIsVisible(_displayedPage), Shell.GetNavBarVisibilityAnimationEnabled(_displayedPage));
+	}
+
+	void UpdateNavigationBarHasShadow()
+	{
+		_appearanceTracker.SetHasShadow(this, Shell.GetNavBarHasShadow(_displayedPage));
+	}
+
+	void UpdateShadowImages()
+	{
+		NavigationBar.SetValueForKey(NSObject.FromObject(true), new NSString("hidesShadow"));
+	}
+
+	class GestureDelegate : UIGestureRecognizerDelegate
+	{
+		readonly ShellSectionStackNavigationManager _parent;
+		readonly Func<bool> _shouldPop;
+
+		public GestureDelegate(ShellSectionStackNavigationManager parent, Func<bool> shouldPop)
 		{
-			var page = e.Page;
-
-			var renderer = (IPlatformViewHandler)page.Handler;
-			var viewController = renderer?.ViewController;
-
-			if (viewController is null && _trackers.ContainsKey(page))
-			{
-				viewController = _trackers[page].ViewController;
-			}
-
-			if (viewController is not null)
-			{
-				if (viewController == TopViewController)
-				{
-					e.Animated = false;
-					OnPopRequested(e);
-				}
-
-				StackManager?.RemoveViewController(viewController);
-				DisposePage(page);
-			}
+			_parent = parent;
+			_shouldPop = shouldPop;
 		}
 
-		protected virtual void OnShellSectionSet()
+		public override bool ShouldBegin(UIGestureRecognizer recognizer)
 		{
-			_appearanceTracker = _context.CreateNavBarAppearanceTracker();
-			UpdateTabBarItem();
-			((IShellController)_context.Shell).AddAppearanceObserver(this, ShellSection);
-			((IShellSectionController)ShellSection).AddDisplayedPageObserver(this, OnDisplayedPageChanged);
-		}
-
-		protected virtual void UpdateTabBarItem()
-		{
-			Title = ShellSection.Title;
-
-			ShellSection.Icon.LoadImage(ShellSection.FindMauiContext(), icon =>
+			if (_parent.ActiveViewControllers().Length == 1)
 			{
-				var image = TabbedViewExtensions.AutoResizeTabBarImage(TraitCollection, icon?.Value);
-				TabBarItem = new UITabBarItem(ShellSection.Title, image, null);
-				TabBarItem.AccessibilityIdentifier = ShellSection.AutomationId ?? ShellSection.Title;
-			});
-		}
-
-		void DisposePage(Page page, bool calledFromDispose = false)
-		{
-			if (_trackers.TryGetValue(page, out var tracker))
-			{
-				if (!calledFromDispose && tracker.ViewController is not null && ActiveViewControllers().Contains(tracker.ViewController))
-				{
-					System.Diagnostics.Debug.Write($"Disposing {_trackers[page].ViewController.GetHashCode()}");
-					StackManager?.RemoveViewController(_trackers[page].ViewController);
-				}
-
-				tracker.Dispose();
-				_trackers.Remove(page);
+				return false;
 			}
 
-			page?.DisconnectHandlers();
+			return _shouldPop();
 		}
+	}
 
-		Element ElementForViewController(UIViewController viewController)
+	class NavDelegate : UINavigationControllerDelegate
+	{
+		readonly ShellSectionStackNavigationManager _self;
+
+		public NavDelegate(ShellSectionStackNavigationManager renderer) => _self = renderer;
+
+		[Export("navigationController:animationControllerForOperation:fromViewController:toViewController:")]
+		[Foundation.Preserve(Conditional = true)]
+		public new IUIViewControllerAnimatedTransitioning GetAnimationControllerForOperation(
+			UINavigationController navigationController,
+			UINavigationControllerOperation operation,
+			UIViewController fromViewController,
+			UIViewController toViewController)
 		{
-			if (_renderer.ViewController == viewController)
-			{
-				return ShellSection;
-			}
-
-			foreach (var child in ShellSection.Stack)
-			{
-				if (child?.Handler is IPlatformViewHandler handler && viewController == handler.ViewController)
-				{
-					return child;
-				}
-			}
-
 			return null;
 		}
 
-		void OnDisplayedPagePropertyChanged(object sender, PropertyChangedEventArgs e)
+		public override void DidShowViewController(UINavigationController navigationController, [Transient] UIViewController viewController, bool animated)
 		{
-			if (e.PropertyName == Shell.NavBarIsVisibleProperty.PropertyName)
+			(navigationController.NavigationBar as MauiNavigationBar)?.RefreshIfNeeded();
+
+			var tasks = _self._completionTasks;
+			var popTask = _self._popCompletionTask;
+
+			if (tasks.TryGetValue(viewController, out var source))
 			{
-				UpdateNavigationBarHidden();
-			}
-			else if (e.PropertyName == Shell.NavBarHasShadowProperty.PropertyName)
-			{
-				UpdateNavigationBarHasShadow();
-			}
-		}
-
-		void OnNavigating(object sender, ShellNavigatingEventArgs e)
-		{
-			StackManager?.ClearPendingViewControllers();
-		}
-
-		void OnNavigated(object sender, ShellNavigatedEventArgs e)
-		{
-			StackManager?.ClearPendingViewControllers();
-		}
-
-		public override UIViewController[] ViewControllers
-		{
-			get => base.ViewControllers;
-			set
-			{
-				// Update StackManager's pending state tracking
-				if (StackManager is not null)
-				{
-					// Just sync the pending state, don't call SetViewControllers since we'll call base
-					StackManager.ClearPendingViewControllers();
-				}
-				base.ViewControllers = value;
-			}
-		}
-
-		public override UIViewController[] PopToViewController(UIViewController viewController, bool animated)
-		{
-			StackManager?.ClearPendingViewControllers();
-			return base.PopToViewController(viewController, animated);
-		}
-
-		public override void PushViewController(UIViewController viewController, bool animated)
-		{
-			// Clear pending state since we're doing a real push
-			StackManager?.ClearPendingViewControllers();
-
-			if (IsInMoreTab && ParentViewController is UITabBarController tabBarController)
-			{
-				tabBarController.MoreNavigationController.PushViewController(viewController, animated);
+				source.TrySetResult(true);
+				tasks.Remove(viewController);
 			}
 			else
 			{
-				base.PushViewController(viewController, animated);
+				popTask?.TrySetResult(true);
 			}
 		}
 
-		public override UIViewController PopViewController(bool animated)
+		public override void WillShowViewController(UINavigationController navigationController, [Transient] UIViewController viewController, bool animated)
 		{
-			// Clear pending state since we're doing a real pop
-			StackManager?.ClearPendingViewControllers();
+			var element = _self.ElementForViewController(viewController);
 
-			UIViewController result;
-			if (IsInMoreTab && ParentViewController is UITabBarController tabBarController)
+			bool navBarVisible = false;
+
+			if (element is not null)
 			{
-				result = tabBarController.MoreNavigationController.PopViewController(animated);
-			}
-			else
-			{
-				result = base.PopViewController(animated);
-			}
-			return result;
-		}
-
-		void PushPage(Page page, bool animated, TaskCompletionSource<bool> completionSource = null)
-		{
-			var renderer = (IPlatformViewHandler)page.ToHandler(_shellSection.FindMauiContext());
-
-			var tracker = _context.CreatePageRendererTracker();
-			var pageViewController = renderer.ViewController;
-			tracker.ViewController = pageViewController;
-			tracker.Page = page;
-
-			_trackers[page] = tracker;
-
-			var parentTabBar = ParentViewController as UITabBarController;
-			var showsPresentation = parentTabBar is null || ReferenceEquals(parentTabBar.SelectedViewController, this);
-
-			if (completionSource is not null && showsPresentation)
-			{
-				_completionTasks[pageViewController] = completionSource;
-			}
-
-			PushViewController(pageViewController, animated);
-
-			if (completionSource is not null && !showsPresentation)
-			{
-				completionSource.TrySetResult(true);
-			}
-		}
-
-		async void SendPoppedOnCompletion(Task popTask)
-		{
-			if (popTask is null)
-			{
-				throw new ArgumentNullException(nameof(popTask));
-			}
-
-			var poppedPage = _shellSection.Stack[_shellSection.Stack.Count - 1];
-			((IShellSectionController)_shellSection).SendPopping(popTask);
-			await popTask;
-
-			DisposePage(poppedPage);
-		}
-
-		bool ShouldPop()
-		{
-			var shellItem = _context.Shell.CurrentItem;
-			var shellSection = shellItem?.CurrentItem;
-			var shellContent = shellSection?.CurrentItem;
-			var stack = shellSection?.Stack.ToList();
-
-			stack?.RemoveAt(stack.Count - 1);
-
-			return ((IShellController)_context.Shell).ProposeNavigation(ShellNavigationSource.Pop, shellItem, shellSection, shellContent, stack, true);
-		}
-
-		void UpdateNavigationBarHidden()
-		{
-			SetNavigationBarHidden(!Shell.GetNavBarIsVisible(_displayedPage), Shell.GetNavBarVisibilityAnimationEnabled(_displayedPage));
-		}
-
-		void UpdateNavigationBarHasShadow()
-		{
-			_appearanceTracker.SetHasShadow(this, Shell.GetNavBarHasShadow(_displayedPage));
-		}
-
-		void UpdateShadowImages()
-		{
-			NavigationBar.SetValueForKey(NSObject.FromObject(true), new NSString("hidesShadow"));
-		}
-
-		class GestureDelegate : UIGestureRecognizerDelegate
-		{
-			readonly ShellSectionStackNavigationManager _parent;
-			readonly Func<bool> _shouldPop;
-
-			public GestureDelegate(ShellSectionStackNavigationManager parent, Func<bool> shouldPop)
-			{
-				_parent = parent;
-				_shouldPop = shouldPop;
-			}
-
-			public override bool ShouldBegin(UIGestureRecognizer recognizer)
-			{
-				if (_parent.ActiveViewControllers().Length == 1)
+				if (element is ShellSection)
 				{
-					return false;
-				}
-
-				return _shouldPop();
-			}
-		}
-
-		class NavDelegate : UINavigationControllerDelegate
-		{
-			readonly ShellSectionStackNavigationManager _self;
-
-			public NavDelegate(ShellSectionStackNavigationManager renderer) => _self = renderer;
-
-			[Export("navigationController:animationControllerForOperation:fromViewController:toViewController:")]
-			[Foundation.Preserve(Conditional = true)]
-			public new IUIViewControllerAnimatedTransitioning GetAnimationControllerForOperation(
-				UINavigationController navigationController,
-				UINavigationControllerOperation operation,
-				UIViewController fromViewController,
-				UIViewController toViewController)
-			{
-				return null;
-			}
-
-			public override void DidShowViewController(UINavigationController navigationController, [Transient] UIViewController viewController, bool animated)
-			{
-				(navigationController.NavigationBar as MauiNavigationBar)?.RefreshIfNeeded();
-
-				var tasks = _self._completionTasks;
-				var popTask = _self._popCompletionTask;
-
-				if (tasks.TryGetValue(viewController, out var source))
-				{
-					source.TrySetResult(true);
-					tasks.Remove(viewController);
+					navBarVisible = _self._renderer.ShowNavBar;
 				}
 				else
 				{
-					popTask?.TrySetResult(true);
+					navBarVisible = Shell.GetNavBarIsVisible(element);
 				}
+
+				bool animateVisibilityChange = animated && Shell.GetNavBarVisibilityAnimationEnabled(element);
+				navigationController.SetNavigationBarHidden(!navBarVisible, animateVisibilityChange);
 			}
 
-			public override void WillShowViewController(UINavigationController navigationController, [Transient] UIViewController viewController, bool animated)
+			var coordinator = viewController.GetTransitionCoordinator();
+			if (coordinator is not null && coordinator.IsInteractive)
 			{
-				var element = _self.ElementForViewController(viewController);
-
-				bool navBarVisible = false;
-
-				if (element is not null)
-				{
-					if (element is ShellSection)
-					{
-						navBarVisible = _self._renderer.ShowNavBar;
-					}
-					else
-					{
-						navBarVisible = Shell.GetNavBarIsVisible(element);
-					}
-
-					bool animateVisibilityChange = animated && Shell.GetNavBarVisibilityAnimationEnabled(element);
-					navigationController.SetNavigationBarHidden(!navBarVisible, animateVisibilityChange);
-				}
-
-				var coordinator = viewController.GetTransitionCoordinator();
-				if (coordinator is not null && coordinator.IsInteractive)
-				{
-					coordinator.NotifyWhenInteractionChanges(OnInteractionChanged);
-				}
-
-				var currentPage = _self._context?.Shell?.GetCurrentShellPage();
-				var trackers = _self._trackers;
-				if (currentPage?.Handler is IPlatformViewHandler pvh &&
-					pvh.ViewController == viewController &&
-					trackers.TryGetValue(currentPage, out var tracker) &&
-					tracker is ShellPageRendererTracker shellRendererTracker)
-				{
-					shellRendererTracker.UpdateToolbarItemsInternal(false);
-					if (OperatingSystem.IsIOSVersionAtLeast(26) || OperatingSystem.IsMacCatalystVersionAtLeast(26))
-					{
-						shellRendererTracker.UpdateTitleViewInternal();
-					}
-				}
+				coordinator.NotifyWhenInteractionChanges(OnInteractionChanged);
 			}
 
-			void OnInteractionChanged(IUIViewControllerTransitionCoordinatorContext context)
+			var currentPage = _self._context?.Shell?.GetCurrentShellPage();
+			var trackers = _self._trackers;
+			if (currentPage?.Handler is IPlatformViewHandler pvh &&
+				pvh.ViewController == viewController &&
+				trackers.TryGetValue(currentPage, out var tracker) &&
+				tracker is ShellPageRendererTracker shellRendererTracker)
 			{
-				if (!context.IsCancelled)
+				shellRendererTracker.UpdateToolbarItemsInternal(false);
+				if (OperatingSystem.IsIOSVersionAtLeast(26) || OperatingSystem.IsMacCatalystVersionAtLeast(26))
 				{
-					_self._popCompletionTask = new TaskCompletionSource<bool>();
-					_self.SendPoppedOnCompletion(_self._popCompletionTask.Task);
+					shellRendererTracker.UpdateTitleViewInternal();
 				}
+			}
+		}
+
+		void OnInteractionChanged(IUIViewControllerTransitionCoordinatorContext context)
+		{
+			if (!context.IsCancelled)
+			{
+				_self._popCompletionTask = new TaskCompletionSource<bool>();
+				_self.SendPoppedOnCompletion(_self._popCompletionTask.Task);
 			}
 		}
 	}
