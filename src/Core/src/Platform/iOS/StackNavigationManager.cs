@@ -1,5 +1,8 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Foundation;
@@ -20,6 +23,10 @@ namespace Microsoft.Maui.Platform
 		Action? _pendingNavigationFinished;
 		TaskCompletionSource<bool>? _currentNavigationTask;
 
+		// Pending view controllers - handles iOS timing issue where ViewControllers property
+		// doesn't update immediately after SetViewControllers is called
+		UIViewController[]? _pendingViewControllers;
+
 		internal IStackNavigation? NavigationView { get; private set; }
 
 		/// <summary>
@@ -35,14 +42,12 @@ namespace Microsoft.Maui.Platform
 		/// <summary>
 		/// Gets the current page being displayed.
 		/// </summary>
-		public IView CurrentPage
-			=> _currentPage ?? throw new InvalidOperationException("CurrentPage cannot be null");
+		public IView? CurrentPage => _currentPage;
 
 		/// <summary>
 		/// Gets the underlying UINavigationController.
 		/// </summary>
-		public UINavigationController NavigationController =>
-			_navigationController ?? throw new InvalidOperationException("NavigationController is null");
+		public UINavigationController? NavigationController => _navigationController;
 
 		/// <summary>
 		/// Gets a value indicating whether navigation is in progress.
@@ -55,34 +60,43 @@ namespace Microsoft.Maui.Platform
 		/// <param name="mauiContext">The MauiContext to use for view creation.</param>
 		public StackNavigationManager(IMauiContext mauiContext)
 		{
+			Debug.WriteLine($"ShellUnification: StackNavigationManager constructor called");
 			_mauiContext = mauiContext;
 		}
 
 		/// <summary>
 		/// Connects this manager to a navigation view and UINavigationController.
 		/// </summary>
-		/// <param name="navigationView">The cross-platform navigation view.</param>
+		/// <param name="navigationView">The cross-platform navigation view. Can be null for Shell which handles navigation differently.</param>
 		/// <param name="navigationController">The iOS UINavigationController to manage.</param>
-		public virtual void Connect(IStackNavigation navigationView, UINavigationController navigationController)
+		public virtual void Connect(IStackNavigation? navigationView, UINavigationController navigationController)
 		{
+			Debug.WriteLine($"ShellUnification: StackNavigationManager.Connect() called");
+			Debug.WriteLine($"ShellUnification:   navigationView: {navigationView?.GetType().Name ?? "NULL"}");
+			Debug.WriteLine($"ShellUnification:   navigationController: {navigationController?.GetType().Name} ({navigationController?.GetHashCode()})");
+			
 			if (_navigationController != null)
 			{
-				Disconnect(navigationView, navigationController);
+				Debug.WriteLine($"ShellUnification:   Already connected, disconnecting first");
+				Disconnect(navigationView, _navigationController);
 			}
 
 			_navigationController = navigationController;
 			NavigationView = navigationView;
 
+			Debug.WriteLine($"ShellUnification:   Connected. NavigationController.ViewControllers count: {_navigationController?.ViewControllers?.Length ?? 0}");
+			
 			FirePendingNavigationFinished();
 		}
 
 		/// <summary>
 		/// Disconnects this manager from the navigation controller.
 		/// </summary>
-		/// <param name="navigationView">The cross-platform navigation view.</param>
+		/// <param name="navigationView">The cross-platform navigation view. Can be null for Shell.</param>
 		/// <param name="navigationController">The iOS UINavigationController.</param>
-		public virtual void Disconnect(IStackNavigation navigationView, UINavigationController navigationController)
+		public virtual void Disconnect(IStackNavigation? navigationView, UINavigationController navigationController)
 		{
+			Debug.WriteLine($"ShellUnification: StackNavigationManager.Disconnect() called");
 			FirePendingNavigationFinished();
 
 			_navigationController = null;
@@ -90,27 +104,35 @@ namespace Microsoft.Maui.Platform
 		}
 
 		/// <summary>
-		/// Processes a navigation request.
+		/// Processes a navigation request (used by NavigationPage handler).
 		/// </summary>
 		/// <param name="args">The navigation request containing the new stack.</param>
 		public virtual void NavigateTo(NavigationRequest args)
 		{
+			Debug.WriteLine($"ShellUnification: StackNavigationManager.NavigateTo() called");
+			Debug.WriteLine($"ShellUnification:   NavigationStack in request: {args.NavigationStack?.Count ?? 0} items");
+			Debug.WriteLine($"ShellUnification:   Animated: {args.Animated}");
+			
 			if (_navigationController is null)
 			{
+				Debug.WriteLine($"ShellUnification:   ERROR - NavigationController is null!");
 				throw new InvalidOperationException("NavigationController is not connected.");
 			}
 
-			var newPageStack = new List<IView>(args.NavigationStack);
+			var newPageStack = new List<IView>(args.NavigationStack ?? Array.Empty<IView>());
 			var previousNavigationStack = NavigationStack;
 			var previousNavigationStackCount = previousNavigationStack.Count;
 			bool initialNavigation = NavigationStack.Count == 0;
 
+			Debug.WriteLine($"ShellUnification:   Previous stack count: {previousNavigationStackCount}, Initial navigation: {initialNavigation}");
+			
 			// If the current page hasn't changed, just sync the stack
 			if (!initialNavigation &&
 				newPageStack.Count > 0 &&
 				previousNavigationStackCount > 0 &&
 				newPageStack[newPageStack.Count - 1] == previousNavigationStack[previousNavigationStackCount - 1])
 			{
+				Debug.WriteLine($"ShellUnification:   Same top page, just syncing back stack");
 				SyncBackStackToNavigationStack(newPageStack);
 				NavigationStack = newPageStack;
 				FireNavigationFinished();
@@ -118,44 +140,181 @@ namespace Microsoft.Maui.Platform
 			}
 
 			_currentPage = newPageStack.Count > 0 ? newPageStack[newPageStack.Count - 1] : null;
+			Debug.WriteLine($"ShellUnification:   Current page: {_currentPage?.GetType().Name ?? "NULL"}");
 
 			if (_currentPage is null)
 			{
+				Debug.WriteLine($"ShellUnification:   ERROR - Current page is null!");
 				throw new InvalidOperationException("Navigation Request Contains Null Elements");
 			}
 
 			NavigationStack = newPageStack;
 
-			if (previousNavigationStackCount < args.NavigationStack.Count)
+			if (previousNavigationStackCount < args.NavigationStack!.Count)
 			{
-				// Push operation
+				Debug.WriteLine($"ShellUnification:   PUSH operation - calling PushPage");
 				PushPage(_currentPage, args.Animated);
 			}
 			else if (previousNavigationStackCount == args.NavigationStack.Count)
 			{
-				// Replace operation
+				Debug.WriteLine($"ShellUnification:   REPLACE operation - calling ReplacePage");
 				ReplacePage(_currentPage, args.Animated);
 			}
 			else
 			{
-				// Pop operation
+				Debug.WriteLine($"ShellUnification:   POP operation - calling PopToPage");
 				PopToPage(_currentPage, args.Animated, newPageStack.Count);
 			}
 		}
+
+		#region View Controller Stack Management (Shared by Shell and NavigationPage)
+
+		/// <summary>
+		/// Gets the currently active view controllers, accounting for pending changes.
+		/// </summary>
+		public UIViewController[] GetActiveViewControllers()
+			=> _pendingViewControllers ?? _navigationController?.ViewControllers ?? Array.Empty<UIViewController>();
+
+		/// <summary>
+		/// Clears pending view controllers. Should be called when navigation starts.
+		/// </summary>
+		public void ClearPendingViewControllers()
+			=> _pendingViewControllers = null;
+
+		/// <summary>
+		/// Pushes a view controller onto the navigation stack.
+		/// </summary>
+		/// <param name="viewController">The view controller to push.</param>
+		/// <param name="animated">Whether to animate the transition.</param>
+		/// <param name="isInMoreTab">Whether the navigation controller is in UITabBarController's More tab.</param>
+		/// <param name="parentTabBarController">The parent tab bar controller, if any.</param>
+		public virtual void PushViewController(UIViewController viewController, bool animated, bool isInMoreTab = false, UITabBarController? parentTabBarController = null)
+		{
+			_pendingViewControllers = null;
+			if (isInMoreTab && parentTabBarController != null)
+			{
+				parentTabBarController.MoreNavigationController.PushViewController(viewController, animated);
+			}
+			else
+			{
+				_navigationController?.PushViewController(viewController, animated);
+			}
+		}
+
+		/// <summary>
+		/// Pops the top view controller from the navigation stack.
+		/// </summary>
+		/// <param name="animated">Whether to animate the transition.</param>
+		/// <param name="isInMoreTab">Whether the navigation controller is in UITabBarController's More tab.</param>
+		/// <param name="parentTabBarController">The parent tab bar controller, if any.</param>
+		/// <returns>The view controller that was popped.</returns>
+		public virtual UIViewController? PopViewController(bool animated, bool isInMoreTab = false, UITabBarController? parentTabBarController = null)
+		{
+			_pendingViewControllers = null;
+			if (isInMoreTab && parentTabBarController != null)
+			{
+				return parentTabBarController.MoreNavigationController.PopViewController(animated);
+			}
+			return _navigationController?.PopViewController(animated);
+		}
+
+		/// <summary>
+		/// Pops to the root view controller.
+		/// </summary>
+		/// <param name="animated">Whether to animate the transition.</param>
+		/// <returns>The view controllers that were popped.</returns>
+		public virtual UIViewController[]? PopToRootViewController(bool animated)
+		{
+			_pendingViewControllers = null;
+			return _navigationController?.PopToRootViewController(animated);
+		}
+
+		/// <summary>
+		/// Pops to a specific view controller.
+		/// </summary>
+		/// <param name="viewController">The view controller to pop to.</param>
+		/// <param name="animated">Whether to animate the transition.</param>
+		/// <returns>The view controllers that were popped.</returns>
+		public virtual UIViewController[]? PopToViewController(UIViewController viewController, bool animated)
+		{
+			_pendingViewControllers = null;
+			return _navigationController?.PopToViewController(viewController, animated);
+		}
+
+		/// <summary>
+		/// Sets the view controllers array directly.
+		/// </summary>
+		/// <param name="viewControllers">The new view controllers array.</param>
+		/// <param name="animated">Whether to animate the transition.</param>
+		public virtual void SetViewControllers(UIViewController[] viewControllers, bool animated = false)
+		{
+			if (_pendingViewControllers != null)
+				_pendingViewControllers = viewControllers;
+
+			_navigationController?.SetViewControllers(viewControllers, animated);
+		}
+
+		/// <summary>
+		/// Removes a view controller from the navigation stack.
+		/// </summary>
+		/// <param name="viewController">The view controller to remove.</param>
+		public virtual void RemoveViewController(UIViewController viewController)
+		{
+			_pendingViewControllers = _pendingViewControllers ?? _navigationController?.ViewControllers;
+			if (_pendingViewControllers != null && _pendingViewControllers.Contains(viewController))
+			{
+				_pendingViewControllers = _pendingViewControllers.Where(vc => vc != viewController).ToArray();
+			}
+			SetViewControllers(_pendingViewControllers ?? Array.Empty<UIViewController>(), false);
+		}
+
+		/// <summary>
+		/// Inserts a view controller at the specified index.
+		/// </summary>
+		/// <param name="index">The index to insert at.</param>
+		/// <param name="viewController">The view controller to insert.</param>
+		public virtual void InsertViewController(int index, UIViewController viewController)
+		{
+			Debug.WriteLine($"ShellUnification: InsertViewController at index {index}");
+			_pendingViewControllers = _pendingViewControllers ?? _navigationController?.ViewControllers;
+			if (_pendingViewControllers != null)
+			{
+				var list = _pendingViewControllers.ToList();
+				list.Insert(index, viewController);
+				_pendingViewControllers = list.ToArray();
+			}
+			else
+			{
+				_pendingViewControllers = new[] { viewController };
+			}
+			SetViewControllers(_pendingViewControllers, false);
+		}
+
+		#endregion
 
 		/// <summary>
 		/// Pushes a new page onto the navigation stack.
 		/// </summary>
 		protected virtual void PushPage(IView page, bool animated)
 		{
-			var viewController = CreateViewControllerForPage(page);
+			Debug.WriteLine($"ShellUnification: PushPage called - page: {page?.GetType().Name}, animated: {animated}");
+			
+			var viewController = CreateViewControllerForPage(page!);
+			Debug.WriteLine($"ShellUnification:   Created ViewController: {viewController?.GetType().Name} ({viewController?.GetHashCode()})");
+			Debug.WriteLine($"ShellUnification:   ViewController.View: {viewController?.View?.GetType().Name}, Frame: {viewController?.View?.Frame}");
 
 			if (animated)
 			{
 				_currentNavigationTask = new TaskCompletionSource<bool>();
 			}
 
-			_navigationController!.PushViewController(viewController, animated);
+			Debug.WriteLine($"ShellUnification:   Calling PushViewController, NavigationController: {_navigationController?.GetHashCode()}");
+			Debug.WriteLine($"ShellUnification:   NavigationController.ViewControllers BEFORE push: {_navigationController?.ViewControllers?.Length ?? 0}");
+			
+			PushViewController(viewController!, animated);
+			
+			Debug.WriteLine($"ShellUnification:   NavigationController.ViewControllers AFTER push: {_navigationController?.ViewControllers?.Length ?? 0}");
+			Debug.WriteLine($"ShellUnification:   NavigationController.TopViewController: {_navigationController?.TopViewController?.GetType().Name}");
 
 			if (animated)
 			{
@@ -163,6 +322,7 @@ namespace Microsoft.Maui.Platform
 				CoreAnimation.CATransaction.Begin();
 				CoreAnimation.CATransaction.CompletionBlock = () =>
 				{
+					Debug.WriteLine($"ShellUnification:   Push animation completed");
 					_currentNavigationTask?.TrySetResult(true);
 					_currentNavigationTask = null;
 					FireNavigationFinished();
@@ -171,6 +331,7 @@ namespace Microsoft.Maui.Platform
 			}
 			else
 			{
+				Debug.WriteLine($"ShellUnification:   No animation, calling FireNavigationFinished");
 				FireNavigationFinished();
 			}
 		}
@@ -180,12 +341,17 @@ namespace Microsoft.Maui.Platform
 		/// </summary>
 		protected virtual void ReplacePage(IView page, bool animated)
 		{
-			var viewController = CreateViewControllerForPage(page);
-			var viewControllers = _navigationController!.ViewControllers;
+			Debug.WriteLine($"ShellUnification: ReplacePage called - page: {page?.GetType().Name}, animated: {animated}");
+			
+			var viewController = CreateViewControllerForPage(page!);
+			var viewControllers = GetActiveViewControllers();
 
-			if (viewControllers is null || viewControllers.Length == 0)
+			Debug.WriteLine($"ShellUnification:   Current ViewControllers count: {viewControllers.Length}");
+
+			if (viewControllers.Length == 0)
 			{
-				_navigationController.SetViewControllers(new[] { viewController }, animated);
+				Debug.WriteLine($"ShellUnification:   No existing VCs, setting single VC");
+				SetViewControllers(new[] { viewController }, animated);
 				FireNavigationFinished();
 				return;
 			}
@@ -195,12 +361,14 @@ namespace Microsoft.Maui.Platform
 			Array.Copy(viewControllers, newStack, viewControllers.Length - 1);
 			newStack[newStack.Length - 1] = viewController;
 
+			Debug.WriteLine($"ShellUnification:   Replacing top VC, new stack count: {newStack.Length}");
+
 			if (animated)
 			{
 				_currentNavigationTask = new TaskCompletionSource<bool>();
 			}
 
-			_navigationController.SetViewControllers(newStack, animated);
+			SetViewControllers(newStack, animated);
 
 			if (animated)
 			{
@@ -224,9 +392,9 @@ namespace Microsoft.Maui.Platform
 		/// </summary>
 		protected virtual void PopToPage(IView page, bool animated, int targetStackCount)
 		{
-			var viewControllers = _navigationController!.ViewControllers;
+			var viewControllers = GetActiveViewControllers();
 
-			if (viewControllers is null || viewControllers.Length == 0)
+			if (viewControllers.Length == 0)
 			{
 				FireNavigationFinished();
 				return;
@@ -240,16 +408,16 @@ namespace Microsoft.Maui.Platform
 			// If we're popping to root or a specific index
 			if (targetStackCount == 1)
 			{
-				_navigationController.PopToRootViewController(animated);
+				PopToRootViewController(animated);
 			}
 			else if (targetStackCount < viewControllers.Length)
 			{
 				var targetViewController = viewControllers[targetStackCount - 1];
-				_navigationController.PopToViewController(targetViewController, animated);
+				PopToViewController(targetViewController, animated);
 			}
 			else
 			{
-				_navigationController.PopViewController(animated);
+				PopViewController(animated);
 			}
 
 			if (animated)
@@ -272,15 +440,21 @@ namespace Microsoft.Maui.Platform
 		/// <summary>
 		/// Creates a view controller for the given page.
 		/// </summary>
-		protected virtual UIViewController CreateViewControllerForPage(IView page)
+		public virtual UIViewController CreateViewControllerForPage(IView page)
 		{
-			var platformPage = page.ToPlatform(MauiContext);
+			Debug.WriteLine($"ShellUnification: CreateViewControllerForPage called - page: {page?.GetType().Name}");
+			
+			_ = page!.ToPlatform(MauiContext);
+			Debug.WriteLine($"ShellUnification:   Called ToPlatform, Handler: {page!.Handler?.GetType().Name}");
 
 			if (page.Handler is IPlatformViewHandler handler && handler.ViewController is not null)
 			{
+				Debug.WriteLine($"ShellUnification:   Using handler's ViewController: {handler.ViewController.GetType().Name}");
+				Debug.WriteLine($"ShellUnification:   ViewController.View: {handler.ViewController.View?.GetType().Name}, Frame: {handler.ViewController.View?.Frame}");
 				return handler.ViewController;
 			}
 
+			Debug.WriteLine($"ShellUnification:   Creating ContainerViewController as fallback");
 			// Create a container view controller if needed
 			var containerController = new ContainerViewController
 			{
@@ -288,6 +462,7 @@ namespace Microsoft.Maui.Platform
 				CurrentView = (IElement)page
 			};
 
+			Debug.WriteLine($"ShellUnification:   ContainerViewController created: {containerController.GetHashCode()}");
 			return containerController;
 		}
 
@@ -296,10 +471,7 @@ namespace Microsoft.Maui.Platform
 		/// </summary>
 		protected virtual void SyncBackStackToNavigationStack(IReadOnlyList<IView> pageStack)
 		{
-			var viewControllers = _navigationController?.ViewControllers;
-			if (viewControllers is null)
-				return;
-
+			var viewControllers = GetActiveViewControllers();
 			var nativeStackCount = viewControllers.Length;
 
 			// If counts already match, nothing to do
@@ -323,7 +495,7 @@ namespace Microsoft.Maui.Platform
 				}
 			}
 
-			_navigationController?.SetViewControllers(newViewControllers.ToArray(), false);
+			SetViewControllers(newViewControllers.ToArray(), false);
 		}
 
 		/// <summary>

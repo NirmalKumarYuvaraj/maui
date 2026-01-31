@@ -9,6 +9,7 @@ using Foundation;
 using Microsoft.Maui.Controls.Handlers.Compatibility;
 using Microsoft.Maui.Controls.Internals;
 using Microsoft.Maui.Controls.Platform.Compatibility;
+using Microsoft.Maui.Platform;
 using ObjCRuntime;
 using UIKit;
 
@@ -61,6 +62,9 @@ namespace Microsoft.Maui.Controls.Platform
 		readonly Dictionary<Element, IShellPageRendererTracker> _trackers = new Dictionary<Element, IShellPageRendererTracker>();
 		readonly Dictionary<UIViewController, TaskCompletionSource<bool>> _completionTasks = new Dictionary<UIViewController, TaskCompletionSource<bool>>();
 
+		// The unified navigation manager that handles VC stack operations
+		StackNavigationManager _stackManager;
+
 		IShellNavBarAppearanceTracker _appearanceTracker;
 		Page _displayedPage;
 		bool _disposed;
@@ -69,7 +73,6 @@ namespace Microsoft.Maui.Controls.Platform
 		IShellSectionRootRenderer _renderer;
 		ShellSection _shellSection;
 		bool _ignorePopCall;
-		UIViewController[] _pendingViewControllers;
 
 		public ShellSectionStackNavigationManager(IShellContext context) : base(typeof(MauiNavigationBar), null)
 		{
@@ -89,6 +92,33 @@ namespace Microsoft.Maui.Controls.Platform
 			_context.Shell.Navigated += OnNavigated;
 			_context.Shell.Navigating += OnNavigating;
 		}
+
+		/// <summary>
+		/// Gets or lazily creates the unified StackNavigationManager.
+		/// </summary>
+		StackNavigationManager StackManager
+		{
+			get
+			{
+				if (_stackManager == null && _shellSection != null)
+				{
+					var mauiContext = _shellSection.FindMauiContext();
+					if (mauiContext != null)
+					{
+						_stackManager = new StackNavigationManager(mauiContext);
+						// Connect the manager to THIS UINavigationController (Shell IS the nav controller)
+						// Pass null for navigationView since Shell handles navigation events differently
+						_stackManager.Connect(null, this);
+					}
+				}
+				return _stackManager;
+			}
+		}
+
+		/// <summary>
+		/// Gets the currently active view controllers, using the unified manager.
+		/// </summary>
+		UIViewController[] ActiveViewControllers() => StackManager?.GetActiveViewControllers() ?? base.ViewControllers ?? Array.Empty<UIViewController>();
 
 		[Export("navigationBar:shouldPopItem:")]
 		[Internals.Preserve(Conditional = true)]
@@ -252,6 +282,9 @@ namespace Microsoft.Maui.Controls.Platform
 				_appearanceTracker.Dispose();
 				(this as IDisconnectable).Disconnect();
 
+				// Disconnect StackManager before disposing pages
+				_stackManager?.Disconnect(null, this);
+
 				foreach (var tracker in ShellSection.Stack)
 				{
 					if (tracker == null)
@@ -265,6 +298,7 @@ namespace Microsoft.Maui.Controls.Platform
 			_shellSection = null;
 			_appearanceTracker = null;
 			_renderer = null;
+			_stackManager = null;
 
 			base.Dispose(disposing);
 		}
@@ -331,7 +365,8 @@ namespace Microsoft.Maui.Controls.Platform
 
 			_trackers[page] = tracker;
 
-			InsertViewController(ActiveViewControllers().IndexOf(beforeRenderer.ViewController), renderer.ViewController);
+			var index = ActiveViewControllers().ToList().IndexOf(beforeRenderer.ViewController);
+			StackManager?.InsertViewController(index, renderer.ViewController);
 		}
 
 		protected virtual void OnNavigationRequested(object sender, NavigationRequestedEventArgs e)
@@ -372,6 +407,7 @@ namespace Microsoft.Maui.Controls.Platform
 
 		public override UIViewController[] PopToRootViewController(bool animated)
 		{
+			StackManager?.ClearPendingViewControllers();
 			if (!_ignorePopCall && ActiveViewControllers().Length > 1)
 			{
 				ProcessPopToRoot();
@@ -449,7 +485,7 @@ namespace Microsoft.Maui.Controls.Platform
 					OnPopRequested(e);
 				}
 
-				RemoveViewController(viewController);
+				StackManager?.RemoveViewController(viewController);
 				DisposePage(page);
 			}
 		}
@@ -481,7 +517,7 @@ namespace Microsoft.Maui.Controls.Platform
 				if (!calledFromDispose && tracker.ViewController != null && ActiveViewControllers().Contains(tracker.ViewController))
 				{
 					System.Diagnostics.Debug.Write($"Disposing {_trackers[page].ViewController.GetHashCode()}");
-					RemoveViewController(_trackers[page].ViewController);
+					StackManager?.RemoveViewController(_trackers[page].ViewController);
 				}
 
 				tracker.Dispose();
@@ -513,30 +549,36 @@ namespace Microsoft.Maui.Controls.Platform
 				UpdateNavigationBarHasShadow();
 		}
 
-		void OnNavigating(object sender, ShellNavigatingEventArgs e) => _pendingViewControllers = null;
+		void OnNavigating(object sender, ShellNavigatingEventArgs e) => StackManager?.ClearPendingViewControllers();
 
-		void OnNavigated(object sender, ShellNavigatedEventArgs e) => _pendingViewControllers = null;
+		void OnNavigated(object sender, ShellNavigatedEventArgs e) => StackManager?.ClearPendingViewControllers();
 
 		public override UIViewController[] ViewControllers
 		{
 			get => base.ViewControllers;
 			set
 			{
-				if (_pendingViewControllers != null)
-					_pendingViewControllers = value;
+				// Update StackManager's pending state tracking
+				if (StackManager != null)
+				{
+					// Just sync the pending state, don't call SetViewControllers since we'll call base
+					StackManager.ClearPendingViewControllers();
+				}
 				base.ViewControllers = value;
 			}
 		}
 
 		public override UIViewController[] PopToViewController(UIViewController viewController, bool animated)
 		{
-			_pendingViewControllers = null;
+			StackManager?.ClearPendingViewControllers();
 			return base.PopToViewController(viewController, animated);
 		}
 
 		public override void PushViewController(UIViewController viewController, bool animated)
 		{
-			_pendingViewControllers = null;
+			// Clear pending state since we're doing a real push
+			StackManager?.ClearPendingViewControllers();
+			
 			if (IsInMoreTab && ParentViewController is UITabBarController tabBarController)
 			{
 				tabBarController.MoreNavigationController.PushViewController(viewController, animated);
@@ -549,29 +591,14 @@ namespace Microsoft.Maui.Controls.Platform
 
 		public override UIViewController PopViewController(bool animated)
 		{
-			_pendingViewControllers = null;
+			// Clear pending state since we're doing a real pop
+			StackManager?.ClearPendingViewControllers();
+			
 			if (IsInMoreTab && ParentViewController is UITabBarController tabBarController)
 			{
 				return tabBarController.MoreNavigationController.PopViewController(animated);
 			}
 			return base.PopViewController(animated);
-		}
-
-		UIViewController[] ActiveViewControllers() => _pendingViewControllers ?? base.ViewControllers;
-
-		void RemoveViewController(UIViewController viewController)
-		{
-			_pendingViewControllers = _pendingViewControllers ?? base.ViewControllers;
-			if (_pendingViewControllers.Contains(viewController))
-				_pendingViewControllers = _pendingViewControllers.Remove(viewController);
-			ViewControllers = _pendingViewControllers;
-		}
-
-		void InsertViewController(int index, UIViewController viewController)
-		{
-			_pendingViewControllers = _pendingViewControllers ?? base.ViewControllers;
-			_pendingViewControllers = _pendingViewControllers.Insert(index, viewController);
-			ViewControllers = _pendingViewControllers;
 		}
 
 		void PushPage(Page page, bool animated, TaskCompletionSource<bool> completionSource = null)
@@ -639,10 +666,10 @@ namespace Microsoft.Maui.Controls.Platform
 
 		class GestureDelegate : UIGestureRecognizerDelegate
 		{
-			readonly UINavigationController _parent;
+			readonly ShellSectionStackNavigationManager _parent;
 			readonly Func<bool> _shouldPop;
 
-			public GestureDelegate(UINavigationController parent, Func<bool> shouldPop)
+			public GestureDelegate(ShellSectionStackNavigationManager parent, Func<bool> shouldPop)
 			{
 				_parent = parent;
 				_shouldPop = shouldPop;
@@ -650,7 +677,7 @@ namespace Microsoft.Maui.Controls.Platform
 
 			public override bool ShouldBegin(UIGestureRecognizer recognizer)
 			{
-				if ((_parent as ShellSectionStackNavigationManager).ActiveViewControllers().Length == 1)
+				if (_parent.ActiveViewControllers().Length == 1)
 					return false;
 				return _shouldPop();
 			}
@@ -740,4 +767,3 @@ namespace Microsoft.Maui.Controls.Platform
 		}
 	}
 }
-
