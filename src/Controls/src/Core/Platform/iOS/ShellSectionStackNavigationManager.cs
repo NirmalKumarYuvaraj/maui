@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using CoreFoundation;
@@ -31,7 +32,10 @@ namespace Microsoft.Maui.Controls.Platform
 			set
 			{
 				if (_shellSection == value)
+				{
 					return;
+				}
+
 				_shellSection = value;
 				LoadPages();
 				OnShellSectionSet();
@@ -50,10 +54,15 @@ namespace Microsoft.Maui.Controls.Platform
 
 		void IAppearanceObserver.OnAppearanceChanged(ShellAppearance appearance)
 		{
-			if (appearance == null)
+
+			if (appearance is null)
+			{
 				_appearanceTracker.ResetAppearance(this);
+			}
 			else
+			{
 				_appearanceTracker.SetAppearance(this, appearance);
+			}
 		}
 
 		#endregion IAppearanceObserver
@@ -100,10 +109,10 @@ namespace Microsoft.Maui.Controls.Platform
 		{
 			get
 			{
-				if (_stackManager == null && _shellSection != null)
+				if (_stackManager is null && _shellSection is not null)
 				{
 					var mauiContext = _shellSection.FindMauiContext();
-					if (mauiContext != null)
+					if (mauiContext is not null)
 					{
 						_stackManager = new StackNavigationManager(mauiContext);
 						// Connect the manager to THIS UINavigationController (Shell IS the nav controller)
@@ -129,10 +138,14 @@ namespace Microsoft.Maui.Controls.Platform
 		bool DidPopItem(UINavigationBar _, UINavigationItem __)
 		{
 			if (_shellSection?.Stack is null || NavigationBar?.Items is null)
+			{
 				return true;
+			}
 
 			if (_shellSection.Stack.Count == NavigationBar.Items.Length)
+			{
 				return true;
+			}
 
 			return SendPop();
 		}
@@ -140,7 +153,9 @@ namespace Microsoft.Maui.Controls.Platform
 		internal bool SendPop()
 		{
 			if (ActiveViewControllers().Length < NavigationBar.Items.Length)
+			{
 				return true;
+			}
 
 			foreach (var tracker in _trackers)
 			{
@@ -150,7 +165,7 @@ namespace Microsoft.Maui.Controls.Platform
 					var command = behavior.GetPropertyIfSet<System.Windows.Input.ICommand>(BackButtonBehavior.CommandProperty, null);
 					var commandParameter = behavior.GetPropertyIfSet<object>(BackButtonBehavior.CommandParameterProperty, null);
 
-					if (command != null)
+					if (command is not null)
 					{
 						if (command.CanExecute(commandParameter))
 						{
@@ -173,7 +188,9 @@ namespace Microsoft.Maui.Controls.Platform
 					{
 						var child = NavigationBar.Subviews[i];
 						if (child.Alpha != 1)
+						{
 							UIView.Animate(.2f, () => child.Alpha = 1);
+						}
 					}
 				}
 			});
@@ -187,7 +204,9 @@ namespace Microsoft.Maui.Controls.Platform
 			_completionTasks.Clear();
 
 			foreach (var source in sourcesToComplete)
+			{
 				source.TrySetResult(false);
+			}
 
 			_popCompletionTask?.TrySetResult(false);
 			_popCompletionTask = null;
@@ -198,7 +217,9 @@ namespace Microsoft.Maui.Controls.Platform
 		public override void ViewWillAppear(bool animated)
 		{
 			if (_disposed)
+			{
 				return;
+			}
 
 			UpdateFlowDirection();
 			base.ViewWillAppear(animated);
@@ -213,7 +234,9 @@ namespace Microsoft.Maui.Controls.Platform
 		public override void ViewDidLayoutSubviews()
 		{
 			if (_disposed)
+			{
 				return;
+			}
 
 			base.ViewDidLayoutSubviews();
 
@@ -229,7 +252,9 @@ namespace Microsoft.Maui.Controls.Platform
 		public override void ViewDidLoad()
 		{
 			if (_disposed)
+			{
 				return;
+			}
 
 			base.ViewDidLoad();
 			InteractivePopGestureRecognizer.Delegate = new GestureDelegate(this, ShouldPop);
@@ -250,17 +275,19 @@ namespace Microsoft.Maui.Controls.Platform
 		{
 			(_renderer as IDisconnectable)?.Disconnect();
 
-			if (_displayedPage != null)
+			if (_displayedPage is not null)
+			{
 				_displayedPage.PropertyChanged -= OnDisplayedPagePropertyChanged;
+			}
 
-			if (_shellSection != null)
+			if (_shellSection is not null)
 			{
 				_shellSection.PropertyChanged -= HandlePropertyChanged;
 				((IShellSectionController)ShellSection).NavigationRequested -= OnNavigationRequested;
 				((IShellSectionController)ShellSection).RemoveDisplayedPageObserver(this);
 			}
 
-			if (_context.Shell != null)
+			if (_context.Shell is not null)
 			{
 				_context.Shell.PropertyChanged -= HandleShellPropertyChanged;
 				_context.Shell.Navigated -= OnNavigated;
@@ -272,7 +299,9 @@ namespace Microsoft.Maui.Controls.Platform
 		protected override void Dispose(bool disposing)
 		{
 			if (_disposed)
+			{
 				return;
+			}
 
 			if (disposing)
 			{
@@ -287,8 +316,11 @@ namespace Microsoft.Maui.Controls.Platform
 
 				foreach (var tracker in ShellSection.Stack)
 				{
-					if (tracker == null)
+					if (tracker is null)
+					{
 						continue;
+					}
+
 					DisposePage(tracker, true);
 				}
 			}
@@ -306,15 +338,21 @@ namespace Microsoft.Maui.Controls.Platform
 		protected virtual void HandleShellPropertyChanged(object sender, PropertyChangedEventArgs e)
 		{
 			if (e.Is(VisualElement.FlowDirectionProperty))
+			{
 				UpdateFlowDirection();
+			}
 		}
 
 		protected virtual void HandlePropertyChanged(object sender, PropertyChangedEventArgs e)
 		{
 			if (e.PropertyName == BaseShellItem.TitleProperty.PropertyName)
+			{
 				UpdateTabBarItem();
+			}
 			else if (e.PropertyName == BaseShellItem.IconProperty.PropertyName)
+			{
 				UpdateTabBarItem();
+			}
 		}
 
 		protected virtual IShellSectionRootRenderer CreateShellSectionRootRenderer(ShellSection shellSection, IShellContext shellContext)
@@ -337,14 +375,18 @@ namespace Microsoft.Maui.Controls.Platform
 		protected virtual void OnDisplayedPageChanged(Page page)
 		{
 			if (_displayedPage == page)
+			{
 				return;
+			}
 
-			if (_displayedPage != null)
+			if (_displayedPage is not null)
+			{
 				_displayedPage.PropertyChanged -= OnDisplayedPagePropertyChanged;
+			}
 
 			_displayedPage = page;
 
-			if (_displayedPage != null)
+			if (_displayedPage is not null)
 			{
 				_displayedPage.PropertyChanged += OnDisplayedPagePropertyChanged;
 				UpdateNavigationBarHasShadow();
@@ -474,10 +516,12 @@ namespace Microsoft.Maui.Controls.Platform
 			var renderer = (IPlatformViewHandler)page.Handler;
 			var viewController = renderer?.ViewController;
 
-			if (viewController == null && _trackers.ContainsKey(page))
+			if (viewController is null && _trackers.ContainsKey(page))
+			{
 				viewController = _trackers[page].ViewController;
+			}
 
-			if (viewController != null)
+			if (viewController is not null)
 			{
 				if (viewController == TopViewController)
 				{
@@ -514,7 +558,7 @@ namespace Microsoft.Maui.Controls.Platform
 		{
 			if (_trackers.TryGetValue(page, out var tracker))
 			{
-				if (!calledFromDispose && tracker.ViewController != null && ActiveViewControllers().Contains(tracker.ViewController))
+				if (!calledFromDispose && tracker.ViewController is not null && ActiveViewControllers().Contains(tracker.ViewController))
 				{
 					System.Diagnostics.Debug.Write($"Disposing {_trackers[page].ViewController.GetHashCode()}");
 					StackManager?.RemoveViewController(_trackers[page].ViewController);
@@ -530,12 +574,16 @@ namespace Microsoft.Maui.Controls.Platform
 		Element ElementForViewController(UIViewController viewController)
 		{
 			if (_renderer.ViewController == viewController)
+			{
 				return ShellSection;
+			}
 
 			foreach (var child in ShellSection.Stack)
 			{
 				if (child?.Handler is IPlatformViewHandler handler && viewController == handler.ViewController)
+				{
 					return child;
+				}
 			}
 
 			return null;
@@ -544,14 +592,24 @@ namespace Microsoft.Maui.Controls.Platform
 		void OnDisplayedPagePropertyChanged(object sender, PropertyChangedEventArgs e)
 		{
 			if (e.PropertyName == Shell.NavBarIsVisibleProperty.PropertyName)
+			{
 				UpdateNavigationBarHidden();
+			}
 			else if (e.PropertyName == Shell.NavBarHasShadowProperty.PropertyName)
+			{
 				UpdateNavigationBarHasShadow();
+			}
 		}
 
-		void OnNavigating(object sender, ShellNavigatingEventArgs e) => StackManager?.ClearPendingViewControllers();
+		void OnNavigating(object sender, ShellNavigatingEventArgs e)
+		{
+			StackManager?.ClearPendingViewControllers();
+		}
 
-		void OnNavigated(object sender, ShellNavigatedEventArgs e) => StackManager?.ClearPendingViewControllers();
+		void OnNavigated(object sender, ShellNavigatedEventArgs e)
+		{
+			StackManager?.ClearPendingViewControllers();
+		}
 
 		public override UIViewController[] ViewControllers
 		{
@@ -559,7 +617,7 @@ namespace Microsoft.Maui.Controls.Platform
 			set
 			{
 				// Update StackManager's pending state tracking
-				if (StackManager != null)
+				if (StackManager is not null)
 				{
 					// Just sync the pending state, don't call SetViewControllers since we'll call base
 					StackManager.ClearPendingViewControllers();
@@ -578,7 +636,7 @@ namespace Microsoft.Maui.Controls.Platform
 		{
 			// Clear pending state since we're doing a real push
 			StackManager?.ClearPendingViewControllers();
-			
+
 			if (IsInMoreTab && ParentViewController is UITabBarController tabBarController)
 			{
 				tabBarController.MoreNavigationController.PushViewController(viewController, animated);
@@ -593,12 +651,17 @@ namespace Microsoft.Maui.Controls.Platform
 		{
 			// Clear pending state since we're doing a real pop
 			StackManager?.ClearPendingViewControllers();
-			
+
+			UIViewController result;
 			if (IsInMoreTab && ParentViewController is UITabBarController tabBarController)
 			{
-				return tabBarController.MoreNavigationController.PopViewController(animated);
+				result = tabBarController.MoreNavigationController.PopViewController(animated);
 			}
-			return base.PopViewController(animated);
+			else
+			{
+				result = base.PopViewController(animated);
+			}
+			return result;
 		}
 
 		void PushPage(Page page, bool animated, TaskCompletionSource<bool> completionSource = null)
@@ -613,19 +676,24 @@ namespace Microsoft.Maui.Controls.Platform
 			_trackers[page] = tracker;
 
 			var parentTabBar = ParentViewController as UITabBarController;
-			var showsPresentation = parentTabBar == null || ReferenceEquals(parentTabBar.SelectedViewController, this);
-			if (completionSource != null && showsPresentation)
+			var showsPresentation = parentTabBar is null || ReferenceEquals(parentTabBar.SelectedViewController, this);
+
+			if (completionSource is not null && showsPresentation)
+			{
 				_completionTasks[pageViewController] = completionSource;
+			}
 
 			PushViewController(pageViewController, animated);
 
-			if (completionSource != null && !showsPresentation)
+			if (completionSource is not null && !showsPresentation)
+			{
 				completionSource.TrySetResult(true);
+			}
 		}
 
 		async void SendPoppedOnCompletion(Task popTask)
 		{
-			if (popTask == null)
+			if (popTask is null)
 			{
 				throw new ArgumentNullException(nameof(popTask));
 			}
@@ -678,7 +746,10 @@ namespace Microsoft.Maui.Controls.Platform
 			public override bool ShouldBegin(UIGestureRecognizer recognizer)
 			{
 				if (_parent.ActiveViewControllers().Length == 1)
+				{
 					return false;
+				}
+
 				return _shouldPop();
 			}
 		}
@@ -727,16 +798,20 @@ namespace Microsoft.Maui.Controls.Platform
 				if (element is not null)
 				{
 					if (element is ShellSection)
+					{
 						navBarVisible = _self._renderer.ShowNavBar;
+					}
 					else
+					{
 						navBarVisible = Shell.GetNavBarIsVisible(element);
+					}
 
 					bool animateVisibilityChange = animated && Shell.GetNavBarVisibilityAnimationEnabled(element);
 					navigationController.SetNavigationBarHidden(!navBarVisible, animateVisibilityChange);
 				}
 
 				var coordinator = viewController.GetTransitionCoordinator();
-				if (coordinator != null && coordinator.IsInteractive)
+				if (coordinator is not null && coordinator.IsInteractive)
 				{
 					coordinator.NotifyWhenInteractionChanges(OnInteractionChanged);
 				}

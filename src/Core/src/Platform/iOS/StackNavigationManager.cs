@@ -60,7 +60,6 @@ namespace Microsoft.Maui.Platform
 		/// <param name="mauiContext">The MauiContext to use for view creation.</param>
 		public StackNavigationManager(IMauiContext mauiContext)
 		{
-			Debug.WriteLine($"ShellUnification: StackNavigationManager constructor called");
 			_mauiContext = mauiContext;
 		}
 
@@ -71,21 +70,13 @@ namespace Microsoft.Maui.Platform
 		/// <param name="navigationController">The iOS UINavigationController to manage.</param>
 		public virtual void Connect(IStackNavigation? navigationView, UINavigationController navigationController)
 		{
-			Debug.WriteLine($"ShellUnification: StackNavigationManager.Connect() called");
-			Debug.WriteLine($"ShellUnification:   navigationView: {navigationView?.GetType().Name ?? "NULL"}");
-			Debug.WriteLine($"ShellUnification:   navigationController: {navigationController?.GetType().Name} ({navigationController?.GetHashCode()})");
-			
 			if (_navigationController != null)
 			{
-				Debug.WriteLine($"ShellUnification:   Already connected, disconnecting first");
 				Disconnect(navigationView, _navigationController);
 			}
 
 			_navigationController = navigationController;
 			NavigationView = navigationView;
-
-			Debug.WriteLine($"ShellUnification:   Connected. NavigationController.ViewControllers count: {_navigationController?.ViewControllers?.Length ?? 0}");
-			
 			FirePendingNavigationFinished();
 		}
 
@@ -96,7 +87,6 @@ namespace Microsoft.Maui.Platform
 		/// <param name="navigationController">The iOS UINavigationController.</param>
 		public virtual void Disconnect(IStackNavigation? navigationView, UINavigationController navigationController)
 		{
-			Debug.WriteLine($"ShellUnification: StackNavigationManager.Disconnect() called");
 			FirePendingNavigationFinished();
 
 			_navigationController = null;
@@ -109,13 +99,8 @@ namespace Microsoft.Maui.Platform
 		/// <param name="args">The navigation request containing the new stack.</param>
 		public virtual void NavigateTo(NavigationRequest args)
 		{
-			Debug.WriteLine($"ShellUnification: StackNavigationManager.NavigateTo() called");
-			Debug.WriteLine($"ShellUnification:   NavigationStack in request: {args.NavigationStack?.Count ?? 0} items");
-			Debug.WriteLine($"ShellUnification:   Animated: {args.Animated}");
-			
 			if (_navigationController is null)
 			{
-				Debug.WriteLine($"ShellUnification:   ERROR - NavigationController is null!");
 				throw new InvalidOperationException("NavigationController is not connected.");
 			}
 
@@ -124,15 +109,12 @@ namespace Microsoft.Maui.Platform
 			var previousNavigationStackCount = previousNavigationStack.Count;
 			bool initialNavigation = NavigationStack.Count == 0;
 
-			Debug.WriteLine($"ShellUnification:   Previous stack count: {previousNavigationStackCount}, Initial navigation: {initialNavigation}");
-			
 			// If the current page hasn't changed, just sync the stack
 			if (!initialNavigation &&
 				newPageStack.Count > 0 &&
 				previousNavigationStackCount > 0 &&
 				newPageStack[newPageStack.Count - 1] == previousNavigationStack[previousNavigationStackCount - 1])
 			{
-				Debug.WriteLine($"ShellUnification:   Same top page, just syncing back stack");
 				SyncBackStackToNavigationStack(newPageStack);
 				NavigationStack = newPageStack;
 				FireNavigationFinished();
@@ -140,11 +122,9 @@ namespace Microsoft.Maui.Platform
 			}
 
 			_currentPage = newPageStack.Count > 0 ? newPageStack[newPageStack.Count - 1] : null;
-			Debug.WriteLine($"ShellUnification:   Current page: {_currentPage?.GetType().Name ?? "NULL"}");
 
 			if (_currentPage is null)
 			{
-				Debug.WriteLine($"ShellUnification:   ERROR - Current page is null!");
 				throw new InvalidOperationException("Navigation Request Contains Null Elements");
 			}
 
@@ -152,17 +132,14 @@ namespace Microsoft.Maui.Platform
 
 			if (previousNavigationStackCount < args.NavigationStack!.Count)
 			{
-				Debug.WriteLine($"ShellUnification:   PUSH operation - calling PushPage");
 				PushPage(_currentPage, args.Animated);
 			}
 			else if (previousNavigationStackCount == args.NavigationStack.Count)
 			{
-				Debug.WriteLine($"ShellUnification:   REPLACE operation - calling ReplacePage");
 				ReplacePage(_currentPage, args.Animated);
 			}
 			else
 			{
-				Debug.WriteLine($"ShellUnification:   POP operation - calling PopToPage");
 				PopToPage(_currentPage, args.Animated, newPageStack.Count);
 			}
 		}
@@ -275,7 +252,6 @@ namespace Microsoft.Maui.Platform
 		/// <param name="viewController">The view controller to insert.</param>
 		public virtual void InsertViewController(int index, UIViewController viewController)
 		{
-			Debug.WriteLine($"ShellUnification: InsertViewController at index {index}");
 			_pendingViewControllers = _pendingViewControllers ?? _navigationController?.ViewControllers;
 			if (_pendingViewControllers != null)
 			{
@@ -297,24 +273,14 @@ namespace Microsoft.Maui.Platform
 		/// </summary>
 		protected virtual void PushPage(IView page, bool animated)
 		{
-			Debug.WriteLine($"ShellUnification: PushPage called - page: {page?.GetType().Name}, animated: {animated}");
-			
-			var viewController = CreateViewControllerForPage(page!);
-			Debug.WriteLine($"ShellUnification:   Created ViewController: {viewController?.GetType().Name} ({viewController?.GetHashCode()})");
-			Debug.WriteLine($"ShellUnification:   ViewController.View: {viewController?.View?.GetType().Name}, Frame: {viewController?.View?.Frame}");
 
+			var viewController = CreateViewControllerForPage(page!);
 			if (animated)
 			{
 				_currentNavigationTask = new TaskCompletionSource<bool>();
 			}
 
-			Debug.WriteLine($"ShellUnification:   Calling PushViewController, NavigationController: {_navigationController?.GetHashCode()}");
-			Debug.WriteLine($"ShellUnification:   NavigationController.ViewControllers BEFORE push: {_navigationController?.ViewControllers?.Length ?? 0}");
-			
 			PushViewController(viewController!, animated);
-			
-			Debug.WriteLine($"ShellUnification:   NavigationController.ViewControllers AFTER push: {_navigationController?.ViewControllers?.Length ?? 0}");
-			Debug.WriteLine($"ShellUnification:   NavigationController.TopViewController: {_navigationController?.TopViewController?.GetType().Name}");
 
 			if (animated)
 			{
@@ -322,7 +288,6 @@ namespace Microsoft.Maui.Platform
 				CoreAnimation.CATransaction.Begin();
 				CoreAnimation.CATransaction.CompletionBlock = () =>
 				{
-					Debug.WriteLine($"ShellUnification:   Push animation completed");
 					_currentNavigationTask?.TrySetResult(true);
 					_currentNavigationTask = null;
 					FireNavigationFinished();
@@ -331,7 +296,6 @@ namespace Microsoft.Maui.Platform
 			}
 			else
 			{
-				Debug.WriteLine($"ShellUnification:   No animation, calling FireNavigationFinished");
 				FireNavigationFinished();
 			}
 		}
@@ -341,16 +305,11 @@ namespace Microsoft.Maui.Platform
 		/// </summary>
 		protected virtual void ReplacePage(IView page, bool animated)
 		{
-			Debug.WriteLine($"ShellUnification: ReplacePage called - page: {page?.GetType().Name}, animated: {animated}");
-			
 			var viewController = CreateViewControllerForPage(page!);
 			var viewControllers = GetActiveViewControllers();
 
-			Debug.WriteLine($"ShellUnification:   Current ViewControllers count: {viewControllers.Length}");
-
 			if (viewControllers.Length == 0)
 			{
-				Debug.WriteLine($"ShellUnification:   No existing VCs, setting single VC");
 				SetViewControllers(new[] { viewController }, animated);
 				FireNavigationFinished();
 				return;
@@ -360,8 +319,6 @@ namespace Microsoft.Maui.Platform
 			var newStack = new UIViewController[viewControllers.Length];
 			Array.Copy(viewControllers, newStack, viewControllers.Length - 1);
 			newStack[newStack.Length - 1] = viewController;
-
-			Debug.WriteLine($"ShellUnification:   Replacing top VC, new stack count: {newStack.Length}");
 
 			if (animated)
 			{
@@ -442,19 +399,14 @@ namespace Microsoft.Maui.Platform
 		/// </summary>
 		public virtual UIViewController CreateViewControllerForPage(IView page)
 		{
-			Debug.WriteLine($"ShellUnification: CreateViewControllerForPage called - page: {page?.GetType().Name}");
-			
+
 			_ = page!.ToPlatform(MauiContext);
-			Debug.WriteLine($"ShellUnification:   Called ToPlatform, Handler: {page!.Handler?.GetType().Name}");
 
 			if (page.Handler is IPlatformViewHandler handler && handler.ViewController is not null)
 			{
-				Debug.WriteLine($"ShellUnification:   Using handler's ViewController: {handler.ViewController.GetType().Name}");
-				Debug.WriteLine($"ShellUnification:   ViewController.View: {handler.ViewController.View?.GetType().Name}, Frame: {handler.ViewController.View?.Frame}");
 				return handler.ViewController;
 			}
 
-			Debug.WriteLine($"ShellUnification:   Creating ContainerViewController as fallback");
 			// Create a container view controller if needed
 			var containerController = new ContainerViewController
 			{
@@ -462,7 +414,6 @@ namespace Microsoft.Maui.Platform
 				CurrentView = (IElement)page
 			};
 
-			Debug.WriteLine($"ShellUnification:   ContainerViewController created: {containerController.GetHashCode()}");
 			return containerController;
 		}
 
