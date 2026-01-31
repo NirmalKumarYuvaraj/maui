@@ -28,6 +28,7 @@ namespace Microsoft.Maui
 		const bool IsMeterSupportedByDefault = true;
 		const bool EnableAspireByDefault = true;
 		const bool IsMaterial3EnabledByDefault = false;
+		const bool UseUnifiedNavigationHandlerByDefault = false;
 
 #pragma warning disable IL4000 // Return value does not match FeatureGuardAttribute 'System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute'. 
 #if NET9_0_OR_GREATER
@@ -155,6 +156,24 @@ namespace Microsoft.Maui
 			AppContext.TryGetSwitch($"{FeatureSwitchPrefix}.{nameof(IsMaterial3Enabled)}", out bool isEnabled)
 				? isEnabled
 				: IsMaterial3EnabledByDefault;
+
+		/// <summary>
+		/// Gets a value indicating whether the unified NavigationHandler for iOS is enabled.
+		/// When enabled, both Shell and NavigationPage use the same navigation stack manager on iOS.
+		/// </summary>
+		/// <remarks>
+		/// This feature is disabled by default. To enable it, add the following to your app:
+		/// <code>
+		/// &lt;RuntimeHostConfigurationOption Include="Microsoft.Maui.RuntimeFeature.UseUnifiedNavigationHandler" Value="true" /&gt;
+		/// </code>
+		/// </remarks>
+#if NET10_0_OR_GREATER
+		[FeatureSwitchDefinition($"{FeatureSwitchPrefix}.{nameof(UseUnifiedNavigationHandler)}")]
+#endif
+		public static bool UseUnifiedNavigationHandler =>
+			AppContext.TryGetSwitch($"{FeatureSwitchPrefix}.{nameof(UseUnifiedNavigationHandler)}", out bool isEnabled)
+				? isEnabled
+				: UseUnifiedNavigationHandlerByDefault;
 
 #pragma warning restore IL4000
 	}

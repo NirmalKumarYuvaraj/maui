@@ -158,7 +158,15 @@ public static partial class AppHostBuilderExtensions
 #endif
 
 #if IOS || MACCATALYST
-		handlersCollection.AddHandler(typeof(NavigationPage), typeof(Handlers.Compatibility.NavigationRenderer));
+		// Use unified NavigationViewHandler when feature switch is enabled, otherwise use compatibility NavigationRenderer
+		if (RuntimeFeature.UseUnifiedNavigationHandler)
+		{
+			handlersCollection.AddHandler<NavigationPage, NavigationViewHandler>();
+		}
+		else
+		{
+			handlersCollection.AddHandler(typeof(NavigationPage), typeof(Handlers.Compatibility.NavigationRenderer));
+		}
 		handlersCollection.AddHandler(typeof(TabbedPage), typeof(Handlers.Compatibility.TabbedRenderer));
 		handlersCollection.AddHandler(typeof(FlyoutPage), typeof(Handlers.Compatibility.PhoneFlyoutPageRenderer));
 #endif

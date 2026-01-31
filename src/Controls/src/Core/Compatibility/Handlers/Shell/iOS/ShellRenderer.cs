@@ -193,6 +193,12 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 
 		protected virtual IShellSectionRenderer CreateShellSectionRenderer(ShellSection shellSection)
 		{
+			// Use unified navigation handler when feature switch is enabled
+			if (RuntimeFeature.UseUnifiedNavigationHandler)
+			{
+				return new Platform.ShellSectionStackNavigationManager(this);
+			}
+
 			return new ShellSectionRenderer(this);
 		}
 
