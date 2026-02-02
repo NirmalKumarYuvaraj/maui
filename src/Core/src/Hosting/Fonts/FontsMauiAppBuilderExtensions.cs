@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Hosting;
 using Microsoft.Maui.Hosting.Internal;
 
@@ -68,6 +69,9 @@ namespace Microsoft.Maui.Hosting
 
 			public void Initialize(IServiceProvider __)
 			{
+				// Set up the FontAliasResolver for Microsoft.Maui.Graphics to use
+				// This enables custom fonts registered via fonts.AddFont() to work in GraphicsView
+				FontAliasResolver.Resolver = _fontRegistrar.GetFont;
 				if (_fontsRegistrations != null)
 				{
 					var fontsBuilder = new FontCollection();

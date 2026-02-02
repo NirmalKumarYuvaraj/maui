@@ -1,4 +1,4 @@
-﻿using Microsoft.Graphics.Canvas.Text;
+using Microsoft.Graphics.Canvas.Text;
 using Windows.UI.Text;
 using System;
 #if NETFX_CORE
@@ -25,13 +25,20 @@ namespace Microsoft.Maui.Graphics.Platform
 			};
 
 		public static CanvasTextFormat ToCanvasTextFormat(this IFont font, float size)
-			=> new CanvasTextFormat
+		{
+			// Try to resolve font alias via FontAliasResolver (for MAUI registered fonts)
+			var fontFamily = font?.Name;
+			if (!string.IsNullOrEmpty(fontFamily))
+				fontFamily = FontAliasResolver.Resolve(fontFamily) ?? fontFamily;
+
+			return new CanvasTextFormat
 			{
-				FontFamily = font?.Name ?? FontFamily.XamlAutoFontFamily.Source,
+				FontFamily = fontFamily ?? FontFamily.XamlAutoFontFamily.Source,
 				FontSize = size,
 				// Ensure font weight stays within the valid range (1–999) to avoid runtime errors
 				FontWeight = new FontWeight { Weight = (ushort)Math.Clamp(font?.Weight ?? FontWeights.Regular, 1, 999) },
 				FontStyle = (font?.StyleType ?? FontStyleType.Normal).ToFontStyle()
 			};
+		}
 	}
 }
