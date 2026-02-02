@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Threading;
 
 namespace Microsoft.Maui.Graphics
 {
@@ -9,6 +10,8 @@ namespace Microsoft.Maui.Graphics
 	/// </summary>
 	internal static class FontAliasResolver
 	{
+		static Func<string, string?>? s_resolver;
+
 		/// <summary>
 		/// Gets or sets the function used to resolve font aliases.
 		/// When set, this function is called by Graphics FontExtensions to resolve
@@ -21,7 +24,11 @@ namespace Microsoft.Maui.Graphics
 		/// - On Windows: The full path with family name (e.g., "ms-appx:///Fonts/MyFont.ttf#MyFont")
 		/// - null if the font is not registered or cannot be resolved
 		/// </remarks>
-		public static Func<string, string?>? Resolver { get; set; }
+		public static Func<string, string?>? Resolver
+		{
+			get => Volatile.Read(ref s_resolver);
+			set => Volatile.Write(ref s_resolver, value);
+		}
 
 		/// <summary>
 		/// Tries to resolve a font alias to its actual font name or path.
@@ -30,13 +37,19 @@ namespace Microsoft.Maui.Graphics
 		/// <returns>The resolved font name/path, or null if not resolvable.</returns>
 		public static string? Resolve(string fontName)
 		{
+			var resolver = Resolver; // Single read for thread safety
+			if (resolver is null)
+			{
+				return null;
+			}
+
 			try
 			{
-				return Resolver?.Invoke(fontName);
+				return resolver(fontName);
 			}
-			catch
+			catch (Exception ex)
 			{
-				// Silently fail if resolution throws - fall back to original name
+				System.Diagnostics.Debug.WriteLine($"FontAliasResolver: Failed to resolve font '{fontName}': {ex.Message}");
 				return null;
 			}
 		}

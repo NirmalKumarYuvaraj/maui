@@ -6,13 +6,13 @@ namespace Microsoft.Maui.TestCases.Tests.Issues;
 
 public class Issue9252 : _IssuesUITest
 {
-	public override string Issue => "Custom fonts registered via AddFont cannot be used in GraphicsView DrawString";
+	public override string Issue => "Can't consume a custom font in GraphicsView";
 
 	public Issue9252(TestDevice device) : base(device) { }
 
 	[Test]
 	[Category(UITestCategories.GraphicsView)]
-	public void GraphicsViewDrawStringDisplaysText()
+	public void GraphicsViewWithCustomFont()
 	{
 		// Wait for the GraphicsView to be ready
 		App.WaitForElement("DescriptionLabel");

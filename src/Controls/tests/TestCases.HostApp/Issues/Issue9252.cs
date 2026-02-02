@@ -3,7 +3,7 @@ using Microsoft.Maui.Graphics;
 
 namespace Maui.Controls.Sample.Issues;
 
-[Issue(IssueTracker.Github, 9252, "Custom fonts registered via AddFont cannot be used in GraphicsView DrawString", PlatformAffected.All)]
+[Issue(IssueTracker.Github, 9252, "Can't consume a custom font in GraphicsView", PlatformAffected.All)]
 public class Issue9252 : ContentPage
 {
 	const string OpenSansFontFamily = "OpenSansRegular";
@@ -23,13 +23,13 @@ public class Issue9252 : ContentPage
 			Margin = new Thickness(10)
 		};
 
-		var dokdoLabel = CreateLabel(DokdoFontFamily);
+		var dokdoLabel = Issue9252.CreateLabel(DokdoFontFamily);
 		var dokdoGraphicsView = CreateGraphicsView(DokdoFontFamily);
 
-		var openSansLabel = CreateLabel(OpenSansFontFamily);
+		var openSansLabel = Issue9252.CreateLabel(OpenSansFontFamily);
 		var openSansGraphicsView = CreateGraphicsView(OpenSansFontFamily);
 
-		var montserratLabel = CreateLabel(MontserratFontFamily);
+		var montserratLabel = Issue9252.CreateLabel(MontserratFontFamily);
 		var montserratGraphicsView = CreateGraphicsView(MontserratFontFamily);
 
 		Content = new ScrollView
@@ -58,7 +58,7 @@ public class Issue9252 : ContentPage
 		};
 	}
 
-	Label CreateLabel(string fontFamily)
+	static Label CreateLabel(string fontFamily)
 	{
 		return new Label
 		{
@@ -69,7 +69,7 @@ public class Issue9252 : ContentPage
 		};
 	}
 
-	GraphicsView CreateGraphicsView(string fontFamily)
+	static GraphicsView CreateGraphicsView(string fontFamily)
 	{
 		return new GraphicsView
 		{
