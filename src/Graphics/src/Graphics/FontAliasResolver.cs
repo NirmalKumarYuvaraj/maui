@@ -7,7 +7,7 @@ namespace Microsoft.Maui.Graphics
 	/// Provides a way to resolve font aliases to their actual font names or paths.
 	/// This is used by MAUI to integrate registered fonts with the Graphics library.
 	/// </summary>
-	public static class FontAliasResolver
+	internal static class FontAliasResolver
 	{
 		/// <summary>
 		/// Gets or sets the function used to resolve font aliases.

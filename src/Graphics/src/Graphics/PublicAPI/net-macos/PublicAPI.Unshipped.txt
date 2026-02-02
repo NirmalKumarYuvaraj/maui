@@ -1,5 +1,1 @@
 #nullable enable
-Microsoft.Maui.Graphics.FontAliasResolver
-static Microsoft.Maui.Graphics.FontAliasResolver.Resolver.get -> System.Func<string!, string?>?
-static Microsoft.Maui.Graphics.FontAliasResolver.Resolver.set -> void
-static Microsoft.Maui.Graphics.FontAliasResolver.Resolve(string! fontName) -> string?
