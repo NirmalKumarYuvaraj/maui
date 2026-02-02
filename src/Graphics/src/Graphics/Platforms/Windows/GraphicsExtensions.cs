@@ -137,6 +137,7 @@ namespace Microsoft.Maui.Graphics.Platform
 				var arcClockwiseIndex = 0;
 				var figureOpen = false;
 				var segmentIndex = -1;
+				Vector2 figureStartPoint = default;
 
 				var lastOperation = PathOperation.Move;
 
@@ -153,7 +154,8 @@ namespace Microsoft.Maui.Graphics.Platform
 
 						var point = path[pointIndex++];
 						var begin = CanvasFigureFill.Default;
-						builder.BeginFigure(ox + point.X * fx, oy + point.Y * fy, begin);
+						figureStartPoint = new Vector2(ox + point.X * fx, oy + point.Y * fy);
+						builder.BeginFigure(figureStartPoint, begin);
 						figureOpen = true;
 					}
 					else if (type == PathOperation.Line)
@@ -214,7 +216,8 @@ namespace Microsoft.Maui.Graphics.Platform
 						if (!figureOpen)
 						{
 							var begin = CanvasFigureFill.Default;
-							builder.BeginFigure(startPoint.X, startPoint.Y, begin);
+							figureStartPoint = new Vector2(startPoint.X, startPoint.Y);
+							builder.BeginFigure(figureStartPoint, begin);
 							figureOpen = true;
 						}
 						else
@@ -233,7 +236,12 @@ namespace Microsoft.Maui.Graphics.Platform
 					}
 					else if (type == PathOperation.Close)
 					{
+						// Explicitly add a line back to the figure start point before closing.
+						// This works around a Win2D quirk where closed figures with minimal segments
+						// (e.g., MoveTo -> LineTo -> Close) may not render correctly.
+						builder.AddLine(figureStartPoint);
 						builder.EndFigure(CanvasFigureLoop.Closed);
+						figureOpen = false;
 					}
 
 					lastOperation = type;
