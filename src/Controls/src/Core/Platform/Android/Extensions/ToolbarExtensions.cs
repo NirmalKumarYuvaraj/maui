@@ -139,10 +139,11 @@ namespace Microsoft.Maui.Controls.Platform
 			}
 			else
 			{
+				// Clear tint mode to ensure the gradient drawable is rendered properly
+				// BackgroundTintMode from a previous solid color would override the drawable
+				nativeToolbar.BackgroundTintMode = null;
+				nativeToolbar.BackgroundTintList = null;
 				nativeToolbar.UpdateBackground(barBackground);
-
-				if (Brush.IsNullOrEmpty(barBackground))
-					nativeToolbar.BackgroundTintMode = null;
 			}
 		}
 
