@@ -21,18 +21,19 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 		public virtual void SetAppearance(AToolbar toolbar, IShellToolbarTracker toolbarTracker, ShellAppearance appearance)
 		{
 			var foreground = appearance.ForegroundColor;
-			var background = appearance.BackgroundColor;
+			var background = appearance.Background;
+			var backgroundColor = appearance.BackgroundColor;
 			var titleColor = appearance.TitleColor;
 
-			SetColors(toolbar, toolbarTracker, foreground, background, titleColor);
+			SetColors(toolbar, toolbarTracker, foreground, background, backgroundColor, titleColor);
 		}
 
 		public virtual void ResetAppearance(AToolbar toolbar, IShellToolbarTracker toolbarTracker)
 		{
-			SetColors(toolbar, toolbarTracker, ShellRenderer.DefaultForegroundColor, ShellRenderer.DefaultBackgroundColor, ShellRenderer.DefaultTitleColor);
+			SetColors(toolbar, toolbarTracker, ShellRenderer.DefaultForegroundColor, null, ShellRenderer.DefaultBackgroundColor, ShellRenderer.DefaultTitleColor);
 		}
 
-		protected virtual void SetColors(AToolbar toolbar, IShellToolbarTracker toolbarTracker, Color foreground, Color background, Color title)
+		protected virtual void SetColors(AToolbar toolbar, IShellToolbarTracker toolbarTracker, Color foreground, Brush background, Color backgroundColor, Color title)
 		{
 			if (_disposed)
 				return;
@@ -43,7 +44,17 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				return;
 
 			shellToolbar.BarTextColor = title ?? ShellRenderer.DefaultTitleColor;
-			shellToolbar.BarBackground = new SolidColorBrush(background ?? ShellRenderer.DefaultBackgroundColor);
+			
+			// Prioritize Brush over Color for background
+			if (!Brush.IsNullOrEmpty(background))
+			{
+				shellToolbar.BarBackground = background;
+			}
+			else
+			{
+				shellToolbar.BarBackground = new SolidColorBrush(backgroundColor ?? ShellRenderer.DefaultBackgroundColor);
+			}
+			
 			shellToolbar.IconColor = foreground ?? ShellRenderer.DefaultForegroundColor;
 			toolbarTracker.TintColor = foreground ?? ShellRenderer.DefaultForegroundColor;
 		}

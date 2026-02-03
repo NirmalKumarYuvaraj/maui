@@ -564,8 +564,11 @@ namespace Microsoft.Maui.Controls.Handlers
 			handler.UpdateCurrentItem();
 		}
 
+		ShellAppearance? _shellAppearance;
+
 		void IAppearanceObserver.OnAppearanceChanged(ShellAppearance appearance)
 		{
+			_shellAppearance = appearance;
 			if (appearance is IShellAppearanceElement a)
 			{
 				_shellAppearanceElement = a;
@@ -587,12 +590,22 @@ namespace Microsoft.Maui.Controls.Handlers
 			if (PlatformView is not MauiNavigationView mauiNavView)
 				return;
 
-			var backgroundColor = _shellAppearanceElement.EffectiveTabBarBackgroundColor?.AsPaint();
+			// Prioritize Brush over Color for background
+			Paint? backgroundPaint = null;
+			if (_shellAppearance is not null && !Brush.IsNullOrEmpty(_shellAppearance.Background))
+			{
+				backgroundPaint = _shellAppearance.Background;
+			}
+			else
+			{
+				backgroundPaint = _shellAppearanceElement.EffectiveTabBarBackgroundColor?.AsPaint();
+			}
+
 			var foregroundColor = _shellAppearanceElement.EffectiveTabBarForegroundColor?.AsPaint();
 			var unselectedColor = _shellAppearanceElement.EffectiveTabBarUnselectedColor?.AsPaint();
 			var titleColor = _shellAppearanceElement.EffectiveTabBarTitleColor?.AsPaint();
 
-			mauiNavView.UpdateTopNavAreaBackground(backgroundColor);
+			mauiNavView.UpdateTopNavAreaBackground(backgroundPaint);
 			mauiNavView.UpdateTopNavigationViewItemUnselectedColor(unselectedColor);
 			mauiNavView.UpdateTopNavigationViewItemTextSelectedColor(titleColor ?? foregroundColor);
 			mauiNavView.UpdateTopNavigationViewItemTextColor(unselectedColor);

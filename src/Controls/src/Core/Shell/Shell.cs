@@ -391,6 +391,15 @@ namespace Microsoft.Maui.Controls
 				propertyChanged: OnShellAppearanceValueChanged);
 
 		/// <summary>
+		/// Defines the background brush in the Shell chrome. 
+		/// The brush won't fill in behind the Shell content.
+		/// If set, this takes precedence over <see cref="BackgroundColorProperty"/>.
+		/// </summary>
+		public static readonly new BindableProperty BackgroundProperty =
+			BindableProperty.CreateAttached("Background", typeof(Brush), typeof(Shell), null,
+				propertyChanged: OnShellAppearanceValueChanged);
+
+		/// <summary>
 		/// Defines the color to shade text and icons that are disabled.
 		/// </summary>
 		public static readonly BindableProperty DisabledColorProperty =
@@ -488,6 +497,22 @@ namespace Microsoft.Maui.Controls
 		/// <param name="obj">The object to which the background color is set.</param>
 		/// <param name="value">The background color for the Shell chrome.</param>
 		public static void SetBackgroundColor(BindableObject obj, Color value) => obj.SetValue(BackgroundColorProperty, value);
+
+		/// <summary>
+		/// Gets the background brush in the Shell chrome. 
+		/// </summary>
+		/// <param name="obj">The object to which the background brush is set.</param>
+		/// <returns>The background brush from the Shell chrome.</returns>
+		public static Brush GetBackground(BindableObject obj) => (Brush)obj.GetValue(BackgroundProperty);
+
+		/// <summary>
+		/// Sets the background brush in the Shell chrome. 
+		/// The brush won't fill in behind the Shell content.
+		/// If set, this takes precedence over <see cref="BackgroundColorProperty"/>.
+		/// </summary>
+		/// <param name="obj">The object to which the background brush is set.</param>
+		/// <param name="value">The background brush for the Shell chrome.</param>
+		public static void SetBackground(BindableObject obj, Brush value) => obj.SetValue(BackgroundProperty, value);
 
 		/// <summary>
 		/// Gets the color to shade text and icons that are disabled.
@@ -738,7 +763,15 @@ namespace Microsoft.Maui.Controls
 			{
 				appearance = appearance ?? GetAppearanceForPivot(pivot);
 				Toolbar.BarTextColor = appearance?.TitleColor ?? DefaultTitleColor;
-				Toolbar.BarBackground = appearance?.BackgroundColor ?? DefaultBackgroundColor;
+				// Prioritize Background brush over BackgroundColor
+				if (appearance is not null && !Brush.IsNullOrEmpty(appearance.Background))
+				{
+					Toolbar.BarBackground = appearance.Background;
+				}
+				else
+				{
+					Toolbar.BarBackground = appearance?.BackgroundColor ?? DefaultBackgroundColor;
+				}
 				Toolbar.IconColor = appearance?.ForegroundColor ?? DefaultForegroundColor;
 			}
 		}
