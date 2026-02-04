@@ -63,6 +63,12 @@ namespace Microsoft.Maui.Controls.Xaml
 
 			if (XamlParser.s_xmlnsPrefixes == null)
 				XamlParser.GatherXmlnsDefinitionAndXmlnsPrefixAttributes(rootAssembly);
+			
+			// For runtime XAML loading via LoadFromXaml, always enable implicit xmlns
+			// This allows XAML strings to work without explicit xmlns declarations (fixes #16809)
+			// The allowImplicitXmlns check is still performed for backward compatibility but
+			// we default to true for runtime scenarios to improve usability
+			bool useImplicitXmlns = true;
 			if (!XamlParser.s_allowImplicitXmlns.TryGetValue(rootAssembly, out var allowImplicitXmlns))
 			{
 				allowImplicitXmlns = rootAssembly.CustomAttributes.Any(a =>
@@ -70,9 +76,17 @@ namespace Microsoft.Maui.Controls.Xaml
 					&& (a.ConstructorArguments.Count == 0 || a.ConstructorArguments[0].Value is bool b && b));
 				XamlParser.s_allowImplicitXmlns.Add(rootAssembly, allowImplicitXmlns);
 			}
+			// If the assembly explicitly disables implicit xmlns (AllowImplicitXmlnsDeclaration(false)), respect that
+			if (XamlParser.s_allowImplicitXmlns.TryGetValue(rootAssembly, out var explicitSetting) 
+				&& rootAssembly.CustomAttributes.Any(a => 
+					a.AttributeType.FullName == "Microsoft.Maui.Controls.Xaml.Internals.AllowImplicitXmlnsDeclarationAttribute"
+					&& a.ConstructorArguments.Count > 0 && a.ConstructorArguments[0].Value is bool b && !b))
+			{
+				useImplicitXmlns = false;
+			}
 
 			var nsmgr = new XmlNamespaceManager(new NameTable());
-			if (allowImplicitXmlns)
+			if (useImplicitXmlns)
 			{
 				nsmgr.AddNamespace("", XamlParser.DefaultImplicitUri);
 				foreach (var xmlnsPrefix in XamlParser.s_xmlnsPrefixes)
@@ -80,7 +94,7 @@ namespace Microsoft.Maui.Controls.Xaml
 			}
 			using (var textReader = new StringReader(xaml))
 			using (var reader = XmlReader.Create(textReader,
-										new XmlReaderSettings { ConformanceLevel = allowImplicitXmlns ? ConformanceLevel.Fragment : ConformanceLevel.Document },
+										new XmlReaderSettings { ConformanceLevel = useImplicitXmlns ? ConformanceLevel.Fragment : ConformanceLevel.Document },
 										new XmlParserContext(nsmgr.NameTable, nsmgr, null, XmlSpace.None)))
 			{
 				while (reader.Read())
