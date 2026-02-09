@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+    Shell Item Layout - Layout-based approach for Material 3 theming support
+    This layout is used by ShellItemRenderer to create the bottom navigation
+    container with proper theme attribute resolution instead of hardcoded colors.
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/shellitem_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <FrameLayout
+        android:id="@+id/shellitem_navigation_area"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/shellitem_bottomnavigation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style="?attr/bottomNavigationViewStyle" />
+
+</LinearLayout>

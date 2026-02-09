@@ -11,6 +11,7 @@
         <item name="colorAccent">@color/colorAccent</item>
         <item name="android:actionMenuTextColor">@color/colorActionMenuTextColor</item>
         <item name="appBarLayoutStyle">@style/MauiAppBarLayout</item>
+        <item name="shellTabLayoutStyle">@style/MauiShellTabLayout</item>
         <item name="bottomNavigationViewStyle">@style/Widget.Design.BottomNavigationView</item>
         <item name="materialButtonStyle">@style/MauiMaterialButton</item>
         <item name="checkboxStyle">@style/MauiCheckBox</item>
@@ -21,6 +22,15 @@
     <style name="MauiAppBarLayout" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
         <item name="android:background">?attr/colorPrimary</item>
     </style>
+
+    <!-- Shell TabLayout Style - uses theme attributes for proper theming -->
+    <style name="MauiShellTabLayout" parent="Widget.MaterialComponents.TabLayout">
+        <item name="android:background">?attr/colorPrimary</item>
+        <item name="tabTextColor">@android:color/white</item>
+        <item name="tabSelectedTextColor">@android:color/white</item>
+        <item name="tabIndicatorColor">@android:color/white</item>
+    </style>
+
     <style name="Maui.MainTheme" parent="Maui.MainTheme.Base">
       <!-- v35+ uses this to inject edge to edge opt out attribute value -->
     </style>

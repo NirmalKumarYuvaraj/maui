@@ -71,10 +71,11 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 		{
 			base.OnCreateView(inflater, container, savedInstanceState);
 
-			var context = MauiContext.Context;
-			_outerLayout = PlatformInterop.CreateNavigationBarOuterLayout(context);
-			_navigationArea = PlatformInterop.CreateNavigationBarArea(context, _outerLayout);
-			_bottomView = PlatformInterop.CreateNavigationBar(context, Resource.Attribute.bottomNavigationViewStyle, _outerLayout, this);
+			// Use layout-based approach for proper Material 3 theming support
+			_outerLayout = (LinearLayout)inflater.Inflate(Controls.Resource.Layout.shellitemlayout, container, false);
+			_navigationArea = _outerLayout.FindViewById<FrameLayout>(Controls.Resource.Id.shellitem_navigation_area);
+			_bottomView = _outerLayout.FindViewById<BottomNavigationView>(Controls.Resource.Id.shellitem_bottomnavigation);
+			_bottomView.SetOnItemSelectedListener(this);
 
 			if (ShellItem is null)
 				throw new InvalidOperationException("Active Shell Item not set. Have you added any Shell Items to your Shell?");

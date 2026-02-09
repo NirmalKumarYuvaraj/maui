@@ -29,7 +29,9 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 		public virtual void ResetAppearance(AToolbar toolbar, IShellToolbarTracker toolbarTracker)
 		{
-			SetColors(toolbar, toolbarTracker, ShellRenderer.DefaultForegroundColor, ShellRenderer.DefaultBackgroundColor, ShellRenderer.DefaultTitleColor);
+			// When resetting, clear explicit colors to let XML layout theme defaults apply
+			// This enables proper Material 3 theming via theme attributes defined in styles.xml
+			SetColors(toolbar, toolbarTracker, null, null, null);
 		}
 
 		protected virtual void SetColors(AToolbar toolbar, IShellToolbarTracker toolbarTracker, Color foreground, Color background, Color title)
@@ -42,10 +44,19 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			if (shellToolbar is null)
 				return;
 
-			shellToolbar.BarTextColor = title ?? ShellRenderer.DefaultTitleColor;
-			shellToolbar.BarBackground = new SolidColorBrush(background ?? ShellRenderer.DefaultBackgroundColor);
-			shellToolbar.IconColor = foreground ?? ShellRenderer.DefaultForegroundColor;
-			toolbarTracker.TintColor = foreground ?? ShellRenderer.DefaultForegroundColor;
+			// Only apply colors that are explicitly set by the user
+			// Null values allow XML layout theme attributes to take effect
+			if (title is not null)
+				shellToolbar.BarTextColor = title;
+			
+			if (background is not null)
+				shellToolbar.BarBackground = new SolidColorBrush(background);
+			
+			if (foreground is not null)
+			{
+				shellToolbar.IconColor = foreground;
+				toolbarTracker.TintColor = foreground;
+			}
 		}
 
 		#region IDisposable

@@ -3,6 +3,7 @@ using Android.Graphics.Drawables;
 using Google.Android.Material.Tabs;
 using Microsoft.Maui.Controls.Handlers.Compatibility;
 using Microsoft.Maui.Graphics;
+using AColor = Android.Graphics.Color;
 
 namespace Microsoft.Maui.Controls.Platform.Compatibility
 {
@@ -18,10 +19,9 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 		public virtual void ResetAppearance(TabLayout tabLayout)
 		{
-			SetColors(tabLayout, ShellRenderer.DefaultForegroundColor,
-				ShellRenderer.DefaultBackgroundColor,
-				ShellRenderer.DefaultTitleColor,
-				ShellRenderer.DefaultUnselectedColor);
+			// When resetting, clear explicit colors to let XML layout theme defaults apply
+			// This enables proper Material 3 theming via theme attributes defined in styles.xml
+			SetColors(tabLayout, null, null, null, null);
 		}
 
 		public virtual void SetAppearance(TabLayout tabLayout, ShellAppearance appearance)
@@ -36,12 +36,24 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 		protected virtual void SetColors(TabLayout tabLayout, Color foreground, Color background, Color title, Color unselected)
 		{
-			var titleArgb = title.ToPlatform(ShellRenderer.DefaultTitleColor).ToArgb();
-			var unselectedArgb = unselected.ToPlatform(ShellRenderer.DefaultUnselectedColor).ToArgb();
-
-			tabLayout.SetTabTextColors(unselectedArgb, titleArgb);
-			tabLayout.SetBackground(new ColorDrawable(background.ToPlatform(ShellRenderer.DefaultBackgroundColor)));
-			tabLayout.SetSelectedTabIndicatorColor(foreground.ToPlatform(ShellRenderer.DefaultForegroundColor));
+			// Only apply colors that are explicitly set by the user
+			// Null values allow XML layout theme attributes to take effect
+			if (title is not null || unselected is not null)
+			{
+				int titleArgb = title?.ToPlatform().ToArgb() ?? tabLayout.TabTextColors?.DefaultColor ?? AColor.White.ToArgb();
+				int unselectedArgb = unselected?.ToPlatform().ToArgb() ?? tabLayout.TabTextColors?.DefaultColor ?? AColor.White.ToArgb();
+				tabLayout.SetTabTextColors(unselectedArgb, titleArgb);
+			}
+			
+			if (background is not null)
+			{
+				tabLayout.SetBackground(new ColorDrawable(background.ToPlatform()));
+			}
+			
+			if (foreground is not null)
+			{
+				tabLayout.SetSelectedTabIndicatorColor(foreground.ToPlatform());
+			}
 		}
 
 		#region IDisposable

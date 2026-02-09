@@ -101,23 +101,34 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				throw new InvalidOperationException($"Content not found for active {shellSection}. Title: {shellSection.Title}. Route: {shellSection.Route}.");
 
 			var context = Context;
-			var root = PlatformInterop.CreateShellCoordinatorLayout(context);
-			var appbar = PlatformInterop.CreateShellAppBar(context, Resource.Attribute.appBarLayoutStyle, root);
+			
+			// Use layout-based approach for proper Material 3 theming support
+			var root = (CoordinatorLayout)inflater.Inflate(Controls.Resource.Layout.shellsectionlayout, container, false);
+			var appbar = root.FindViewById<AppBarLayout>(Controls.Resource.Id.shellsection_appbar);
 
 			MauiWindowInsetListener.SetupViewWithLocalListener(root);
-
-			int actionBarHeight = context.GetActionBarHeight();
 
 			var shellToolbar = new Toolbar(shellSection);
 			ShellToolbarTracker.ApplyToolbarChanges(_shellContext.Shell.Toolbar, shellToolbar);
 			_toolbar = (AToolbar)shellToolbar.ToPlatform(_shellContext.Shell.FindMauiContext());
-			appbar.AddView(_toolbar);
-			_tablayout = PlatformInterop.CreateShellTabLayout(context, appbar, actionBarHeight);
+			
+			// Add toolbar as first child of appbar (before tablayout)
+			appbar.AddView(_toolbar, 0);
+			
+			// Get the TabLayout from the inflated layout
+			_tablayout = root.FindViewById<TabLayout>(Controls.Resource.Id.shellsection_tablayout);
 
 			var pagerContext = MauiContext.MakeScoped(layoutInflater: inflater, fragmentManager: ChildFragmentManager);
 			var adapter = new ShellFragmentStateAdapter(shellSection, ChildFragmentManager, pagerContext);
 			var pageChangedCallback = new ViewPagerPageChanged(this);
-			_viewPager = PlatformInterop.CreateShellViewPager(context, root, _tablayout, this, adapter, pageChangedCallback);
+			
+			// Get the ViewPager2 from the inflated layout and set it up
+			_viewPager = root.FindViewById<ViewPager2>(Controls.Resource.Id.shellsection_viewpager);
+			_viewPager.Adapter = adapter;
+			_viewPager.RegisterOnPageChangeCallback(pageChangedCallback);
+			
+			// Attach TabLayoutMediator
+			new TabLayoutMediator(_tablayout, _viewPager, this).Attach();
 
 			Page currentPage = null;
 			int currentIndex = -1;

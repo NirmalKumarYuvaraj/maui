@@ -5,6 +5,7 @@
 
   <attr name="appBarLayoutStyle" format="reference" />
   <attr name="bottomNavigationViewStyle" format="reference" />
+  <attr name="shellTabLayoutStyle" format="reference" />
 
   <!-- 
     This defines the collectionViewStyle attribute so that we can use it 

@@ -40,9 +40,12 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 		public virtual void ResetAppearance(BottomNavigationView bottomView)
 		{
+			// When resetting, restore default theme-based colors
+			// The default list uses theme attributes, allowing XML layout theme defaults to apply
 			bottomView.ItemIconTintList = GetDefaultTabColorList(_shellContext.AndroidContext);
 			bottomView.ItemTextColor = GetDefaultTabColorList(_shellContext.AndroidContext);
-			SetBackgroundColor(bottomView, null);
+			// Don't set background - let XML layout theme background apply
+			// This is the key difference from SetAppearance - we skip SetBackgroundColor entirely
 		}
 
 		public virtual void SetAppearance(BottomNavigationView bottomView, IShellAppearanceElement appearance)
@@ -54,20 +57,28 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			var unselectedColor = controller.EffectiveTabBarUnselectedColor;
 			var titleColor = controller.EffectiveTabBarTitleColor;
 
-			_itemTextColor = MakeColorStateList(
-				titleColor ?? foregroundColor,
-				disabledColor,
-				unselectedColor);
+			// Only set explicit colors if provided, otherwise use theme defaults
+			if (titleColor is not null || foregroundColor is not null || disabledColor is not null || unselectedColor is not null)
+			{
+				_itemTextColor = MakeColorStateList(
+					titleColor ?? foregroundColor,
+					disabledColor,
+					unselectedColor);
 
-			_itemIconTint = MakeColorStateList(
-				foregroundColor ?? titleColor,
-				disabledColor,
-				unselectedColor);
+				_itemIconTint = MakeColorStateList(
+					foregroundColor ?? titleColor,
+					disabledColor,
+					unselectedColor);
 
-			bottomView.ItemTextColor = _itemTextColor;
-			bottomView.ItemIconTintList = _itemIconTint;
+				if (_itemTextColor is not null)
+					bottomView.ItemTextColor = _itemTextColor;
+				if (_itemIconTint is not null)
+					bottomView.ItemIconTintList = _itemIconTint;
+			}
 
-			SetBackgroundColor(bottomView, backgroundColor);
+			// Only set background color if explicitly provided
+			if (backgroundColor is not null)
+				SetBackgroundColor(bottomView, backgroundColor);
 		}
 
 		protected virtual void SetBackgroundColor(BottomNavigationView bottomView, Color color)
@@ -79,12 +90,13 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			var colorDrawable = oldBackground as ColorDrawable;
 			var colorChangeRevealDrawable = oldBackground as ColorChangeRevealDrawable;
 			AColor lastColor = colorChangeRevealDrawable?.EndColor ?? colorDrawable?.Color ?? Colors.Transparent.ToPlatform();
-			AColor newColor;
-
+			
+			// Color should always be provided by caller; if null, don't change background
+			// (lets XML layout theme handle it)
 			if (color == null)
-				newColor = ShellRenderer.DefaultBottomNavigationViewBackgroundColor.ToPlatform();
-			else
-				newColor = color.ToPlatform();
+				return;
+				
+			AColor newColor = color.ToPlatform();
 
 			if (menuView == null)
 			{
@@ -131,7 +143,20 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				return null;
 
 			var baseCSL = AppCompatResources.GetColorStateList(context, mTypedValue.ResourceId);
-			var colorPrimary = (ShellRenderer.IsDarkTheme) ? AColor.White : ShellRenderer.DefaultBackgroundColor.ToPlatform();
+			
+			// Resolve colorPrimary from theme instead of hardcoded values
+			TypedValue colorPrimaryValue = new TypedValue();
+			AColor colorPrimary;
+			if (context.Theme?.ResolveAttribute(R.Attribute.ColorPrimary, colorPrimaryValue, true) == true)
+			{
+				colorPrimary = new AColor(colorPrimaryValue.Data);
+			}
+			else
+			{
+				// Fallback to white/gray if theme attribute not found
+				colorPrimary = (ShellRenderer.IsDarkTheme) ? AColor.White : AColor.Gray;
+			}
+			
 			int defaultColor = baseCSL.DefaultColor;
 			var disabledcolor = baseCSL.GetColorForState(new[] { -R.Attribute.StateEnabled }, AColor.Gray);
 
