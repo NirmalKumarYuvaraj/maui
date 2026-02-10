@@ -1,4 +1,5 @@
 ﻿using System;
+using Microsoft.Maui.Platform;
 using UIKit;
 
 namespace Microsoft.Maui.Handlers
@@ -22,10 +23,26 @@ namespace Microsoft.Maui.Handlers
 
 		protected override UIButton CreatePlatformView()
 		{
-			var platformView = new UIButton(UIButtonType.System)
+			UIButton platformView;
+
+			// Use Configuration API for iOS 15+ to avoid deprecated contentEdgeInsets
+			if (OperatingSystem.IsIOSVersionAtLeast(15))
 			{
-				ClipsToBounds = true
-			};
+				platformView = new UIButton(UIButtonType.System)
+				{
+					ClipsToBounds = true
+				};
+				// Initialize with a plain configuration to enable Configuration-based APIs
+				var config = UIButtonConfiguration.PlainButtonConfiguration;
+				platformView.Configuration = config;
+			}
+			else
+			{
+				platformView = new UIButton(UIButtonType.System)
+				{
+					ClipsToBounds = true
+				};
+			}
 
 			return platformView;
 		}
@@ -80,7 +97,18 @@ namespace Microsoft.Maui.Handlers
 
 				platformImage = platformImage?.ImageWithRenderingMode(UIImageRenderingMode.AlwaysOriginal);
 
-				button.SetImage(platformImage, UIControlState.Normal);
+				// Use Configuration API for iOS 15+
+				if (OperatingSystem.IsIOSVersionAtLeast(15) && button.Configuration is not null)
+				{
+					var config = button.GetOrCreateConfiguration();
+					config.Image = platformImage;
+					button.ApplyConfiguration(config);
+				}
+				else
+				{
+					button.SetImage(platformImage, UIControlState.Normal);
+				}
+
 				button.HorizontalAlignment = UIControlContentHorizontalAlignment.Fill;
 				button.VerticalAlignment = UIControlContentVerticalAlignment.Fill;
 

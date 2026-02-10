@@ -9,6 +9,7 @@ using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Graphics.Platform;
 using Microsoft.Maui.Handlers;
 using Microsoft.Maui.Layouts;
+using Microsoft.Maui.Platform;
 using UIKit;
 
 namespace Microsoft.Maui.Controls
@@ -173,17 +174,61 @@ namespace Microsoft.Maui.Controls
 		/// <param name="platformButton"></param>
 		/// <param name="button"></param>
 		/// <param name="size"></param>
-		/// <remarks>TitleEdgeInsets and ImageEdgeInsets are deprecated in iOS 15. The layout process will change with UIButton.Configuration API in the future.</remarks>
+		/// <remarks>TitleEdgeInsets and ImageEdgeInsets are deprecated in iOS 15. Uses UIButton.Configuration API for iOS 15+.</remarks>
 		void LayoutButton(UIButton platformButton, Button button, Rect size)
 		{
 			var layout = button.ContentLayout;
 			var spacing = (nfloat)layout.Spacing;
+			var image = platformButton.CurrentImage;
+
+			// Use Configuration API for iOS 15+
+			if (OperatingSystem.IsIOSVersionAtLeast(15))
+			{
+				LayoutButtonWithConfiguration(platformButton, button, image, layout, spacing);
+				return;
+			}
+
+			// Fall back to deprecated APIs for pre-iOS 15
+			LayoutButtonWithEdgeInsets(platformButton, button, size, image, layout, spacing);
+		}
+
+		/// <summary>
+		/// Layout button using UIButton.Configuration API (iOS 15+).
+		/// </summary>
+		[System.Runtime.Versioning.SupportedOSPlatform("ios15.0")]
+		[System.Runtime.Versioning.SupportedOSPlatform("maccatalyst15.0")]
+		void LayoutButtonWithConfiguration(UIButton platformButton, Button button, UIImage image, ButtonContentLayout layout, nfloat spacing)
+		{
+			var config = platformButton.GetOrCreateConfiguration();
+
+			// Set the image placement based on ContentLayout position
+			config.ImagePlacement = layout.Position switch
+			{
+				ButtonContentLayout.ImagePosition.Left => NSDirectionalRectEdge.Leading,
+				ButtonContentLayout.ImagePosition.Right => NSDirectionalRectEdge.Trailing,
+				ButtonContentLayout.ImagePosition.Top => NSDirectionalRectEdge.Top,
+				ButtonContentLayout.ImagePosition.Bottom => NSDirectionalRectEdge.Bottom,
+				_ => NSDirectionalRectEdge.Leading
+			};
+
+			// Set the spacing between image and title
+			if (image is not null && !string.IsNullOrEmpty(platformButton.CurrentTitle))
+			{
+				config.ImagePadding = spacing;
+			}
+
+			platformButton.ApplyConfiguration(config);
+		}
+
+		/// <summary>
+		/// Layout button using deprecated edge insets (pre-iOS 15).
+		/// </summary>
+		void LayoutButtonWithEdgeInsets(UIButton platformButton, Button button, Rect size, UIImage image, ButtonContentLayout layout, nfloat spacing)
+		{
 			var borderWidth = button.BorderWidth < 0 ? 0 : button.BorderWidth;
 
 			var imageInsets = new UIEdgeInsets();
 			var titleInsets = new UIEdgeInsets();
-
-			var image = platformButton.CurrentImage;
 
 			if (image is not null && !string.IsNullOrEmpty(platformButton.CurrentTitle))
 			{

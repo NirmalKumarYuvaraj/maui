@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.Versioning;
 using UIKit;
 
 namespace Microsoft.Maui.Platform
@@ -6,6 +7,29 @@ namespace Microsoft.Maui.Platform
 	public static class ButtonExtensions
 	{
 		public const double AlmostZero = 0.00001;
+
+		/// <summary>
+		/// Gets or creates a UIButtonConfiguration for the button.
+		/// </summary>
+		/// <remarks>
+		/// UIButtonConfiguration is available in iOS 15+ and provides modern button styling.
+		/// </remarks>
+		[SupportedOSPlatform("ios15.0")]
+		[SupportedOSPlatform("maccatalyst15.0")]
+		internal static UIButtonConfiguration GetOrCreateConfiguration(this UIButton platformButton)
+		{
+			return platformButton.Configuration ?? UIButtonConfiguration.PlainButtonConfiguration;
+		}
+
+		/// <summary>
+		/// Applies a UIButtonConfiguration to the button if running on iOS 15+.
+		/// </summary>
+		[SupportedOSPlatform("ios15.0")]
+		[SupportedOSPlatform("maccatalyst15.0")]
+		internal static void ApplyConfiguration(this UIButton platformButton, UIButtonConfiguration configuration)
+		{
+			platformButton.Configuration = configuration;
+		}
 
 		public static void UpdateStrokeColor(this UIButton platformButton, IButtonStroke buttonStroke)
 		{
@@ -76,16 +100,27 @@ namespace Microsoft.Maui.Platform
 			if (bottom == 0.0)
 				bottom = AlmostZero;
 
-			// The downside of using the ContentEdgeInsets is that in non-UIButtonConfiguration instances, it will truncate the title for buttons with images on top or bottom more than necessary.
-#pragma warning disable CA1416 // TODO: 'UIButton.ContentEdgeInsets' is unsupported on: 'ios' 15.0 and later.
-#pragma warning disable CA1422 // Validate platform compatibility
-			platformButton.ContentEdgeInsets = new UIEdgeInsets(
-				(float)top,
-				(float)padding.Left,
-				(float)bottom,
-				(float)padding.Right);
-#pragma warning restore CA1422 // Validate platform compatibility
-#pragma warning restore CA1416
+			if (OperatingSystem.IsIOSVersionAtLeast(15))
+			{
+				var config = platformButton.GetOrCreateConfiguration();
+				config.ContentInsets = new NSDirectionalEdgeInsets(
+					(nfloat)top,
+					(nfloat)padding.Left,
+					(nfloat)bottom,
+					(nfloat)padding.Right);
+				platformButton.ApplyConfiguration(config);
+			}
+			else
+			{
+				// Fall back to deprecated APIs for pre-iOS 15
+#pragma warning disable CA1416, CA1422
+				platformButton.ContentEdgeInsets = new UIEdgeInsets(
+					(float)top,
+					(float)padding.Left,
+					(float)bottom,
+					(float)padding.Right);
+#pragma warning restore CA1416, CA1422
+			}
 		}
 
 		internal static void UpdateContentEdgeInsets(this UIButton platformButton, IButton button, Thickness? defaultPadding = null) =>
@@ -102,15 +137,27 @@ namespace Microsoft.Maui.Platform
 			if (bottom == 0.0)
 				bottom = AlmostZero;
 
-#pragma warning disable CA1416 // TODO: 'UIButton.ContentEdgeInsets' is unsupported on: 'ios' 15.0 and later.
-#pragma warning disable CA1422 // Validate platform compatibility
-			platformButton.ContentEdgeInsets = new UIEdgeInsets(
-				(float)top,
-				(float)padding.Left,
-				(float)bottom,
-				(float)padding.Right);
-#pragma warning restore CA1422 // Validate platform compatibility
-#pragma warning restore CA1416
+			if (OperatingSystem.IsIOSVersionAtLeast(15))
+			{
+				var config = platformButton.GetOrCreateConfiguration();
+				config.ContentInsets = new NSDirectionalEdgeInsets(
+					(nfloat)top,
+					(nfloat)padding.Left,
+					(nfloat)bottom,
+					(nfloat)padding.Right);
+				platformButton.ApplyConfiguration(config);
+			}
+			else
+			{
+				// Fall back to deprecated APIs for pre-iOS 15
+#pragma warning disable CA1416, CA1422
+				platformButton.ContentEdgeInsets = new UIEdgeInsets(
+					(float)top,
+					(float)padding.Left,
+					(float)bottom,
+					(float)padding.Right);
+#pragma warning restore CA1416, CA1422
+			}
 		}
 	}
 }

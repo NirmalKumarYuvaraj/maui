@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Microsoft.Maui.Graphics;
+using Microsoft.Maui.Platform;
 using UIKit;
 
 namespace Microsoft.Maui.Handlers
@@ -20,6 +21,14 @@ namespace Microsoft.Maui.Handlers
 		{
 			var button = new UIButton(UIButtonType.System);
 			SetControlPropertiesFromProxy(button);
+
+			// Initialize with a plain configuration for iOS 15+ to enable Configuration-based APIs
+			if (OperatingSystem.IsIOSVersionAtLeast(15))
+			{
+				var config = UIButtonConfiguration.PlainButtonConfiguration;
+				button.Configuration = config;
+			}
+
 			return button;
 		}
 
@@ -216,7 +225,17 @@ namespace Microsoft.Maui.Handlers
 
 				platformImage = platformImage?.ImageWithRenderingMode(UIImageRenderingMode.AlwaysOriginal);
 
-				button.SetImage(platformImage, UIControlState.Normal);
+				// Use Configuration API for iOS 15+
+				if (OperatingSystem.IsIOSVersionAtLeast(15) && button.Configuration is not null)
+				{
+					var config = button.GetOrCreateConfiguration();
+					config.Image = platformImage;
+					button.ApplyConfiguration(config);
+				}
+				else
+				{
+					button.SetImage(platformImage, UIControlState.Normal);
+				}
 
 				// UIButton.SetImage(image, forState:) does not immediately assign the image to UIButton.ImageView.Image.
 				// Instead, the image is set internally and only applied to ImageView when the button is rendered.
