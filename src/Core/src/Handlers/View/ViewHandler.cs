@@ -536,6 +536,14 @@ namespace Microsoft.Maui.Handlers
 #if WINDOWS
 				handler.UpdateValue(nameof(IView.Opacity));
 #endif
+
+#if ANDROID
+				// When a container is added or removed, translation must be moved between
+				// the platform view and container view for touch events to work correctly.
+				// See https://github.com/dotnet/maui/issues/22439
+				handler.UpdateValue(nameof(IView.TranslationX));
+				handler.UpdateValue(nameof(IView.TranslationY));
+#endif
 			}
 		}
 

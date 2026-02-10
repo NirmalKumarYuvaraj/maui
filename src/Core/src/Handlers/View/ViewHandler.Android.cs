@@ -54,7 +54,21 @@ namespace Microsoft.Maui.Handlers
 				return;
 			}
 
-			handler.ToPlatform().UpdateTranslationX(view);
+			// When a view has a container (WrapperView), apply translation to the container
+			// so touch events are correctly handled at the translated position.
+			// See https://github.com/dotnet/maui/issues/22439
+			if (handler.HasContainer && handler.ContainerView is PlatformView containerView)
+			{
+				containerView.UpdateTranslationX(view);
+				if (handler.PlatformView is PlatformView platformView)
+				{
+					platformView.TranslationX = 0;
+				}
+			}
+			else
+			{
+				handler.ToPlatform().UpdateTranslationX(view);
+			}
 		}
 
 		public static void MapTranslationY(IViewHandler handler, IView view)
@@ -65,7 +79,21 @@ namespace Microsoft.Maui.Handlers
 				return;
 			}
 
-			handler.ToPlatform().UpdateTranslationY(view);
+			// When a view has a container (WrapperView), apply translation to the container
+			// so touch events are correctly handled at the translated position.
+			// See https://github.com/dotnet/maui/issues/22439
+			if (handler.HasContainer && handler.ContainerView is PlatformView containerView)
+			{
+				containerView.UpdateTranslationY(view);
+				if (handler.PlatformView is PlatformView platformView)
+				{
+					platformView.TranslationY = 0;
+				}
+			}
+			else
+			{
+				handler.ToPlatform().UpdateTranslationY(view);
+			}
 		}
 
 		public static void MapScale(IViewHandler handler, IView view)
