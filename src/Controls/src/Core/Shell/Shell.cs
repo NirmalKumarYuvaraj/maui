@@ -743,27 +743,12 @@ namespace Microsoft.Maui.Controls
 			}
 		}
 
-#if ANDROID
-		static Color DefaultBackgroundColor => ResolveThemeColor(Color.FromArgb("#2c3e50"), Color.FromArgb("#1B3147"));
-		static readonly Color DefaultForegroundColor = Colors.White;
-		static readonly Color DefaultTitleColor = Colors.White;
-
-		static bool IsDarkTheme => (Application.Current?.RequestedTheme == AppTheme.Dark);
-
-		static Color ResolveThemeColor(Color light, Color dark)
-		{
-			if (IsDarkTheme)
-			{
-				return dark;
-			}
-
-			return light;
-		}
-#else
+		// Default colors are null on all platforms to allow XML layout theme attributes
+		// (e.g., ?attr/colorPrimary) to take effect. This enables proper Material 3 theming
+		// where colors are resolved from the application theme rather than hardcoded values.
 		static Color DefaultBackgroundColor => null;
 		static readonly Color DefaultForegroundColor = null;
 		static readonly Color DefaultTitleColor = null;
-#endif
 
 
 		void IShellController.AppearanceChanged(Element source, bool appearanceSet)
