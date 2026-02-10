@@ -19,6 +19,7 @@ using AView = Android.Views.View;
 using IMenu = Android.Views.IMenu;
 using LP = Android.Views.ViewGroup.LayoutParams;
 using Orientation = Android.Widget.Orientation;
+using Resource = Microsoft.Maui.Resource;
 
 namespace Microsoft.Maui.Controls.Platform.Compatibility
 {
@@ -72,9 +73,10 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			base.OnCreateView(inflater, container, savedInstanceState);
 
 			// Use layout-based approach for proper Material 3 theming support
-			_outerLayout = (LinearLayout)inflater.Inflate(Controls.Resource.Layout.shellitemlayout, container, false);
-			_navigationArea = _outerLayout.FindViewById<FrameLayout>(Controls.Resource.Id.shellitem_navigation_area);
-			_bottomView = _outerLayout.FindViewById<BottomNavigationView>(Controls.Resource.Id.shellitem_bottomnavigation);
+			// Layout is in Core (like navigationlayout.axml) for consistency
+			_outerLayout = (LinearLayout)inflater.Inflate(Resource.Layout.shellitemlayout, container, false);
+			_navigationArea = _outerLayout.FindViewById<FrameLayout>(Resource.Id.shellitem_navigation_area);
+			_bottomView = _outerLayout.FindViewById<BottomNavigationView>(Resource.Id.shellitem_bottomnavigation);
 			_bottomView.SetOnItemSelectedListener(this);
 
 			if (ShellItem is null)

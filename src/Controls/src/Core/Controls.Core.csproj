@@ -74,8 +74,6 @@
     <PackageReference Include="Xamarin.AndroidX.DynamicAnimation" />
     <AndroidResource Include="Compatibility\Android\Resources\layout\flyoutcontent.axml" />
     <AndroidResource Include="Compatibility\Android\Resources\layout\shellcontent.axml" />
-    <AndroidResource Include="Compatibility\Android\Resources\layout\shellsectionlayout.axml" />
-    <AndroidResource Include="Compatibility\Android\Resources\layout\shellitemlayout.axml" />
   </ItemGroup>
 
   <PropertyGroup Condition=" '$(_MauiDesignDllBuild)' == 'True'">

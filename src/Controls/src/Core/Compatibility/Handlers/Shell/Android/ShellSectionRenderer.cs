@@ -19,6 +19,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Maui.Platform;
 using AToolbar = AndroidX.AppCompat.Widget.Toolbar;
 using AView = Android.Views.View;
+using Resource = Microsoft.Maui.Resource;
 
 namespace Microsoft.Maui.Controls.Platform.Compatibility
 {
@@ -103,8 +104,9 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			var context = Context;
 			
 			// Use layout-based approach for proper Material 3 theming support
-			var root = (CoordinatorLayout)inflater.Inflate(Controls.Resource.Layout.shellsectionlayout, container, false);
-			var appbar = root.FindViewById<AppBarLayout>(Controls.Resource.Id.shellsection_appbar);
+			// Layout is in Core (like navigationlayout.axml) for consistency
+			var root = (CoordinatorLayout)inflater.Inflate(Resource.Layout.shellsectionlayout, container, false);
+			var appbar = root.FindViewById<AppBarLayout>(Resource.Id.shellsection_appbar);
 
 			MauiWindowInsetListener.SetupViewWithLocalListener(root);
 
@@ -116,14 +118,14 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			appbar.AddView(_toolbar, 0);
 			
 			// Get the TabLayout from the inflated layout
-			_tablayout = root.FindViewById<TabLayout>(Controls.Resource.Id.shellsection_tablayout);
+			_tablayout = root.FindViewById<TabLayout>(Resource.Id.shellsection_tablayout);
 
 			var pagerContext = MauiContext.MakeScoped(layoutInflater: inflater, fragmentManager: ChildFragmentManager);
 			var adapter = new ShellFragmentStateAdapter(shellSection, ChildFragmentManager, pagerContext);
 			var pageChangedCallback = new ViewPagerPageChanged(this);
 			
 			// Get the ViewPager2 from the inflated layout and set it up
-			_viewPager = root.FindViewById<ViewPager2>(Controls.Resource.Id.shellsection_viewpager);
+			_viewPager = root.FindViewById<ViewPager2>(Resource.Id.shellsection_viewpager);
 			_viewPager.Adapter = adapter;
 			_viewPager.RegisterOnPageChangeCallback(pageChangedCallback);
 			
