@@ -382,6 +382,25 @@ internal static class LayoutFactory2
 							return;
 						}
 
+						// If a programmatic scroll animation is in progress, don't interrupt it
+						// The VisibleItemsInvalidationHandler gets called during the scroll animation
+						// and we don't want to redirect the scroll to a different position
+						if (cv2Controller.IsScrollingProgrammatically())
+						{
+							var targetPosition = cv2Controller.GetProgrammaticScrollTargetPosition();
+							
+							// If we've reached the target position, clear the scroll state
+							if (carouselPosition == targetPosition)
+							{
+								cv2Controller.ClearProgrammaticScrollState();
+							}
+							else
+							{
+								// Still scrolling to target, don't interrupt
+								return;
+							}
+						}
+
 						var goToIndexPath = cv2Controller.GetScrollToIndexPath(carouselPosition);
 
 						if (!IsIndexPathValid(goToIndexPath, cv2Controller.CollectionView))
@@ -427,12 +446,14 @@ internal static class LayoutFactory2
 				return false;
 			}
 
-			if (indexPath.Section >= collectionView.NumberOfSections())
+			var numberOfSections = collectionView.NumberOfSections();
+			if (indexPath.Section >= numberOfSections)
 			{
 				return false;
 			}
 
-			if (indexPath.Item >= collectionView.NumberOfItemsInSection(indexPath.Section))
+			var numberOfItems = collectionView.NumberOfItemsInSection(indexPath.Section);
+			if (indexPath.Item >= numberOfItems)
 			{
 				return false;
 			}

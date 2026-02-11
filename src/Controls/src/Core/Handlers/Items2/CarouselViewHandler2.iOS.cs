@@ -49,7 +49,8 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 		{
 			if (VirtualView?.Loop == true)
 			{
-				var goToIndexPath = (Controller as CarouselViewController2).GetScrollToIndexPath(args.Index);
+				var carouselController = Controller as CarouselViewController2;
+				var goToIndexPath = carouselController.GetScrollToIndexPath(args.Index);
 
 				if (!IsIndexPathValid(goToIndexPath))
 				{
@@ -59,8 +60,16 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 				bool IsHorizontal = VirtualView.ItemsLayout.Orientation == ItemsLayoutOrientation.Horizontal;
 				UICollectionViewScrollDirection scrollDirection = IsHorizontal ? UICollectionViewScrollDirection.Horizontal : UICollectionViewScrollDirection.Vertical;
 
+				var scrollPosition = args.ScrollToPosition.ToCollectionViewScrollPosition(scrollDirection);
+				
+				// Set the programmatic scroll flag to prevent VisibleItemsInvalidationHandler from interrupting
+				if (args.IsAnimated && carouselController != null)
+				{
+					carouselController.SetProgrammaticScrollState(args.Index);
+				}
+				
 				Controller.CollectionView.ScrollToItem(goToIndexPath,
-					args.ScrollToPosition.ToCollectionViewScrollPosition(scrollDirection), // TODO: Fix _layout.ScrollDirection),
+					scrollPosition,
 					args.IsAnimated);
 			}
 			else

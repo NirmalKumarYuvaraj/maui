@@ -15,6 +15,8 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 	{
 		bool _isRotating = false;
 		bool _isUpdating = false;
+		bool _isScrollingProgrammatically = false;
+		int _programmaticScrollTargetPosition = -1;
 		int _section = 0;
 		bool _wasDetachedFromWindow = false;
 		CarouselViewLoopManager _carouselViewLoopManager;
@@ -111,6 +113,10 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 		{
 			//	_isDragging = true;
 			ItemsView?.SetIsDragging(true);
+			
+			// If user starts dragging during a programmatic scroll animation,
+			// clear the flag to prevent it from getting stuck
+			ClearProgrammaticScrollState();
 		}
 
 		public override void DraggingEnded(UIScrollView scrollView, bool willDecelerate)
@@ -431,6 +437,11 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 			return _isRotating;
 		}
 
+		internal bool IsScrollingProgrammatically()
+		{
+			return _isScrollingProgrammatically;
+		}
+
 		internal void UpdateLoop()
 		{
 			if (ItemsView is not CarouselView carousel)
@@ -448,6 +459,23 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 			// CollectionView.ReloadData();
 
 			// ScrollToPosition(carouselPosition, carouselPosition, false, true);
+		}
+
+		internal int GetProgrammaticScrollTargetPosition()
+		{
+			return _programmaticScrollTargetPosition;
+		}
+
+		internal void ClearProgrammaticScrollState()
+		{
+			_isScrollingProgrammatically = false;
+			_programmaticScrollTargetPosition = -1;
+		}
+
+		internal void SetProgrammaticScrollState(int targetPosition)
+		{
+			_isScrollingProgrammatically = true;
+			_programmaticScrollTargetPosition = targetPosition;
 		}
 
 		void ScrollToPosition(int goToPosition, int carouselPosition, bool animate, bool forceScroll = false)
@@ -470,6 +498,14 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 				if (!LayoutFactory2.IsIndexPathValid(goToIndexPath, CollectionView))
 				{
 					return;
+				}
+
+				// Only set the programmatic scroll flag for animated scrolls
+				// This prevents the VisibleItemsInvalidationHandler from interrupting the animation
+				if (animate)
+				{
+					_isScrollingProgrammatically = true;
+					_programmaticScrollTargetPosition = goToPosition;
 				}
 
 				CollectionView.ScrollToItem(goToIndexPath, uICollectionViewScrollPosition, animate);
