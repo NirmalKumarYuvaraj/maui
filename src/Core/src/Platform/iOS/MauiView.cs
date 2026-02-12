@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics;
 using CoreGraphics;
 using Foundation;
 using Microsoft.Maui.Graphics;
@@ -321,7 +322,7 @@ namespace Microsoft.Maui.Platform
 						// If keyboard is visible and intersects with window
 						if (!keyboardIntersection.IsEmpty)
 						{
-							var bottomEdgeRegion = safeAreaPage.GetSafeAreaRegionsForEdge(3); // 3 = bottom edge
+							var bottomEdgeRegion = safeAreaPage.GetSafeAreaRegionsForEdge(SafeAreaEdges.EdgeBottom);
 
 							// For SafeAreaRegions.SoftInput: Always pad so content doesn't go under the keyboard
 							// Bottom edge is most commonly affected by keyboard
@@ -349,22 +350,21 @@ namespace Microsoft.Maui.Platform
 			if (View is ISafeAreaView2)
 			{
 				// Apply safe area selectively per edge based on SafeAreaRegions
-				var left = GetSafeAreaForEdge(baseSafeArea.Left, 0);
-				var top = GetSafeAreaForEdge(baseSafeArea.Top, 1);
-				var right = GetSafeAreaForEdge(baseSafeArea.Right, 2);
-				var bottom = GetSafeAreaForEdge(baseSafeArea.Bottom, 3);
+				var left = GetSafeAreaForEdge(baseSafeArea.Left, SafeAreaEdges.EdgeLeft);
+				var top = GetSafeAreaForEdge(baseSafeArea.Top, SafeAreaEdges.EdgeTop);
+				var right = GetSafeAreaForEdge(baseSafeArea.Right, SafeAreaEdges.EdgeRight);
+				var bottom = GetSafeAreaForEdge(baseSafeArea.Bottom, SafeAreaEdges.EdgeBottom);
 
 				return new SafeAreaPadding(left, right, top, bottom);
 			}
 
-			// Fallback to legacy ISafeAreaView behavior
-			if (View is ISafeAreaView sav)
+			// Fallback to legacy behavior
+			if (View is ISafeAreaView sav && sav.IgnoreSafeArea)
 			{
-				return sav.IgnoreSafeArea ? SafeAreaPadding.Empty : baseSafeArea;
+				return SafeAreaPadding.Empty;
 			}
 
-			// Non-safe-area views pass through to parent
-			return SafeAreaPadding.Empty;
+			return baseSafeArea;
 		}
 
 		/// <summary>
@@ -378,7 +378,7 @@ namespace Microsoft.Maui.Platform
 		{
 			return view.FindParent(x => x is MauiView mv
 				&& mv.View is ISafeAreaView2 safeAreaView2
-				&& SafeAreaEdges.IsSoftInput(safeAreaView2.GetSafeAreaRegionsForEdge(3))) is not null;
+				&& SafeAreaEdges.IsSoftInput(safeAreaView2.GetSafeAreaRegionsForEdge(SafeAreaEdges.EdgeBottom))) is not null;
 		}
 
 
@@ -613,8 +613,9 @@ namespace Microsoft.Maui.Platform
 			_appliesSafeAreaAdjustments = RespondsToSafeArea() && !_safeArea.IsEmpty;
 
 			// Return whether the way safe area interacts with our view has changed
+			// Use tolerance-based comparison to prevent layout loops from floating-point precision differences
 			return oldApplyingSafeAreaAdjustments == _appliesSafeAreaAdjustments &&
-				   (oldSafeArea == _safeArea || !_appliesSafeAreaAdjustments);
+				   (oldSafeArea.EqualsWithTolerance(_safeArea) || !_appliesSafeAreaAdjustments);
 		}
 
 		/// <summary>

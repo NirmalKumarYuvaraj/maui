@@ -6,11 +6,28 @@ namespace Microsoft.Maui.Platform;
 
 internal readonly record struct SafeAreaPadding(double Left, double Right, double Top, double Bottom)
 {
+	// Tolerance for comparing safe area values to prevent layout loops from floating-point precision differences.
+	// iOS can report values like 14.495513916015625 vs 14.495514869689941 which differ by ~1e-6.
+	// We use 0.001 (1/1000th of a point) as the tolerance - differences smaller than this are imperceptible.
+	internal const double ComparisonTolerance = 0.001;
+
 	public static SafeAreaPadding Empty { get; } = new(0, 0, 0, 0);
 
 	public bool IsEmpty { get; } = Left == 0 && Right == 0 && Top == 0 && Bottom == 0;
 	public double HorizontalThickness { get; } = Left + Right;
 	public double VerticalThickness { get; } = Top + Bottom;
+
+	/// <summary>
+	/// Compares two SafeAreaPadding values with a tolerance to account for floating-point precision differences.
+	/// This prevents layout loops caused by iOS reporting slightly different values between calls.
+	/// </summary>
+	public bool EqualsWithTolerance(SafeAreaPadding other)
+	{
+		return Math.Abs(Left - other.Left) < ComparisonTolerance &&
+			   Math.Abs(Right - other.Right) < ComparisonTolerance &&
+			   Math.Abs(Top - other.Top) < ComparisonTolerance &&
+			   Math.Abs(Bottom - other.Bottom) < ComparisonTolerance;
+	}
 
 	public CGRect InsetRect(CGRect bounds)
 	{

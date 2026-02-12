@@ -17,6 +17,9 @@ namespace Microsoft.Maui.Platform
 	{
 		internal const nint ContentTag = 0x845fed;
 
+		// Threshold to prevent content size oscillation at safe area boundary
+		const double ContentSizeHysteresisThreshold = 2.0;
+
 		/// <summary>
 		/// Flag indicating whether the parent view hierarchy should be invalidated when this view is moved to a window.
 		/// Used to ensure proper layout recalculation when the view becomes visible.
@@ -75,6 +78,11 @@ namespace Microsoft.Maui.Platform
 		bool _appliesSafeAreaAdjustments;
 
 		/// <summary>
+		/// Flag to prevent re-entrant processing of content inset changes.
+		/// </summary>
+		bool _isProcessingInsetChange;
+
+		/// <summary>
 		/// The previous effective user interface layout direction (LTR/RTL).
 		/// Used to detect when the layout direction changes and trigger appropriate content repositioning.
 		/// </summary>
@@ -125,17 +133,30 @@ namespace Microsoft.Maui.Platform
 		/// <summary>
 		/// Called by iOS when the adjusted content inset changes (e.g., when safe area changes).
 		/// This method invalidates the safe area and triggers a layout update if needed.
+		/// Uses a re-entrancy guard to prevent infinite loops from cascading invalidations.
 		/// </summary>
 		public override void AdjustedContentInsetDidChange()
 		{
-			base.AdjustedContentInsetDidChange();
-			_safeAreaInvalidated = true;
+			// Prevent re-entrant processing which can cause infinite loops
+			if (_isProcessingInsetChange)
+				return;
 
-			// It looks like when this invalidates it doesn't auto trigger a layout pass
-			if (!ValidateSafeArea())
+			_isProcessingInsetChange = true;
+			try
 			{
-				((IPlatformMeasureInvalidationController)this).InvalidateMeasure();
-				this.InvalidateAncestorsMeasures();
+				base.AdjustedContentInsetDidChange();
+				_safeAreaInvalidated = true;
+
+				// It looks like when this invalidates it doesn't auto trigger a layout pass
+				if (!ValidateSafeArea())
+				{
+					((IPlatformMeasureInvalidationController)this).InvalidateMeasure();
+					this.InvalidateAncestorsMeasures();
+				}
+			}
+			finally
+			{
+				_isProcessingInsetChange = false;
 			}
 		}
 
@@ -265,7 +286,6 @@ namespace Microsoft.Maui.Platform
 			var bounds = Bounds;
 			var widthConstraint = (double)bounds.Width;
 			var heightConstraint = (double)bounds.Height;
-			ValidateSafeArea();
 			var frameChanged = _lastArrangeWidth != widthConstraint || _lastArrangeHeight != heightConstraint;
 
 			// If the frame changed, we need to arrange (and potentially measure) the content again
@@ -325,10 +345,9 @@ namespace Microsoft.Maui.Platform
 		/// <returns>True if the safe area configuration hasn't changed in a way that affects layout, false otherwise.</returns>
 		bool ValidateSafeArea()
 		{
-			//UpdateKeyboardSubscription();
-			// If nothing changed, we don't need to do anything
-
-			if (!UpdateContentInsetAdjustmentBehavior())
+			// Check if the content inset adjustment behavior has changed
+			// If it has changed, we need to invalidate and recalculate
+			if (UpdateContentInsetAdjustmentBehavior())
 			{
 				InvalidateConstraintsCache();
 				_safeAreaInvalidated = true;
@@ -339,8 +358,9 @@ namespace Microsoft.Maui.Platform
 				return true;
 			}
 
-			// Mark the safe area as validated given that we're about to check it
-			_safeAreaInvalidated = true;
+			// Mark the safe area as validated - we're about to check it
+			// This prevents redundant calculations on subsequent calls
+			_safeAreaInvalidated = false;
 
 			var oldSafeArea = _safeArea;
 
@@ -365,14 +385,16 @@ namespace Microsoft.Maui.Platform
 				return false;
 			}
 
-			if (!oldSafeArea.Equals(_safeArea))
+			// Use tolerance-based comparison to prevent layout loops from floating-point precision differences
+			if (!oldSafeArea.EqualsWithTolerance(_safeArea))
 			{
 				InvalidateConstraintsCache();
 			}
 
 			// Return whether the way safe area interacts with our view has changed
+			// Use tolerance-based comparison to prevent layout loops from floating-point precision differences
 			return oldApplyingSafeAreaAdjustments == _appliesSafeAreaAdjustments &&
-				   (oldSafeArea == _safeArea || !_appliesSafeAreaAdjustments);
+				   (oldSafeArea.EqualsWithTolerance(_safeArea) || !_appliesSafeAreaAdjustments);
 		}
 
 		UIEdgeInsets SystemAdjustedContentInset
@@ -446,19 +468,20 @@ namespace Microsoft.Maui.Platform
 				// We do this to keep the content scrollable
 				// if we don't do this the ContentAdjustedInset + contentSize will cause the content to go off the screen and not be scrollable
 				// So the bottom content will just go off the screen until the contentsize triggers the scrollable area
+				// The hysteresis threshold prevents oscillation when content is right at the boundary
 				if (width <= Bounds.Width &&
-					(_safeArea.HorizontalThickness + width) > Bounds.Width)
+					(_safeArea.HorizontalThickness + width) > Bounds.Width - ContentSizeHysteresisThreshold)
 				{
-					width += Bounds.Width + 1;
+					width = Bounds.Width + ContentSizeHysteresisThreshold;
 				}
 
 				if (height <= Bounds.Height &&
-					(_safeArea.VerticalThickness + height) > Bounds.Height)
+					(_safeArea.VerticalThickness + height) > Bounds.Height - ContentSizeHysteresisThreshold)
 				{
-					height = Bounds.Height + 1;
+					height = Bounds.Height + ContentSizeHysteresisThreshold;
 				}
 			}
-			else if (ContentInsetAdjustmentBehavior != UIScrollViewContentInsetAdjustmentBehavior.Automatic)
+			else
 			{
 				width += _safeArea.HorizontalThickness;
 				height += _safeArea.VerticalThickness;
@@ -488,20 +511,11 @@ namespace Microsoft.Maui.Platform
 				if (EffectiveUserInterfaceLayoutDirection == UIUserInterfaceLayoutDirection.RightToLeft)
 				{
 					var horizontalOffset = contentSize.Width - bounds.Width;
-					
-					if (SystemAdjustedContentInset == UIEdgeInsets.Zero || ContentInsetAdjustmentBehavior == UIScrollViewContentInsetAdjustmentBehavior.Never)
-					{
-						CrossPlatformLayout?.CrossPlatformArrange(new Rect(new Point(-horizontalOffset, 0), bounds.Size.ToSize()));
-					}
-					else
-					{
-						CrossPlatformLayout?.CrossPlatformArrange(new Rect(new Point(-horizontalOffset, 0), bounds.Size.ToSize()));
-					}
-					
+					CrossPlatformLayout?.CrossPlatformArrange(new Rect(new Point(-horizontalOffset, 0), bounds.Size.ToSize()));
 					ContentOffset = new CGPoint(horizontalOffset, 0);
 
 				}
-				else if(_previousEffectiveUserInterfaceLayoutDirection is not null)
+				else if (_previousEffectiveUserInterfaceLayoutDirection is not null)
 				{
 					ContentOffset = new CGPoint(0, ContentOffset.Y);
 				}

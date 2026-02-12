@@ -9,6 +9,15 @@ namespace Microsoft.Maui
 	[TypeConverter(typeof(Converters.SafeAreaEdgesTypeConverter))]
 	public readonly struct SafeAreaEdges : IEquatable<SafeAreaEdges>
 	{
+		/// <summary>Edge index constant for the left edge.</summary>
+		internal const int EdgeLeft = 0;
+		/// <summary>Edge index constant for the top edge.</summary>
+		internal const int EdgeTop = 1;
+		/// <summary>Edge index constant for the right edge.</summary>
+		internal const int EdgeRight = 2;
+		/// <summary>Edge index constant for the bottom edge.</summary>
+		internal const int EdgeBottom = 3;
+
 		/// <summary>
 		/// Gets the safe area behavior for the left edge.
 		/// </summary>
@@ -96,16 +105,16 @@ namespace Microsoft.Maui
 		/// <summary>
 		/// Gets the safe area behavior for the specified edge.
 		/// </summary>
-		/// <param name="edge">The edge index (0=Left, 1=Top, 2=Right, 3=Bottom).</param>
+		/// <param name="edge">The edge index (EdgeLeft=0, EdgeTop=1, EdgeRight=2, EdgeBottom=3).</param>
 		/// <returns>The <see cref="SafeAreaRegions"/> for the specified edge.</returns>
 		internal SafeAreaRegions GetEdge(int edge)
 		{
 			return edge switch
 			{
-				0 => Left,
-				1 => Top,
-				2 => Right,
-				3 => Bottom,
+				EdgeLeft => Left,
+				EdgeTop => Top,
+				EdgeRight => Right,
+				EdgeBottom => Bottom,
 				_ => SafeAreaRegions.None
 			};
 		}
