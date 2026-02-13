@@ -213,6 +213,14 @@ namespace Microsoft.Maui.Platform
 		{
 			var shadow = view.Shadow;
 
+			// If this is a WrapperView, set the Shadow property which handles gradient shadows
+			if (platformView is WrapperView wrapperView)
+			{
+				wrapperView.Shadow = shadow;
+				return;
+			}
+
+			// For non-WrapperView, use the extension method (solid colors only)
 			if (shadow == null)
 				platformView.ClearShadow();
 			else

@@ -19,7 +19,9 @@ namespace Microsoft.Maui
 
 		/// <summary>
 		/// The Paint used to colorize the Shadow.
-		/// At this time only SolidPaint works in all platforms
+		/// SolidPaint is fully supported on all platforms.
+		/// LinearGradientPaint and RadialGradientPaint are supported on Android and iOS/MacCatalyst.
+		/// On Windows, gradient paints fall back to a blended solid color approximation.
 		/// </summary>
 		Paint Paint { get; }
 

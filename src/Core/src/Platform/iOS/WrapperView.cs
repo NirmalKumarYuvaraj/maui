@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using CoreAnimation;
 using CoreGraphics;
@@ -33,6 +34,7 @@ namespace Microsoft.Maui.Platform
 		CAShapeLayer? _backgroundMaskLayer;
 		[UnconditionalSuppressMessage("Memory", "MEM0002", Justification = "_borderView is a SubView")]
 		UIView? _borderView;
+		CALayer? _gradientShadowLayer;
 
 		public WrapperView()
 		{
@@ -116,6 +118,11 @@ namespace Microsoft.Maui.Platform
 
 			SetClip();
 			SetBorder();
+			
+			// Create or update gradient shadow when bounds become valid
+			// (Shadow may have been set when bounds were 0x0)
+			if (Shadow?.Paint is GradientPaint)
+				UpdateGradientShadow();
 
 			var boundWidth = Bounds.Width;
 			var boundHeight = Bounds.Height;
@@ -134,6 +141,8 @@ namespace Microsoft.Maui.Platform
 			MaskLayer = null;
 			BackgroundMaskLayer = null;
 			_borderView?.RemoveFromSuperview();
+			_gradientShadowLayer?.RemoveFromSuperLayer();
+			_gradientShadowLayer = null;
 		}
 
 
@@ -231,6 +240,8 @@ namespace Microsoft.Maui.Platform
 
 		partial void BorderChanged() => SetBorder();
 
+		partial void ShadowChanged() => SetShadow();
+
 		void InvalidateConstraintsCache()
 		{
 			_lastMeasureWidth = double.NaN;
@@ -290,6 +301,87 @@ namespace Microsoft.Maui.Platform
 			}
 
 			_borderView.UpdateMauiCALayer(Border);
+		}
+
+		void SetShadow()
+		{
+			Debug.WriteLine($"[Shadow] WrapperView.SetShadow() called - Shadow is null: {Shadow is null}");
+			
+			// Clear any existing gradient shadow layer
+			if (_gradientShadowLayer is not null)
+			{
+				Debug.WriteLine("[Shadow] WrapperView.SetShadow() - Removing existing gradient shadow layer");
+				_gradientShadowLayer.RemoveFromSuperLayer();
+				_gradientShadowLayer = null;
+			}
+
+			if (Shadow is null)
+			{
+				Debug.WriteLine("[Shadow] WrapperView.SetShadow() - Shadow is null, clearing shadow");
+				Layer.ClearShadow();
+				return;
+			}
+
+			Debug.WriteLine($"[Shadow] WrapperView.SetShadow() - Shadow.Paint type: {Shadow.Paint?.GetType().Name ?? "null"}");
+
+			// Check if this is a gradient paint
+			if (Shadow.Paint is GradientPaint gradientPaint)
+			{
+				Debug.WriteLine($"[Shadow] WrapperView.SetShadow() - Detected GradientPaint: {gradientPaint.GetType().Name}");
+				// Clear any solid shadow
+				Layer.ClearShadow();
+				
+				// Create gradient shadow layer
+				UpdateGradientShadow();
+			}
+			else
+			{
+				Debug.WriteLine("[Shadow] WrapperView.SetShadow() - Using native solid shadow");
+				// Use native shadow for solid colors (fast path)
+				Layer.SetShadow(Shadow);
+			}
+		}
+
+		void UpdateGradientShadow()
+		{
+			Debug.WriteLine($"[Shadow] WrapperView.UpdateGradientShadow() called");
+			
+			if (Shadow is null || Shadow.Paint is not GradientPaint)
+			{
+				Debug.WriteLine("[Shadow] WrapperView.UpdateGradientShadow() - Shadow is null or not GradientPaint, aborting");
+				return;
+			}
+
+			var bounds = Bounds;
+			Debug.WriteLine($"[Shadow] WrapperView.UpdateGradientShadow() - Bounds: {bounds.Width}x{bounds.Height}");
+			
+			if (bounds.Width <= 0 || bounds.Height <= 0)
+			{
+				Debug.WriteLine("[Shadow] WrapperView.UpdateGradientShadow() - Bounds too small, aborting");
+				return;
+			}
+
+			// Remove existing gradient shadow layer if present
+			if (_gradientShadowLayer is not null)
+			{
+				Debug.WriteLine("[Shadow] WrapperView.UpdateGradientShadow() - Removing existing gradient shadow layer");
+				_gradientShadowLayer.RemoveFromSuperLayer();
+				_gradientShadowLayer = null;
+			}
+
+			Debug.WriteLine("[Shadow] WrapperView.UpdateGradientShadow() - Creating gradient shadow layer...");
+			_gradientShadowLayer = ShadowExtensions.CreateGradientShadowLayer(Shadow, bounds);
+			
+			if (_gradientShadowLayer is not null)
+			{
+				Debug.WriteLine($"[Shadow] WrapperView.UpdateGradientShadow() - SUCCESS: Inserting shadow layer at index 0");
+				// Insert shadow layer below everything else
+				Layer.InsertSublayer(_gradientShadowLayer, 0);
+			}
+			else
+			{
+				Debug.WriteLine("[Shadow] WrapperView.UpdateGradientShadow() - FAILED: CreateGradientShadowLayer returned null");
+			}
 		}
 
 		CALayer? GetContentLayer()

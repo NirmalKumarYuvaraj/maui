@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Threading.Tasks;
 using Microsoft.Graphics.Canvas;
+using Microsoft.Graphics.Canvas.Effects;
 using Microsoft.Maui.Graphics;
 #if MAUI_GRAPHICS_WIN2D
 using Microsoft.Maui.Graphics.Win2D;
@@ -29,6 +31,7 @@ namespace Microsoft.Maui.Platform
 		Rectangle? _shadowHost;
 		WSize _shadowHostSize;
 		Path? _borderPath;
+		bool _isGradientShadow;
 
 		FrameworkElement? _child;
 
@@ -336,6 +339,8 @@ namespace Microsoft.Maui.Platform
 
 		async Task SetShadowPropertiesAsync(DropShadow dropShadow, IShadow? mauiShadow)
 		{
+			Debug.WriteLine($"[Shadow] Windows SetShadowPropertiesAsync called - mauiShadow is null: {mauiShadow is null}");
+			
 			float blurRadius = 10f;
 			float opacity = 1f;
 			Graphics.Color? shadowColor = Colors.Black;
@@ -345,20 +350,104 @@ namespace Microsoft.Maui.Platform
 			{
 				blurRadius = mauiShadow.Radius * 2;
 				opacity = mauiShadow.Opacity;
-				shadowColor = mauiShadow.Paint.ToColor();
 				offset = mauiShadow.Offset;
+
+				Debug.WriteLine($"[Shadow] Windows SetShadowPropertiesAsync - Paint type: {mauiShadow.Paint?.GetType().Name ?? "null"}, blurRadius={blurRadius}, opacity={opacity}");
+
+				// For gradient paints, we attempt to blend the colors for a better approximation
+				// True gradient shadows would require Win2D effects chain (future enhancement)
+				shadowColor = GetShadowColor(mauiShadow.Paint, opacity);
+				Debug.WriteLine($"[Shadow] Windows SetShadowPropertiesAsync - Computed shadow color: {shadowColor}");
 			}
 
 			dropShadow.BlurRadius = blurRadius;
-			dropShadow.Opacity = opacity;
+			dropShadow.Opacity = 1f; // Opacity is baked into the color for gradients
 
 			if (shadowColor is not null)
 			{
 				dropShadow.Color = shadowColor.ToWindowsColor();
+				Debug.WriteLine($"[Shadow] Windows SetShadowPropertiesAsync - Set dropShadow.Color to {shadowColor}");
 			}
 
 			dropShadow.Offset = new Vector3((float)offset.X, (float)offset.Y, 0);
 			dropShadow.Mask = await Child.GetAlphaMaskAsync();
+			Debug.WriteLine("[Shadow] Windows SetShadowPropertiesAsync - Complete");
+		}
+
+		/// <summary>
+		/// Gets the shadow color from the paint. For gradients, returns a blended color.
+		/// </summary>
+		static Graphics.Color? GetShadowColor(Paint? paint, float opacity)
+		{
+			Debug.WriteLine($"[Shadow] Windows GetShadowColor called - paint type: {paint?.GetType().Name ?? "null"}, opacity: {opacity}");
+			
+			if (paint is null)
+				return null;
+
+			if (paint is SolidPaint solidPaint)
+			{
+				var color = solidPaint.Color;
+				Debug.WriteLine($"[Shadow] Windows GetShadowColor - SolidPaint color: {color}");
+				return color?.WithAlpha(color.Alpha * opacity);
+			}
+
+			if (paint is GradientPaint gradientPaint && gradientPaint.GradientStops?.Length > 0)
+			{
+				Debug.WriteLine($"[Shadow] Windows GetShadowColor - GradientPaint with {gradientPaint.GradientStops.Length} stops");
+				
+				// Blend all gradient colors weighted by their offsets for a more representative shadow
+				var stops = gradientPaint.GradientStops;
+				
+				if (stops.Length == 1)
+				{
+					var color = stops[0].Color ?? Colors.Black;
+					Debug.WriteLine($"[Shadow] Windows GetShadowColor - Single stop color: {color}");
+					return color.WithAlpha(color.Alpha * opacity);
+				}
+
+				// For multiple stops, use weighted average
+				float totalR = 0, totalG = 0, totalB = 0, totalA = 0;
+				float totalWeight = 0;
+				
+				for (int i = 0; i < stops.Length; i++)
+				{
+					var stop = stops[i];
+					var color = stop.Color ?? Colors.Black;
+					
+					// Weight by coverage area (distance to neighbors)
+					float weight = 1f;
+					if (i == 0)
+						weight = stops.Length > 1 ? stops[1].Offset : 1f;
+					else if (i == stops.Length - 1)
+						weight = 1f - stops[i - 1].Offset;
+					else
+						weight = (stops[i + 1].Offset - stops[i - 1].Offset) / 2f;
+					
+					if (weight <= 0) weight = 0.01f;
+					
+					Debug.WriteLine($"[Shadow] Windows GetShadowColor - Stop[{i}]: color={color}, offset={stop.Offset}, weight={weight}");
+					
+					totalR += color.Red * weight;
+					totalG += color.Green * weight;
+					totalB += color.Blue * weight;
+					totalA += color.Alpha * weight;
+					totalWeight += weight;
+				}
+
+				if (totalWeight > 0)
+				{
+					var blendedColor = new Graphics.Color(
+						totalR / totalWeight,
+						totalG / totalWeight,
+						totalB / totalWeight,
+						(totalA / totalWeight) * opacity);
+					Debug.WriteLine($"[Shadow] Windows GetShadowColor - Blended result: {blendedColor}");
+					return blendedColor;
+				}
+			}
+
+			// Fallback to first color
+			return paint.ToColor()?.WithAlpha((paint.ToColor()?.Alpha ?? 1f) * opacity);
 		}
 	}
 }
