@@ -174,6 +174,14 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 			if (!_appeared || Element == null)
 				return;
 
+			// If a non-MAUI modal (like UIImagePickerController for camera) is presented over us,
+			// don't fire SendDisappearing. This prevents OnAppearing from being called again
+			// when the native modal is dismissed.
+			// MAUI modals use ModalWrapper, so we only suppress lifecycle events for other modals.
+			var presentedVC = PresentedViewController;
+			if (presentedVC is not null && presentedVC is not ModalWrapper)
+				return;
+
 			_appeared = false;
 			PageController.SendDisappearing();
 		}

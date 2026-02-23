@@ -7,6 +7,7 @@ using Microsoft.Maui.Controls.Internals;
 using Microsoft.Maui.Controls.Platform;
 using Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;
 using Microsoft.Maui.Graphics;
+using Microsoft.Maui.Platform;
 using ObjCRuntime;
 using UIKit;
 using PointF = CoreGraphics.CGPoint;
@@ -15,6 +16,7 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 {
 	public class PhoneFlyoutPageRenderer : UIViewController, IPlatformViewHandler
 	{
+		bool _appeared;
 		UIView _clickOffView;
 		UIViewController _detailController;
 		WeakReference<VisualElement> _element;
@@ -123,7 +125,11 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 		public override void ViewDidAppear(bool animated)
 		{
 			base.ViewDidAppear(animated);
-			Page.SendAppearing();
+			if (!_appeared)
+			{
+				_appeared = true;
+				Page.SendAppearing();
+			}
 			if (!_intialLayoutFinished)
 			{
 				_intialLayoutFinished = true;
@@ -134,6 +140,19 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 		public override void ViewDidDisappear(bool animated)
 		{
 			base.ViewDidDisappear(animated);
+
+			if (!_appeared || Page == null)
+				return;
+
+			// If a non-MAUI modal (like UIImagePickerController for camera) is presented over us,
+			// don't fire SendDisappearing. This prevents OnAppearing from being called again
+			// when the native modal is dismissed.
+			// MAUI modals use ModalWrapper, so we only suppress lifecycle events for other modals.
+			var presentedVC = PresentedViewController;
+			if (presentedVC is not null && presentedVC is not ModalWrapper)
+				return;
+
+			_appeared = false;
 			Page?.SendDisappearing();
 		}
 
@@ -240,6 +259,12 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 		{
 			if (disposing && !_disposed)
 			{
+				if (_appeared)
+				{
+					Page?.SendDisappearing();
+					_appeared = false;
+				}
+
 				Element.SizeChanged -= PageOnSizeChanged;
 				Element.PropertyChanged -= HandlePropertyChanged;
 

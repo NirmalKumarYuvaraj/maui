@@ -8,6 +8,7 @@ using System.Xml.Linq;
 using Microsoft.Maui.Controls.Internals;
 using Microsoft.Maui.Controls.Platform;
 using Microsoft.Maui.Graphics;
+using Microsoft.Maui.Platform;
 using UIKit;
 using static Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific.Page;
 using PageUIStatusBarAnimation = Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific.UIStatusBarAnimation;
@@ -18,6 +19,7 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 {
 	public class TabbedRenderer : UITabBarController, IPlatformViewHandler
 	{
+		bool _appeared;
 		bool _barBackgroundColorWasSet;
 		bool _barTextColorWasSet;
 		UIColor _defaultBarTextColor;
@@ -118,13 +120,30 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 
 		public override void ViewDidAppear(bool animated)
 		{
-			Page?.SendAppearing();
+			if (!_appeared)
+			{
+				_appeared = true;
+				Page?.SendAppearing();
+			}
 			base.ViewDidAppear(animated);
 		}
 
 		public override void ViewDidDisappear(bool animated)
 		{
 			base.ViewDidDisappear(animated);
+
+			if (!_appeared || Page == null)
+				return;
+
+			// If a non-MAUI modal (like UIImagePickerController for camera) is presented over us,
+			// don't fire SendDisappearing. This prevents OnAppearing from being called again
+			// when the native modal is dismissed.
+			// MAUI modals use ModalWrapper, so we only suppress lifecycle events for other modals.
+			var presentedVC = PresentedViewController;
+			if (presentedVC is not null && presentedVC is not ModalWrapper)
+				return;
+
+			_appeared = false;
 			Page?.SendDisappearing();
 		}
 
@@ -145,7 +164,11 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 				_tabBarAppearance?.Dispose();
 				_tabBarAppearance = null;
 
-				Page?.SendDisappearing();
+				if (_appeared)
+				{
+					Page?.SendDisappearing();
+					_appeared = false;
+				}
 
 				if (Tabbed is TabbedPage tabbed)
 				{
