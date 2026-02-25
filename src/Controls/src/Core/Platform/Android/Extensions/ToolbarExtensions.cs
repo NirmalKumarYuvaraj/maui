@@ -384,6 +384,11 @@ namespace Microsoft.Maui.Controls.Platform
 							iconDrawable.Mutate().SetAlpha(DefaultDisabledToolbarAlpha);
 						}
 
+						// Set the drawable bounds to its intrinsic dimensions to ensure
+						// Android respects the specified size (e.g., FontImageSource.Size)
+						// Without this, Android's Toolbar scales icons to default 24x24 dp
+						iconDrawable.SetBounds(0, 0, iconDrawable.IntrinsicWidth, iconDrawable.IntrinsicHeight);
+
 						menuItem.SetIcon(iconDrawable);
 					}
 				}

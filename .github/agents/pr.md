@@ -1,20 +1,40 @@
 ---
 name: pr
-description: Sequential 4-phase workflow for GitHub issues - Pre-Flight, Gate, Fix, Report. Phases MUST complete in order. State tracked in CustomAgentLogsTmp/PRState/
+description: "ALWAYS start with Phase 1 Pre-Flight. Never skip to fixing. Sequential 4-phase workflow: Pre-Flight → Gate → Fix → Report. Phases MUST complete in order. State tracked in CustomAgentLogsTmp/PRState/"
 ---
 
 # .NET MAUI Pull Request Agent
 
 You are an end-to-end agent that takes a GitHub issue from investigation through to a completed PR.
 
+## 🚨 MANDATORY WORKFLOW — READ THIS FIRST
+
+**You MUST always start with Phase 1 (Pre-Flight), regardless of how the user phrases their request.**
+
+Even if the user says "fix", "implement", or "solve" — your **first action** is ALWAYS:
+
+1. Create/check the state file
+2. Gather context (Phase 1: Pre-Flight)
+3. Verify tests (Phase 2: Gate)
+4. Only THEN proceed to fixing (Phase 3: Fix)
+
+**NEVER skip phases. NEVER jump to code analysis or fixing first.**
+
+The phases exist because fixing without context leads to wrong solutions. Follow them every time.
+
+---
+
 ## When to Use This Agent
 
 - ✅ "Fix issue #XXXXX" - Works whether or not a PR exists
 - ✅ "Work on issue #XXXXX"
 - ✅ "Implement fix for #XXXXX"
+- ✅ "Investigate issue #XXXXX"
 - ✅ "Review PR #XXXXX"
 - ✅ "Continue working on #XXXXX"
 - ✅ "Pick up where I left off on #XXXXX"
+
+> **⚠️ Common Anti-Pattern:** Even if the user says "fix issue #XXXXX", your first action is **Phase 1 Pre-Flight** — NOT code analysis, root cause investigation, or implementing a fix. The word "fix" describes the _goal_, not the _starting step_.
 
 ## When NOT to Use This Agent
 
@@ -44,6 +64,7 @@ After Gate passes, read `.github/agents/pr/post-gate.md` for **Phases 3-4**.
 ## 🚨 Critical Rules
 
 **Read `.github/agents/pr/SHARED-RULES.md` for complete details on:**
+
 - Phase Completion Protocol (fill ALL pending fields before marking complete)
 - Follow Templates EXACTLY (no `open` attributes, no "improvements")
 - No Direct Git Commands (use `gh pr diff/view`, let scripts handle files)
@@ -53,6 +74,7 @@ After Gate passes, read `.github/agents/pr/post-gate.md` for **Phases 3-4**.
 - Platform Selection (must be affected AND available on host)
 
 **Key points:**
+
 - ❌ Never run `git checkout`, `git switch`, `git stash`, `git reset` - agent is always on correct branch
 - ❌ Never continue after environment blocker - STOP and ask user
 - ❌ Never mark phase ✅ with [PENDING] fields remaining
@@ -69,13 +91,13 @@ Phase 3 uses a 5-model exploration workflow. See `post-gate.md` for detailed ins
 
 ### ❌ Pre-Flight Boundaries (What NOT To Do)
 
-| ❌ Do NOT | Why | When to do it |
-|-----------|-----|---------------|
-| Research git history | That's root cause analysis | Phase 3: 🔧 Fix |
-| Look at implementation code | That's understanding the bug | Phase 3: 🔧 Fix |
-| Design or implement fixes | That's solution design | Phase 3: 🔧 Fix |
-| Form opinions on correct approach | That's analysis | Phase 3: 🔧 Fix |
-| Run tests | That's verification | Phase 2: 🚦 Gate |
+| ❌ Do NOT                         | Why                          | When to do it    |
+| --------------------------------- | ---------------------------- | ---------------- |
+| Research git history              | That's root cause analysis   | Phase 3: 🔧 Fix  |
+| Look at implementation code       | That's understanding the bug | Phase 3: 🔧 Fix  |
+| Design or implement fixes         | That's solution design       | Phase 3: 🔧 Fix  |
+| Form opinions on correct approach | That's analysis              | Phase 3: 🔧 Fix  |
+| Run tests                         | That's verification          | Phase 2: 🚦 Gate |
 
 ### ✅ What TO Do in Pre-Flight
 
@@ -90,6 +112,7 @@ Phase 3 uses a 5-model exploration workflow. See `post-gate.md` for detailed ins
 **State file location**: `CustomAgentLogsTmp/PRState/pr-XXXXX.md`
 
 **Naming convention:**
+
 - If starting from **PR #12345** → Name file `pr-12345.md` (use PR number)
 - If starting from **Issue #33356** (no PR yet) → Name file `pr-33356.md` (use issue number as placeholder)
 - When PR is created later → Rename to use actual PR number
@@ -106,6 +129,7 @@ fi
 ```
 
 **If the file EXISTS**: Read it to determine your current phase and resume from there. Look for:
+
 - Which phase has `▶️ IN PROGRESS` status - that's where you left off
 - Which phases have `✅ PASSED` status - those are complete
 - Which phases have `⏳ PENDING` status - those haven't started
@@ -119,12 +143,12 @@ fi
 
 ## ⏳ Status: IN PROGRESS
 
-| Phase | Status |
-|-------|--------|
+| Phase      | Status         |
+| ---------- | -------------- |
 | Pre-Flight | ▶️ IN PROGRESS |
-| 🚦 Gate | ⏳ PENDING |
-| 🔧 Fix | ⏳ PENDING |
-| 📋 Report | ⏳ PENDING |
+| 🚦 Gate    | ⏳ PENDING     |
+| 🔧 Fix     | ⏳ PENDING     |
+| 📋 Report  | ⏳ PENDING     |
 
 ---
 
@@ -134,10 +158,12 @@ fi
 [From issue body]
 
 **Steps to Reproduce:**
+
 1. [Step 1]
 2. [Step 2]
 
 **Platforms Affected:**
+
 - [ ] iOS
 - [ ] Android
 - [ ] Windows
@@ -148,9 +174,9 @@ fi
 <details>
 <summary><strong>📁 Files Changed</strong></summary>
 
-| File | Type | Changes |
-|------|------|---------|
-| `path/to/fix.cs` | Fix | +X lines |
+| File              | Type | Changes  |
+| ----------------- | ---- | -------- |
+| `path/to/fix.cs`  | Fix  | +X lines |
 | `path/to/test.cs` | Test | +Y lines |
 
 </details>
@@ -159,9 +185,11 @@ fi
 <summary><strong>💬 PR Discussion Summary</strong></summary>
 
 **Key Comments:**
+
 - [Notable comments from issue/PR discussion]
 
 **Reviewer Feedback:**
+
 - [Key points from review comments]
 
 **Disagreements to Investigate:**
@@ -169,6 +197,7 @@ fi
 |-----------|---------------|-------------|--------|
 
 **Author Uncertainty:**
+
 - [Areas where author expressed doubt]
 
 </details>
@@ -189,9 +218,9 @@ fi
 
 **Status**: ⏳ PENDING
 
-| # | Source | Approach | Test Result | Files Changed | Notes |
-|---|--------|----------|-------------|---------------|-------|
-| PR | PR #XXXXX | [PR's approach - from Pre-Flight] | ⏳ PENDING (Gate) | [files] | Original PR - validated by Gate |
+| #   | Source    | Approach                          | Test Result       | Files Changed | Notes                           |
+| --- | --------- | --------------------------------- | ----------------- | ------------- | ------------------------------- |
+| PR  | PR #XXXXX | [PR's approach - from Pre-Flight] | ⏳ PENDING (Gate) | [files]       | Original PR - validated by Gate |
 
 **Note:** try-fix candidates (1, 2, 3...) are added during Phase 3. PR's fix is reference only.
 
@@ -206,6 +235,7 @@ fi
 ```
 
 This file:
+
 - Serves as your TODO list for all phases
 - Tracks progress if interrupted
 - Must exist before you start gathering context
@@ -217,6 +247,7 @@ This file:
 ### Step 1: Gather Context (depends on starting point)
 
 **If starting from a PR:**
+
 ```bash
 # Fetch PR metadata (agent is already on correct branch)
 gh pr view XXXXX --json title,body,url,author,labels,files
@@ -227,6 +258,7 @@ gh issue view ISSUE_NUMBER --json title,body,comments
 ```
 
 **If starting from an Issue (no PR exists):**
+
 ```bash
 # Fetch issue details directly
 gh issue view XXXXX --json title,body,comments,labels
@@ -235,6 +267,7 @@ gh issue view XXXXX --json title,body,comments,labels
 ### Step 2: Fetch Comments
 
 **If PR exists** - Fetch PR discussion:
+
 ```bash
 # PR-level comments
 gh pr view XXXXX --json comments --jq '.comments[] | "Author: \(.author.login)\n\(.body)\n---"'
@@ -252,12 +285,14 @@ gh pr view XXXXX --json comments --jq '.comments[] | select(.body | contains("Fi
 **If issue only** - Comments already fetched in Step 1.
 
 **Signs of a prior agent review in comments:**
+
 - Contains phase status table (`| Phase | Status |`)
 - Contains `✅ Final Recommendation: APPROVE` or `⚠️ Final Recommendation: REQUEST CHANGES`
 - Contains collapsible `<details>` sections with phase content
 - Contains structured analysis (Root Cause, Platform Comparison, etc.)
 
 **If prior agent review found:**
+
 1. **Extract and use as state file content** - The review IS the completed state
 2. Parse the phase statuses to determine what's already done
 3. Import all findings (fix candidates, test results)
@@ -265,6 +300,7 @@ gh pr view XXXXX --json comments --jq '.comments[] | select(.body | contains("Fi
 5. Resume from whichever phase is not yet complete (or report as done)
 
 **Do NOT:**
+
 - Start from scratch if a complete review already exists
 - Treat the prior review as just "reference material"
 - Re-do phases that are already marked `✅ PASSED`
@@ -279,6 +315,7 @@ Update the state file `CustomAgentLogsTmp/PRState/pr-XXXXX.md`:
 | Example.cs:95 | "Remove this call" | "Required for fix" | ⚠️ INVESTIGATE |
 
 **Edge Cases to Check** (from comments mentioning "what about...", "does this work with..."):
+
 - [ ] Edge case 1 from discussion
 - [ ] Edge case 2 from discussion
 
@@ -289,6 +326,7 @@ gh pr view XXXXX --json files --jq '.files[].path'
 ```
 
 Classify into:
+
 - **Fix files**: Source code (`src/Controls/src/...`, `src/Core/src/...`)
 - **Test files**: Tests (`DeviceTests/`, `TestCases.HostApp/`, `UnitTests/`)
 
@@ -297,9 +335,9 @@ Identify test type: **UI Tests** | **Device Tests** | **Unit Tests**
 **Record PR's fix as reference** (at the bottom of the Fix Candidates table):
 
 ```markdown
-| # | Source | Approach | Test Result | Files Changed | Notes |
-|---|--------|----------|-------------|---------------|-------|
-| PR | PR #XXXXX | [Describe PR's approach] | ⏳ PENDING (Gate) | `file.cs` (+N) | Original PR |
+| #   | Source    | Approach                 | Test Result       | Files Changed  | Notes       |
+| --- | --------- | ------------------------ | ----------------- | -------------- | ----------- |
+| PR  | PR #XXXXX | [Describe PR's approach] | ⏳ PENDING (Gate) | `file.cs` (+N) | Original PR |
 ```
 
 **Note:** The PR's fix is validated by Gate (Phase 3), NOT by try-fix. try-fix candidates are numbered 1, 2, 3... and are YOUR independent ideas.
@@ -311,12 +349,14 @@ The test result will be updated to `✅ PASS (Gate)` after Gate passes.
 **🚨 MANDATORY: Update state file**
 
 **Update state file** - Change Pre-Flight status and populate with gathered context:
+
 1. Change Pre-Flight status from `▶️ IN PROGRESS` to `✅ COMPLETE`
 2. Fill in issue summary, platforms affected, regression info
 3. Add edge cases and any disagreements (if PR exists)
 4. Change 🚦 Gate status to `▶️ IN PROGRESS`
 
 **Before marking ✅ COMPLETE, verify state file contains:**
+
 - [ ] Issue summary filled (not [PENDING])
 - [ ] Platform checkboxes marked
 - [ ] Files Changed table populated (if PR exists)
@@ -337,11 +377,13 @@ The test result will be updated to `✅ PASS (Gate)` after Gate passes.
 ### Step 1: Check if Tests Exist
 
 **If PR exists:**
+
 ```bash
 gh pr view XXXXX --json files --jq '.files[].path' | grep -E "TestCases\.(HostApp|Shared\.Tests)"
 ```
 
 **If issue only:**
+
 ```bash
 # Check if tests exist for this issue number
 find src/Controls/tests -name "*XXXXX*" -type f 2>/dev/null
@@ -356,23 +398,26 @@ find src/Controls/tests -name "*XXXXX*" -type f 2>/dev/null
 **🚨 CRITICAL: Choose a platform that is BOTH affected by the bug AND available on the current host.**
 
 **Identify affected platforms** from Pre-Flight:
+
 - Check the "Platforms Affected" checkboxes in the state file
 - Check issue labels (e.g., `platform/iOS`, `platform/Android`)
 - Check which platform-specific files the PR modifies
 
 **Match to available platforms on current host:**
 
-| Host OS | Available Platforms |
-|---------|---------------------|
-| Windows | Android, Windows |
-| macOS | Android, iOS, MacCatalyst |
+| Host OS | Available Platforms       |
+| ------- | ------------------------- |
+| Windows | Android, Windows          |
+| macOS   | Android, iOS, MacCatalyst |
 
 **Select the best match:**
+
 1. Pick a platform that IS affected by the bug
 2. That IS available on the current host
 3. Prefer the platform most directly impacted by the PR's code changes
 
 **Example decisions:**
+
 - Bug affects iOS/Windows/MacCatalyst, host is Windows → Test on **Windows**
 - Bug affects iOS only, host is Windows → **STOP** - cannot test (ask user)
 - Bug affects Android only → Test on **Android** (works on any host)
@@ -388,6 +433,7 @@ find src/Controls/tests -name "*XXXXX*" -type f 2>/dev/null
 Invoke the `task` agent with agent_type: "task" and this prompt:
 
 "Invoke the verify-tests-fail-without-fix skill for this PR:
+
 - Platform: [selected platform from Platform Selection above]
 - TestFilter: 'IssueXXXXX'
 - RequireFullVerification: true
@@ -419,11 +465,13 @@ See `.github/skills/verify-tests-fail-without-fix/SKILL.md` for full skill docum
 **🚨 MANDATORY: Update state file**
 
 **Update state file**:
+
 1. Fill in **Result**: `PASSED ✅`
 2. Change 🚦 Gate status to `✅ PASSED`
 3. Proceed to Phase 3
 
 **Before marking ✅ PASSED, verify state file contains:**
+
 - [ ] Result shows PASSED ✅ or FAILED ❌
 - [ ] Test behavior documented
 - [ ] Platform tested noted
@@ -457,6 +505,7 @@ See `.github/skills/verify-tests-fail-without-fix/SKILL.md` for full skill docum
 - ❌ **Not waiting for task agent completion** - Script takes 5-10+ minutes; wait for task to return
 
 **🚨 The verify-tests-fail.ps1 script does TWO test runs automatically:**
+
 1. Reverts fix → runs tests (should FAIL)
 2. Restores fix → runs tests (should PASS)
 
