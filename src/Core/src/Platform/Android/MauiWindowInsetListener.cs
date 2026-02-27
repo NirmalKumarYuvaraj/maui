@@ -206,7 +206,29 @@ namespace Microsoft.Maui.Platform
 			}
 
 			// Apply default window insets for standard views
-			return ApplyDefaultWindowInsets(v, insets);
+			var result = ApplyDefaultWindowInsets(v, insets);
+
+			// Push-from-top: after the root view processes its insets, proactively cascade
+			// RequestApplyInsets to all tracked child views. This ensures that when the tab
+			// bar visibility changes (e.g., navigating back from a hidden-tab-bar page),
+			// tracked children recalculate their safe area padding based on current position,
+			// clearing any stale padding that accumulated from a previous layout state.
+			if (_trackedViews.Count > 0)
+			{
+				var trackedViewsCopy = _trackedViews.ToArray();
+				v.Post(() =>
+				{
+					foreach (var trackedView in trackedViewsCopy)
+					{
+						if (trackedView.IsAttachedToWindow)
+						{
+							ViewCompat.RequestApplyInsets(trackedView);
+						}
+					}
+				});
+			}
+
+			return result;
 		}
 
 		static WindowInsetsCompat? ApplyDefaultWindowInsets(AView v, WindowInsetsCompat insets)
@@ -304,10 +326,10 @@ namespace Microsoft.Maui.Platform
 
 		public bool HasTrackedView => _trackedViews.Count > 0;
 
-        public bool IsViewTracked(AView view)
-        {
-            return _trackedViews.Contains(view);
-        }
+		public bool IsViewTracked(AView view)
+		{
+			return _trackedViews.Contains(view);
+		}
 		public void ResetView(AView view)
 		{
 			if (view is IHandleWindowInsets customHandler)
