@@ -541,6 +541,88 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 			shell.TestCount(1);
 		}
 
+		[Fact]
+		public async Task ShellPushPage_NavigatingFromDestinationPageIsNotSourcePage()
+		{
+			var rootPage = new NavigatingTrackingPage();
+			TestShell shell = new TestShell();
+			var item = CreateShellItem(page: rootPage, shellContentRoute: ContentRoute, shellSectionRoute: SectionRoute, shellItemRoute: ItemRoute);
+			shell.Items.Add(item);
+			shell.AddToTestWindow();
+
+			await shell.Navigation.PushAsync(new ContentPage());
+
+			// NavigatingFrom fires on the root (source) page
+			Assert.NotNull(rootPage.NavigatingFromArgs);
+			// DestinationPage must not incorrectly report the source page itself
+			Assert.NotEqual(rootPage, rootPage.NavigatingFromArgs.DestinationPage);
+		}
+
+		[Fact]
+		public async Task ShellPopPage_NavigatingFromDestinationPageIsCorrect()
+		{
+			var rootPage = new NavigatingTrackingPage();
+			TestShell shell = new TestShell();
+			var item = CreateShellItem(page: rootPage, shellContentRoute: ContentRoute, shellSectionRoute: SectionRoute, shellItemRoute: ItemRoute);
+			shell.Items.Add(item);
+			shell.AddToTestWindow();
+
+			var poppedPage = new NavigatingTrackingPage();
+			await shell.Navigation.PushAsync(poppedPage);
+			await shell.Navigation.PopAsync();
+
+			// When popping, NavigatingFromArgs.DestinationPage should be the root page
+			Assert.NotNull(poppedPage.NavigatingFromArgs);
+			Assert.Equal(rootPage, poppedPage.NavigatingFromArgs.DestinationPage);
+			Assert.Equal(rootPage, poppedPage.NavigatedFromArgs.DestinationPage);
+		}
+
+		[Fact]
+		public async Task ShellPopToRoot_NavigatingFromDestinationPageIsRootPage()
+		{
+			var rootPage = new NavigatingTrackingPage();
+			TestShell shell = new TestShell();
+			var item = CreateShellItem(page: rootPage, shellContentRoute: ContentRoute, shellSectionRoute: SectionRoute, shellItemRoute: ItemRoute);
+			shell.Items.Add(item);
+			shell.AddToTestWindow();
+
+			await shell.Navigation.PushAsync(new ContentPage());
+			await shell.Navigation.PushAsync(new ContentPage());
+			var poppedPage = new NavigatingTrackingPage();
+			await shell.Navigation.PushAsync(poppedPage);
+			await shell.Navigation.PopToRootAsync();
+
+			// When popping to root, NavigatingFromArgs.DestinationPage should be the root page
+			Assert.NotNull(poppedPage.NavigatingFromArgs);
+			Assert.Equal(rootPage, poppedPage.NavigatingFromArgs.DestinationPage);
+			Assert.Equal(rootPage, poppedPage.NavigatedFromArgs.DestinationPage);
+		}
+
+		public class NavigatingTrackingPage : ContentPage
+		{
+			public NavigatingFromEventArgs NavigatingFromArgs { get; private set; }
+			public NavigatedFromEventArgs NavigatedFromArgs { get; private set; }
+			public NavigatedToEventArgs NavigatedToArgs { get; private set; }
+
+			protected override void OnNavigatingFrom(NavigatingFromEventArgs args)
+			{
+				base.OnNavigatingFrom(args);
+				NavigatingFromArgs = args;
+			}
+
+			protected override void OnNavigatedFrom(NavigatedFromEventArgs args)
+			{
+				base.OnNavigatedFrom(args);
+				NavigatedFromArgs = args;
+			}
+
+			protected override void OnNavigatedTo(NavigatedToEventArgs args)
+			{
+				base.OnNavigatedTo(args);
+				NavigatedToArgs = args;
+			}
+		}
+
 		public class LifeCyclePage : ContentPage
 		{
 			public bool Appearing;

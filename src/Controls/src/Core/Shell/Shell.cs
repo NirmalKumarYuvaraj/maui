@@ -1717,8 +1717,34 @@ namespace Microsoft.Maui.Controls
 				}
 
 				_previousPage = CurrentPage;
-				CurrentPage?.SendNavigatingFrom(new NavigatingFromEventArgs(CurrentPage, navigationType));
+
+				Page destinationPage = null;
+				if (args.Source == ShellNavigationSource.Pop)
+				{
+					var stack = CurrentItem?.CurrentItem?.Stack;
+					if (stack?.Count >= 2)
+					{
+						destinationPage = stack[stack.Count - 2] ?? GetShellSectionContentPage();
+					}
+				}
+				else if (args.Source == ShellNavigationSource.PopToRoot)
+				{
+					destinationPage = GetShellSectionContentPage();
+				}
+
+				CurrentPage?.SendNavigatingFrom(new NavigatingFromEventArgs(destinationPage, navigationType));
 			}
+		}
+
+		Page GetShellSectionContentPage()
+		{
+			var shellContent = CurrentItem?.CurrentItem?.CurrentItem;
+			if (shellContent?.Content == null && shellContent?.ContentTemplate == null)
+			{
+				return null;
+			}
+
+			return (shellContent as IShellContentController)?.GetOrCreateContent();
 		}
 
 		protected virtual void OnNavigated(ShellNavigatedEventArgs args)

@@ -415,9 +415,9 @@ namespace Microsoft.Maui.Controls
 			CurrentPage.SendNavigatedTo(new NavigatedToEventArgs(previousPage, navigationType));
 		}
 
-		void SendNavigating(NavigationType navigationType, Page navigatingFrom = null)
+		void SendNavigating(NavigationType navigationType, Page navigatingFrom = null, Page destinationPage = null)
 		{
-			(navigatingFrom ?? CurrentPage)?.SendNavigatingFrom(new NavigatingFromEventArgs(CurrentPage, navigationType));
+			(navigatingFrom ?? CurrentPage)?.SendNavigatingFrom(new NavigatingFromEventArgs(destinationPage, navigationType));
 		}
 
 
@@ -834,7 +834,7 @@ namespace Microsoft.Maui.Controls
 				await Owner.SendHandlerUpdateAsync(animated,
 					() =>
 					{
-						Owner.SendNavigating(NavigationType.Pop, currentPage);
+						Owner.SendNavigating(NavigationType.Pop, currentPage, newCurrentPage);
 						Owner.FireDisappearing(currentPage);
 						Owner.RemoveFromInnerChildren(currentPage);
 						Owner.CurrentPage = newCurrentPage;
@@ -869,7 +869,7 @@ namespace Microsoft.Maui.Controls
 				return Owner.SendHandlerUpdateAsync(animated,
 					() =>
 					{
-						Owner.SendNavigating(NavigationType.PopToRoot, previousPage);
+						Owner.SendNavigating(NavigationType.PopToRoot, previousPage, newPage);
 						Owner.FireDisappearing(previousPage);
 						var lastIndex = NavigationStack.Count - 1;
 						while (lastIndex > 0)
@@ -906,7 +906,7 @@ namespace Microsoft.Maui.Controls
 						Owner.NavigationType = navigationType;
 						// Move the SendNavigating here so that it's fired prior to the stack being modified
 						// This ensures consistent event ordering across all platforms (iOS, Catalyst, Android, Windows)
-						Owner.SendNavigating(navigationType, previousPage);
+						Owner.SendNavigating(navigationType, previousPage, root);
 						Owner.PushPage(root);
 					},
 					() =>

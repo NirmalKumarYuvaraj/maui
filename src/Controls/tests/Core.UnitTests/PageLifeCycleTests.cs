@@ -45,6 +45,7 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 			Assert.NotNull(previousPage.NavigatedFromArgs);
 			Assert.Equal(previousPage, lcPage.NavigatedToArgs.PreviousPage);
 			Assert.Equal(lcPage, previousPage.NavigatedFromArgs.DestinationPage);
+			Assert.Equal(lcPage, previousPage.NavigatingFromArgs.DestinationPage);
 		}
 
 		[Theory]
@@ -64,6 +65,7 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 			Assert.NotNull(poppedPage.NavigatingFromArgs);
 			Assert.Equal(poppedPage, firstPage.NavigatedToArgs.PreviousPage);
 			Assert.Equal(firstPage, poppedPage.NavigatedFromArgs.DestinationPage);
+			Assert.Equal(firstPage, poppedPage.NavigatingFromArgs.DestinationPage);
 		}
 
 		[Theory]
@@ -85,6 +87,7 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 			Assert.NotNull(poppedPage.NavigatingFromArgs);
 			Assert.Equal(poppedPage, firstPage.NavigatedToArgs.PreviousPage);
 			Assert.Equal(firstPage, poppedPage.NavigatedFromArgs.DestinationPage);
+			Assert.Equal(firstPage, poppedPage.NavigatingFromArgs.DestinationPage);
 		}
 
 		[Fact]
@@ -109,7 +112,7 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 
 			tabbedPage.Children.Add(firstPage);
 			tabbedPage.Children.Add(secondPage);
-			
+
 			Assert.NotNull(firstPage.NavigatedToArgs);
 			Assert.Null(firstPage.NavigatedToArgs.PreviousPage);
 
@@ -161,39 +164,39 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 			Assert.Equal(secondPage, firstPage.NavigatedFromArgs.DestinationPage);
 		}
 
-        [Fact]
-        public async Task FlyoutPageToggleIsPresented()
-        {
-            // Testing toggling IsPresented in FlyoutPage without changing navigation events
-            var flyout = new LCPage { Title = "Flyout" };
-            var detail = new LCPage { Title = "Detail" };
-            var flyoutPage = new FlyoutPage { Flyout = flyout, Detail = detail }.AddToTestWindow();
+		[Fact]
+		public async Task FlyoutPageToggleIsPresented()
+		{
+			// Testing toggling IsPresented in FlyoutPage without changing navigation events
+			var flyout = new LCPage { Title = "Flyout" };
+			var detail = new LCPage { Title = "Detail" };
+			var flyoutPage = new FlyoutPage { Flyout = flyout, Detail = detail }.AddToTestWindow();
 
-            // Clearing initial navigation args to focus on IsPresented toggle
-            detail.ClearNavigationArgs();
-            flyout.ClearNavigationArgs();
+			// Clearing initial navigation args to focus on IsPresented toggle
+			detail.ClearNavigationArgs();
+			flyout.ClearNavigationArgs();
 
-            // Toggling IsPresented
-            flyoutPage.IsPresented = true;
-            await Task.Yield();
-            flyoutPage.IsPresented = false;
-            await Task.Yield();
+			// Toggling IsPresented
+			flyoutPage.IsPresented = true;
+			await Task.Yield();
+			flyoutPage.IsPresented = false;
+			await Task.Yield();
 
-            // Verifying no navigation events are triggered
-            Assert.Null(flyout.NavigatingFromArgs);
-            Assert.Null(flyout.NavigatedFromArgs);
-            Assert.Null(flyout.NavigatedToArgs);
-            Assert.Null(detail.NavigatingFromArgs);
-            Assert.Null(detail.NavigatedFromArgs);
-            Assert.Null(detail.NavigatedToArgs);
+			// Verifying no navigation events are triggered
+			Assert.Null(flyout.NavigatingFromArgs);
+			Assert.Null(flyout.NavigatedFromArgs);
+			Assert.Null(flyout.NavigatedToArgs);
+			Assert.Null(detail.NavigatingFromArgs);
+			Assert.Null(detail.NavigatedFromArgs);
+			Assert.Null(detail.NavigatedToArgs);
 
-            // Verifying Loaded/Unloaded counts remain unchanged
-            Assert.Equal(1, flyout.AppearingCount);
-            Assert.Equal(0, flyout.DisappearingCount);
-            Assert.Equal(1, detail.AppearingCount);
-            Assert.Equal(0, detail.DisappearingCount);
-        }
-        
+			// Verifying Loaded/Unloaded counts remain unchanged
+			Assert.Equal(1, flyout.AppearingCount);
+			Assert.Equal(0, flyout.DisappearingCount);
+			Assert.Equal(1, detail.AppearingCount);
+			Assert.Equal(0, detail.DisappearingCount);
+		}
+
 		[Fact]
 		public async Task PushModalPage()
 		{
