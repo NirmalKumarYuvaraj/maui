@@ -112,7 +112,10 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 					// Only use the cached first-item measurement for actual item cells (not headers/footers)
 					if (!isSupplementaryView)
 					{
-						var cachedSize = GetCachedFirstItemSizeFromHandler();
+						// When measure is explicitly invalidated (e.g., by an async content change such as
+						// HTML text applied after the initial layout pass), bypass the cached size so that
+						// the cell re-measures with its actual current content rather than a stale value.
+						var cachedSize = _measureInvalidated ? CGSize.Empty : GetCachedFirstItemSizeFromHandler();
 						if (cachedSize != CGSize.Empty)
 						{
 							_measuredSize = cachedSize.ToSize();
