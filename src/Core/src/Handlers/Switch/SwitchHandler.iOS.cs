@@ -137,6 +137,9 @@ namespace Microsoft.Maui.Handlers
 				if (VirtualView is ISwitch virtualView && sender is UISwitch platformView && virtualView.IsOn != platformView.On)
 				{
 					virtualView.IsOn = platformView.On;
+
+					if (virtualView.IsOn != platformView.On)
+						platformView.UpdateIsOn(virtualView);
 				}
 			}
 		}

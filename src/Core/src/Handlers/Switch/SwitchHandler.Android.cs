@@ -71,6 +71,9 @@ namespace Microsoft.Maui.Handlers
 				return;
 
 			VirtualView.IsOn = isOn;
+
+			if (PlatformView is not null && VirtualView.IsOn != isOn)
+				PlatformView.UpdateIsOn(VirtualView);
 		}
 
 		class CheckedChangeListener : Java.Lang.Object, CompoundButton.IOnCheckedChangeListener

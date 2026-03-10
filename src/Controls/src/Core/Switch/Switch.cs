@@ -21,7 +21,7 @@ namespace Microsoft.Maui.Controls
 		/// </summary>
 		/// <value>The string "On".</value>
 		public const string SwitchOnVisualState = "On";
-		
+
 		/// <summary>
 		/// The visual state name for when the switch is in the off position.
 		/// </summary>
@@ -35,7 +35,7 @@ namespace Microsoft.Maui.Controls
 			((Switch)bindable).ChangeVisualState();
 			((IView)bindable)?.Handler?.UpdateValue(nameof(ISwitch.TrackColor));
 
-		}, defaultBindingMode: BindingMode.TwoWay);
+		}, validateValue: (bindable, value) => ((Switch)bindable).CanToggleTo((bool)value), defaultBindingMode: BindingMode.TwoWay);
 
 		/// <summary>Bindable property for <see cref="OnColor"/>. This is a bindable property.</summary>
 		public static readonly BindableProperty OnColorProperty = BindableProperty.Create(nameof(OnColor), typeof(Color), typeof(Switch), null,
@@ -119,6 +119,12 @@ namespace Microsoft.Maui.Controls
 		}
 
 		/// <summary>
+		/// Occurs when the <see cref="IsToggled"/> property is about to change.
+		/// Set <see cref="TogglingEventArgs.Cancel"/> to <see langword="true"/> to prevent the state change.
+		/// </summary>
+		public event EventHandler<TogglingEventArgs> Toggling;
+
+		/// <summary>
 		/// Occurs when the <see cref="IsToggled"/> property changes.
 		/// </summary>
 		public event EventHandler<ToggledEventArgs> Toggled;
@@ -157,6 +163,16 @@ namespace Microsoft.Maui.Controls
 		{
 			get => IsToggled;
 			set => SetValue(IsToggledProperty, value, SetterSpecificity.FromHandler);
+		}
+
+		bool CanToggleTo(bool value)
+		{
+			if (IsToggled == value)
+				return true;
+
+			var args = new TogglingEventArgs(IsToggled, value);
+			Toggling?.Invoke(this, args);
+			return !args.Cancel;
 		}
 
 		private protected override string GetDebuggerDisplay()

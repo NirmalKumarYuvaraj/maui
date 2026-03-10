@@ -103,6 +103,43 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 		}
 
 		[Fact]
+		public void TestTogglingEventFiresWithOldAndNewValue()
+		{
+			var sw = new Switch();
+			bool fired = false;
+			bool oldValue = true;
+			bool newValue = false;
+
+			sw.Toggling += (sender, e) =>
+			{
+				fired = true;
+				oldValue = e.OldValue;
+				newValue = e.Value;
+			};
+
+			sw.IsToggled = true;
+
+			Assert.True(fired);
+			Assert.False(oldValue);
+			Assert.True(newValue);
+		}
+
+		[Fact]
+		public void TestTogglingEventCanCancelTransition()
+		{
+			var sw = new Switch();
+			bool toggledFired = false;
+
+			sw.Toggling += (sender, e) => e.Cancel = true;
+			sw.Toggled += (sender, e) => toggledFired = true;
+
+			sw.IsToggled = true;
+
+			Assert.False(sw.IsToggled);
+			Assert.False(toggledFired);
+		}
+
+		[Fact]
 		public void VisualStateIsDisabledIfSwitchIsDisabled()
 		{
 			var switch1 = new Switch();

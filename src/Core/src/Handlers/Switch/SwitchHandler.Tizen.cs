@@ -46,7 +46,13 @@ namespace Microsoft.Maui.Handlers
 			if (VirtualView == null || PlatformView == null)
 				return;
 
+			if (VirtualView.IsOn == PlatformView.IsToggled)
+				return;
+
 			VirtualView.IsOn = PlatformView.IsToggled;
+
+			if (VirtualView.IsOn != PlatformView.IsToggled)
+				PlatformView.UpdateIsOn(VirtualView);
 		}
 	}
 }

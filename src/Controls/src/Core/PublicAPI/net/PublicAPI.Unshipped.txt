@@ -1,1 +1,8 @@
-#nullable enable
+﻿#nullable enable
+Microsoft.Maui.Controls.Switch.Toggling -> System.EventHandler<Microsoft.Maui.Controls.TogglingEventArgs>
+Microsoft.Maui.Controls.TogglingEventArgs
+Microsoft.Maui.Controls.TogglingEventArgs.Cancel.get -> bool
+Microsoft.Maui.Controls.TogglingEventArgs.Cancel.set -> void
+Microsoft.Maui.Controls.TogglingEventArgs.OldValue.get -> bool
+Microsoft.Maui.Controls.TogglingEventArgs.TogglingEventArgs(bool oldValue, bool value) -> void
+Microsoft.Maui.Controls.TogglingEventArgs.Value.get -> bool
