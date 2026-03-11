@@ -528,6 +528,11 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			ShellSection.Icon.LoadImage(ShellSection.FindMauiContext(), icon =>
 			{
 				var image = TabbedViewExtensions.AutoResizeTabBarImage(TraitCollection, icon?.Value);
+
+				// iOS 26+ requires AlwaysTemplate rendering mode for tint colors to apply to unselected tab items
+				if (image is not null && (OperatingSystem.IsIOSVersionAtLeast(26) || OperatingSystem.IsMacCatalystVersionAtLeast(26)))
+					image = image.ImageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate);
+
 				TabBarItem = new UITabBarItem(ShellSection.Title, image, null);
 				TabBarItem.AccessibilityIdentifier = ShellSection.AutomationId ?? ShellSection.Title;
 			});

@@ -539,6 +539,16 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 			var icons = await GetIcon(page);
 			var resizedImage = TabbedViewExtensions.AutoResizeTabBarImage(TraitCollection, icons?.Item1);
 			var resizedSelectedImage = TabbedViewExtensions.AutoResizeTabBarImage(TraitCollection, icons?.Item2);
+
+			// iOS 26+ requires AlwaysTemplate rendering mode for tint colors to apply to unselected tab items
+			if (OperatingSystem.IsIOSVersionAtLeast(26) || OperatingSystem.IsMacCatalystVersionAtLeast(26))
+			{
+				if (resizedImage is not null)
+					resizedImage = resizedImage.ImageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate);
+				if (resizedSelectedImage is not null)
+					resizedSelectedImage = resizedSelectedImage.ImageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate);
+			}
+
 			SetTabBarItem(resizedImage, resizedSelectedImage);
 			resizedImage?.Dispose();
 			resizedSelectedImage?.Dispose();
