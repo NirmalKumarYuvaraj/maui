@@ -529,11 +529,31 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			{
 				var image = TabbedViewExtensions.AutoResizeTabBarImage(TraitCollection, icon?.Value);
 
-				// iOS 26+ requires AlwaysTemplate rendering mode for tint colors to apply to unselected tab items
 				if (image is not null && (OperatingSystem.IsIOSVersionAtLeast(26) || OperatingSystem.IsMacCatalystVersionAtLeast(26)))
-					image = image.ImageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate);
+				{
+					// iOS 26+ uses a new Liquid Glass floating tab bar that ignores UITabBarAppearance
+					// and UnselectedItemTintColor on the legacy UITabBar. Pre-tint the images directly
+					// to ensure the correct colors are applied regardless of the tab bar implementation.
+					var shell = _context.Shell;
+					var unselectedColor = (shell.GetValue(Shell.TabBarUnselectedColorProperty) as Microsoft.Maui.Graphics.Color)?.ToPlatform();
+					var foregroundColor = ((shell.GetValue(Shell.TabBarForegroundColorProperty) as Microsoft.Maui.Graphics.Color)
+						?? (shell.GetValue(Shell.TabBarTitleColorProperty) as Microsoft.Maui.Graphics.Color))?.ToPlatform();
 
-				TabBarItem = new UITabBarItem(ShellSection.Title, image, null);
+					var normalImage = unselectedColor is not null
+						? image.ApplyTintColor(unselectedColor).ImageWithRenderingMode(UIImageRenderingMode.AlwaysOriginal)
+						: image.ImageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate);
+
+					var selectedImage = foregroundColor is not null
+						? image.ApplyTintColor(foregroundColor).ImageWithRenderingMode(UIImageRenderingMode.AlwaysOriginal)
+						: image.ImageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate);
+
+					TabBarItem = new UITabBarItem(ShellSection.Title, normalImage, selectedImage);
+				}
+				else
+				{
+					TabBarItem = new UITabBarItem(ShellSection.Title, image, null);
+				}
+
 				TabBarItem.AccessibilityIdentifier = ShellSection.AutomationId ?? ShellSection.Title;
 			});
 		}
