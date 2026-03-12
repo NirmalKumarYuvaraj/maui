@@ -18,6 +18,7 @@ namespace Microsoft.Maui.Controls.Shapes
 		}
 
 		// TODO this should move to a remapped mapper
+		// Layout dimensions have no individual mapper entries — keep until EllipseHandler is updated
 		protected override void OnPropertyChanged([CallerMemberName] string propertyName = null)
 		{
 			base.OnPropertyChanged(propertyName);
