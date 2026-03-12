@@ -1,6 +1,5 @@
 ﻿#nullable disable
 using System;
-using System.Runtime.CompilerServices;
 using Microsoft.Maui.Graphics;
 
 namespace Microsoft.Maui.Controls.Shapes
@@ -47,15 +46,6 @@ namespace Microsoft.Maui.Controls.Shapes
 
 				return height == -1 ? _fallbackHeight : height;
 			}
-		}
-
-		// TODO this should move to a remapped mapper
-		protected override void OnPropertyChanged([CallerMemberName] string propertyName = null)
-		{
-			base.OnPropertyChanged(propertyName);
-
-			if (propertyName == CornerRadiusProperty.PropertyName)
-				Handler?.UpdateValue(nameof(IShapeView.Shape));
 		}
 
 		public override PathF GetPath()
