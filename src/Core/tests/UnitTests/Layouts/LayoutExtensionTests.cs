@@ -377,5 +377,121 @@ namespace Microsoft.Maui.UnitTests.Layouts
 
 			Assert.Equal(expectedY, frame.Y);
 		}
+
+		// Issue #21917: MaximumWidthRequest should not include Margin
+
+		[Fact]
+		public void MaxWidthFillWithMarginGivesCorrectWidth()
+		{
+			// MaximumWidthRequest=150 with Margin="50,0,50,0" in a 300px container
+			// should render the view at 150px wide (not 50px wide)
+			var margin = new Thickness(50, 0, 50, 0);
+			var maxWidth = 150.0;
+			var widthConstraint = 300.0;
+			var desiredSize = new Size(50, 50);
+
+			var element = Substitute.For<IView>();
+			element.Margin.Returns(margin);
+			element.DesiredSize.Returns(desiredSize);
+			element.HorizontalLayoutAlignment.Returns(LayoutAlignment.Fill);
+			element.VerticalLayoutAlignment.Returns(LayoutAlignment.Start);
+			element.Width.Returns(Dimension.Unset);
+			element.Height.Returns(Dimension.Unset);
+			element.MaximumWidth.Returns(maxWidth);
+			element.MaximumHeight.Returns(Dimension.Maximum);
+			element.FlowDirection.Returns(FlowDirection.LeftToRight);
+
+			var frame = element.ComputeFrame(new Rect(0, 0, widthConstraint, 100));
+
+			// MaximumWidthRequest should constrain the rendered width (excluding margins)
+			Assert.Equal(maxWidth, frame.Width);
+		}
+
+		[Fact]
+		public void MaxHeightFillWithMarginGivesCorrectHeight()
+		{
+			// MaximumHeightRequest=150 with Margin="0,50,0,50" in a 300px tall container
+			// should render the view at 150px tall (not 50px tall)
+			var margin = new Thickness(0, 50, 0, 50);
+			var maxHeight = 150.0;
+			var heightConstraint = 300.0;
+			var desiredSize = new Size(50, 50);
+
+			var element = Substitute.For<IView>();
+			element.Margin.Returns(margin);
+			element.DesiredSize.Returns(desiredSize);
+			element.HorizontalLayoutAlignment.Returns(LayoutAlignment.Start);
+			element.VerticalLayoutAlignment.Returns(LayoutAlignment.Fill);
+			element.Width.Returns(Dimension.Unset);
+			element.Height.Returns(Dimension.Unset);
+			element.MaximumWidth.Returns(Dimension.Maximum);
+			element.MaximumHeight.Returns(maxHeight);
+			element.FlowDirection.Returns(FlowDirection.LeftToRight);
+
+			var frame = element.ComputeFrame(new Rect(0, 0, 100, heightConstraint));
+
+			// MaximumHeightRequest should constrain the rendered height (excluding margins)
+			Assert.Equal(maxHeight, frame.Height);
+		}
+
+		[Fact]
+		public void MaxWidthFillWithMarginGivesCorrectXPosition()
+		{
+			// MaximumWidthRequest=150, Margin="50,0,50,0", 300px bounds
+			// consumedWidth = min(300, 150 + 100) = 250
+			// frameX = margin.Left + (bounds.Width - consumedWidth) / 2 = 50 + (300-250)/2 = 75
+			var margin = new Thickness(50, 0, 50, 0);
+			var maxWidth = 150.0;
+			var widthConstraint = 300.0;
+			var desiredSize = new Size(50, 50);
+
+			var element = Substitute.For<IView>();
+			element.Margin.Returns(margin);
+			element.DesiredSize.Returns(desiredSize);
+			element.HorizontalLayoutAlignment.Returns(LayoutAlignment.Fill);
+			element.VerticalLayoutAlignment.Returns(LayoutAlignment.Start);
+			element.Width.Returns(Dimension.Unset);
+			element.Height.Returns(Dimension.Unset);
+			element.MaximumWidth.Returns(maxWidth);
+			element.MaximumHeight.Returns(Dimension.Maximum);
+			element.FlowDirection.Returns(FlowDirection.LeftToRight);
+
+			var frame = element.ComputeFrame(new Rect(0, 0, widthConstraint, 100));
+
+			// The view should be centered in the remaining space after accounting for margins and max width
+			var consumedWidth = maxWidth + margin.HorizontalThickness;
+			var expectedX = margin.Left + (widthConstraint - consumedWidth) / 2;
+			Assert.Equal(expectedX, frame.Left);
+		}
+
+		[Fact]
+		public void MaxHeightFillWithMarginGivesCorrectYPosition()
+		{
+			// MaximumHeightRequest=150, Margin="0,50,0,50", 300px bounds
+			// consumedHeight = min(300, 150 + 100) = 250
+			// frameY = margin.Top + (bounds.Height - consumedHeight) / 2 = 50 + (300-250)/2 = 75
+			var margin = new Thickness(0, 50, 0, 50);
+			var maxHeight = 150.0;
+			var heightConstraint = 300.0;
+			var desiredSize = new Size(50, 50);
+
+			var element = Substitute.For<IView>();
+			element.Margin.Returns(margin);
+			element.DesiredSize.Returns(desiredSize);
+			element.HorizontalLayoutAlignment.Returns(LayoutAlignment.Start);
+			element.VerticalLayoutAlignment.Returns(LayoutAlignment.Fill);
+			element.Width.Returns(Dimension.Unset);
+			element.Height.Returns(Dimension.Unset);
+			element.MaximumWidth.Returns(Dimension.Maximum);
+			element.MaximumHeight.Returns(maxHeight);
+			element.FlowDirection.Returns(FlowDirection.LeftToRight);
+
+			var frame = element.ComputeFrame(new Rect(0, 0, 100, heightConstraint));
+
+			// The view should be centered vertically in the remaining space after accounting for margins and max height
+			var consumedHeight = maxHeight + margin.VerticalThickness;
+			var expectedY = margin.Top + (heightConstraint - consumedHeight) / 2;
+			Assert.Equal(expectedY, frame.Top);
+		}
 	}
 }

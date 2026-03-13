@@ -41,9 +41,11 @@ namespace Microsoft.Maui.Layouts
 			// But if the element is set to fill horizontally and it doesn't have an explicitly set width,
 			// then we want the minimum between its MaximumWidth and the bounds' width
 			// MaximumWidth is always positive infinity if not defined by the user
+			// We add the margin thickness back so that MaximumWidth constrains the rendered width (excluding margins),
+			// consistent with how WidthRequest behaves with Margin
 			if (view.HorizontalLayoutAlignment == LayoutAlignment.Fill && !IsExplicitSet(view.Width))
 			{
-				consumedWidth = Math.Min(bounds.Width, view.MaximumWidth);
+				consumedWidth = Math.Min(bounds.Width, view.MaximumWidth + margin.HorizontalThickness);
 			}
 
 			// And the actual frame width needs to subtract the margins
@@ -55,9 +57,11 @@ namespace Microsoft.Maui.Layouts
 			// But, if the element is set to fill vertically and it doesn't have an explicitly set height,
 			// then we want the minimum between its MaximumHeight  and the bounds' height
 			// MaximumHeight is always positive infinity if not defined by the user
+			// We add the margin thickness back so that MaximumHeight constrains the rendered height (excluding margins),
+			// consistent with how HeightRequest behaves with Margin
 			if (view.VerticalLayoutAlignment == LayoutAlignment.Fill && !IsExplicitSet(view.Height))
 			{
-				consumedHeight = Math.Min(bounds.Height, view.MaximumHeight);
+				consumedHeight = Math.Min(bounds.Height, view.MaximumHeight + margin.VerticalThickness);
 			}
 
 			// And the actual frame height needs to subtract the margins
@@ -81,7 +85,8 @@ namespace Microsoft.Maui.Layouts
 				alignment = LayoutAlignment.Center;
 
 				// If the width is not set, we use the minimum between the MaxWidth or the bound's width
-				desiredWidth = IsExplicitSet(view.Width) ? desiredWidth : Math.Min(bounds.Width, view.MaximumWidth);
+				// We add the margin thickness so that centering respects the margin-exclusive max width
+				desiredWidth = IsExplicitSet(view.Width) ? desiredWidth : Math.Min(bounds.Width, view.MaximumWidth + margin.HorizontalThickness);
 			}
 
 			return AlignHorizontal(bounds.X, margin.Left, margin.Right, bounds.Width, desiredWidth, alignment);
@@ -118,7 +123,8 @@ namespace Microsoft.Maui.Layouts
 				alignment = LayoutAlignment.Center;
 
 				// If the height is not set, we use the minimum between the MaxHeight or the bound's height
-				desiredHeight = IsExplicitSet(view.Height) ? desiredHeight : Math.Min(bounds.Height, view.MaximumHeight);
+				// We add the margin thickness so that centering respects the margin-exclusive max height
+				desiredHeight = IsExplicitSet(view.Height) ? desiredHeight : Math.Min(bounds.Height, view.MaximumHeight + margin.VerticalThickness);
 			}
 
 			double frameY = bounds.Y + margin.Top;
