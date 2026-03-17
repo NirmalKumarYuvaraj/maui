@@ -1,5 +1,8 @@
 using System;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -121,6 +124,181 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 			var urlHash1 = Crc64.ComputeHashString("http://www.optipess.com/wp-content/uploads/2010/08/02_Bad-Comics6-10.png?a=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbasdasdasdasdasasdasdasdasdasd");
 			var urlHash2 = Crc64.ComputeHashString("http://www.optipess.com/wp-content/uploads/2010/08/02_Bad-Comics6-10.png?a=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbasdasdasdasdasasdasda");
 			Assert.True(urlHash1 != urlHash2);
+		}
+
+		[Fact]
+		public async Task CachingEnabled_ReturnsCachedStreamWithinValidity()
+		{
+			using var server = new LoopbackServer("first");
+
+			IStreamImageSource loader = new UriImageSource
+			{
+				Uri = server.Uri,
+				CachingEnabled = true,
+				CacheValidity = TimeSpan.FromMinutes(5)
+			};
+
+			using var first = await loader.GetStreamAsync();
+			var firstPayload = await ReadToEndAsync(first);
+
+			server.Payload = "second";
+
+			using var second = await loader.GetStreamAsync();
+			var secondPayload = await ReadToEndAsync(second);
+
+			Assert.Equal("first", firstPayload);
+			Assert.Equal("first", secondPayload);
+			Assert.Equal(1, server.RequestCount);
+		}
+
+		[Fact]
+		public async Task CacheValidityExpired_ReloadsFromNetwork()
+		{
+			using var server = new LoopbackServer("first");
+
+			IStreamImageSource loader = new UriImageSource
+			{
+				Uri = server.Uri,
+				CachingEnabled = true,
+				CacheValidity = TimeSpan.FromMilliseconds(100)
+			};
+
+			using var first = await loader.GetStreamAsync();
+			var firstPayload = await ReadToEndAsync(first);
+
+			await Task.Delay(200);
+			server.Payload = "second";
+
+			using var second = await loader.GetStreamAsync();
+			var secondPayload = await ReadToEndAsync(second);
+
+			Assert.Equal("first", firstPayload);
+			Assert.Equal("second", secondPayload);
+			Assert.Equal(2, server.RequestCount);
+		}
+
+		[Fact]
+		public async Task CachingDisabled_AlwaysReloadsFromNetwork()
+		{
+			using var server = new LoopbackServer("first");
+
+			IStreamImageSource loader = new UriImageSource
+			{
+				Uri = server.Uri,
+				CachingEnabled = false,
+				CacheValidity = TimeSpan.FromMinutes(5)
+			};
+
+			using var first = await loader.GetStreamAsync();
+			var firstPayload = await ReadToEndAsync(first);
+
+			server.Payload = "second";
+
+			using var second = await loader.GetStreamAsync();
+			var secondPayload = await ReadToEndAsync(second);
+
+			Assert.Equal("first", firstPayload);
+			Assert.Equal("second", secondPayload);
+			Assert.Equal(2, server.RequestCount);
+		}
+
+		static async Task<string> ReadToEndAsync(Stream stream)
+		{
+			if (stream is null)
+				return null;
+
+			using var reader = new StreamReader(stream, Encoding.UTF8, true, 1024, leaveOpen: true);
+			return await reader.ReadToEndAsync();
+		}
+
+		sealed class LoopbackServer : IDisposable
+		{
+			readonly HttpListener _listener;
+			readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+			readonly Task _serveTask;
+			int _requestCount;
+			string _payload;
+
+			public LoopbackServer(string initialPayload)
+			{
+				_payload = initialPayload;
+				var port = GetOpenPort();
+				Uri = new Uri($"http://127.0.0.1:{port}/image");
+
+				_listener = new HttpListener();
+				_listener.Prefixes.Add($"http://127.0.0.1:{port}/");
+				_listener.Start();
+
+				_serveTask = Task.Run(() => ServeAsync(_cancellationTokenSource.Token));
+			}
+
+			public Uri Uri { get; }
+
+			public int RequestCount => _requestCount;
+
+			public string Payload
+			{
+				get => _payload;
+				set => _payload = value;
+			}
+
+			async Task ServeAsync(CancellationToken cancellationToken)
+			{
+				while (!cancellationToken.IsCancellationRequested)
+				{
+					HttpListenerContext context;
+					try
+					{
+						context = await _listener.GetContextAsync();
+					}
+					catch (HttpListenerException)
+					{
+						if (cancellationToken.IsCancellationRequested)
+							break;
+
+						throw;
+					}
+					catch (ObjectDisposedException)
+					{
+						if (cancellationToken.IsCancellationRequested)
+							break;
+
+						throw;
+					}
+
+					Interlocked.Increment(ref _requestCount);
+
+					var bytes = Encoding.UTF8.GetBytes(_payload);
+					context.Response.ContentType = "application/octet-stream";
+					context.Response.ContentLength64 = bytes.Length;
+					await context.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+					context.Response.OutputStream.Close();
+				}
+			}
+
+			public void Dispose()
+			{
+				_cancellationTokenSource.Cancel();
+				_listener.Stop();
+				_listener.Close();
+				try
+				{
+					_serveTask.GetAwaiter().GetResult();
+				}
+				catch
+				{
+				}
+
+				_cancellationTokenSource.Dispose();
+			}
+
+			static int GetOpenPort()
+			{
+				using var tcpListener = new TcpListener(System.Net.IPAddress.Loopback, 0);
+				tcpListener.Start();
+				var endpoint = (IPEndPoint)tcpListener.LocalEndpoint;
+				return endpoint.Port;
+			}
 		}
 
 	}

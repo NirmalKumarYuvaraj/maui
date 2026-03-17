@@ -1,5 +1,6 @@
 #nullable disable
 using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Net.Http;
 using System.Threading;
@@ -8,10 +9,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Maui.Controls
 {
-	// TODO: CACHING https://github.com/dotnet/runtime/issues/52332
 	/// <summary>An <see cref="ImageSource"/> that loads an image from a URI, with caching support.</summary>
 	public sealed partial class UriImageSource : ImageSource, IStreamImageSource
 	{
+		static readonly ConcurrentDictionary<string, CacheEntry> StreamCache = new ConcurrentDictionary<string, CacheEntry>();
+		static readonly ConcurrentDictionary<string, SemaphoreSlim> DownloadLocks = new ConcurrentDictionary<string, SemaphoreSlim>();
+
 		/// <summary>Bindable property for <see cref="Uri"/>.</summary>
 		public static readonly BindableProperty UriProperty = BindableProperty.Create(
 			nameof(Uri), typeof(Uri), typeof(UriImageSource), default(Uri),
@@ -54,7 +57,9 @@ namespace Microsoft.Maui.Controls
 		async Task<Stream> IStreamImageSource.GetStreamAsync(CancellationToken userToken)
 		{
 			if (IsEmpty)
+			{
 				return null;
+			}
 
 			await OnLoadingStarted();
 			userToken.Register(CancellationTokenSource.Cancel);
@@ -89,25 +94,92 @@ namespace Microsoft.Maui.Controls
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 
-			Stream stream = null;
-
-			if (CachingEnabled)
+			if (!CachingEnabled || CacheValidity <= TimeSpan.Zero)
 			{
-				// TODO: CACHING https://github.com/dotnet/runtime/issues/52332
-
-				// var key = GetKey();
-				// var cached = TryGetFromCache(key, out stream)
-				if (stream is null)
-					stream = await DownloadStreamAsync(uri, cancellationToken).ConfigureAwait(false);
-				// if (!cached)
-				//    Cache(key, stream)
-			}
-			else
-			{
-				stream = await DownloadStreamAsync(uri, cancellationToken).ConfigureAwait(false);
+				return await DownloadStreamAsync(uri, cancellationToken).ConfigureAwait(false);
 			}
 
-			return stream;
+			var key = GetCacheKey(uri);
+
+			if (TryGetFromCache(key, out var cachedStream))
+			{
+				return cachedStream;
+			}
+
+			var downloadLock = DownloadLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+			await downloadLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+			try
+			{
+				if (TryGetFromCache(key, out cachedStream))
+				{
+					return cachedStream;
+				}
+
+				using var downloadedStream = await DownloadStreamAsync(uri, cancellationToken).ConfigureAwait(false);
+				if (downloadedStream is null)
+				{
+					return null;
+				}
+
+				var bytes = await ReadAllBytesAsync(downloadedStream, cancellationToken).ConfigureAwait(false);
+				var expiration = GetExpiration(CacheValidity);
+
+				StreamCache[key] = new CacheEntry(bytes, expiration);
+
+				return CreateMemoryStream(bytes);
+			}
+			finally
+			{
+				downloadLock.Release();
+			}
+		}
+
+		static string GetCacheKey(Uri uri) => Crc64.ComputeHashString(uri.OriginalString);
+
+		static DateTimeOffset GetExpiration(TimeSpan cacheValidity)
+		{
+			if (cacheValidity == TimeSpan.MaxValue)
+			{
+				return DateTimeOffset.MaxValue;
+			}
+
+			try
+			{
+				return DateTimeOffset.UtcNow.Add(cacheValidity);
+			}
+			catch (ArgumentOutOfRangeException)
+			{
+				return DateTimeOffset.MaxValue;
+			}
+		}
+
+		static async Task<byte[]> ReadAllBytesAsync(Stream stream, CancellationToken cancellationToken)
+		{
+			using var memoryStream = new MemoryStream();
+			await stream.CopyToAsync(memoryStream, 81920, cancellationToken).ConfigureAwait(false);
+			return memoryStream.ToArray();
+		}
+
+		static Stream CreateMemoryStream(byte[] bytes) => new MemoryStream(bytes, writable: false);
+
+		static bool TryGetFromCache(string key, out Stream stream)
+		{
+			stream = null;
+
+			if (!StreamCache.TryGetValue(key, out var entry))
+			{
+				return false;
+			}
+
+			if (entry.Expiration <= DateTimeOffset.UtcNow)
+			{
+				StreamCache.TryRemove(key, out _);
+				return false;
+			}
+
+			stream = CreateMemoryStream(entry.Bytes);
+			return true;
 		}
 
 		async Task<Stream> DownloadStreamAsync(Uri uri, CancellationToken cancellationToken)
@@ -133,6 +205,18 @@ namespace Microsoft.Maui.Controls
 			CancellationTokenSource?.Cancel();
 
 			OnSourceChanged();
+		}
+
+		readonly struct CacheEntry
+		{
+			public CacheEntry(byte[] bytes, DateTimeOffset expiration)
+			{
+				Bytes = bytes;
+				Expiration = expiration;
+			}
+
+			public byte[] Bytes { get; }
+			public DateTimeOffset Expiration { get; }
 		}
 	}
 }

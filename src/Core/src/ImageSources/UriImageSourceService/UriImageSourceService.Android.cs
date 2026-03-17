@@ -19,8 +19,9 @@ namespace Microsoft.Maui
 				try
 				{
 					var callback = new ImageLoaderCallback();
+					var cacheValidityMilliseconds = GetCacheValidityMilliseconds(uriImageSource.CacheValidity);
 
-					PlatformInterop.LoadImageFromUri(imageView, uriImageSource.Uri.OriginalString, uriImageSource.CachingEnabled, callback);
+					PlatformInterop.LoadImageFromUri(imageView, uriImageSource.Uri.OriginalString, uriImageSource.CachingEnabled, cacheValidityMilliseconds, callback);
 
 					return callback.Result;
 				}
@@ -42,8 +43,9 @@ namespace Microsoft.Maui
 				try
 				{
 					var drawableCallback = new ImageLoaderResultCallback();
+					var cacheValidityMilliseconds = GetCacheValidityMilliseconds(uriImageSource.CacheValidity);
 
-					PlatformInterop.LoadImageFromUri(context, uriImageSource.Uri.OriginalString, uriImageSource.CachingEnabled, drawableCallback);
+					PlatformInterop.LoadImageFromUri(context, uriImageSource.Uri.OriginalString, uriImageSource.CachingEnabled, cacheValidityMilliseconds, drawableCallback);
 
 					return drawableCallback.Result;
 				}
@@ -55,6 +57,18 @@ namespace Microsoft.Maui
 			}
 
 			return Task.FromResult<IImageSourceServiceResult<Drawable>?>(null);
+		}
+
+		static long GetCacheValidityMilliseconds(TimeSpan cacheValidity)
+		{
+			if (cacheValidity <= TimeSpan.Zero)
+				return 0;
+
+			var totalMilliseconds = cacheValidity.TotalMilliseconds;
+			if (totalMilliseconds >= long.MaxValue)
+				return long.MaxValue;
+
+			return (long)totalMilliseconds;
 		}
 	}
 }

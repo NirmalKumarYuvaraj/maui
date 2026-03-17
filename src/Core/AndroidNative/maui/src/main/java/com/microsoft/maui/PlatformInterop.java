@@ -47,6 +47,7 @@ import com.bumptech.glide.RequestBuilder;
 import com.bumptech.glide.RequestManager;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.target.Target;
+import com.bumptech.glide.signature.ObjectKey;
 
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -297,7 +298,7 @@ public class PlatformInterop {
         }
     }
 
-    private static void prepare(RequestBuilder<Drawable> builder, MauiTarget target, boolean cachingEnabled, ImageLoaderCallback callback) {
+    private static void prepare(RequestBuilder<Drawable> builder, MauiTarget target, boolean cachingEnabled, long cacheValidityMilliseconds, ImageLoaderCallback callback, Object model) {
         // A special value to work around https://github.com/dotnet/maui/issues/6783 where targets
         // are actually re-used if all the variables are the same.
         // Adding this "error image" that will always load a null image makes each request unique,
@@ -305,10 +306,14 @@ public class PlatformInterop {
         builder = builder
             .error(callback);
 
-        if (!cachingEnabled) {
+        if (!cachingEnabled || cacheValidityMilliseconds <= 0) {
             builder = builder
                 .diskCacheStrategy(DiskCacheStrategy.NONE)
                 .skipMemoryCache(true);
+        } else if (cacheValidityMilliseconds < Long.MAX_VALUE) {
+            long cacheBucket = System.currentTimeMillis() / cacheValidityMilliseconds;
+            String signature = model.toString() + ":" + cacheBucket;
+            builder = builder.signature(new ObjectKey(signature));
         }
 
         target.load(builder);
@@ -319,13 +324,21 @@ public class PlatformInterop {
     }
 
     private static void loadInto(RequestBuilder<Drawable> builder, ImageView imageView, boolean cachingEnabled, ImageLoaderCallback callback, Object model) {
+        loadInto(builder, imageView, cachingEnabled, Long.MAX_VALUE, callback, model);
+    }
+
+    private static void loadInto(RequestBuilder<Drawable> builder, ImageView imageView, boolean cachingEnabled, long cacheValidityMilliseconds, ImageLoaderCallback callback, Object model) {
         MauiCustomViewTarget target = new MauiCustomViewTarget(imageView, callback, model);
-        prepare(builder, target, cachingEnabled, callback);
+        prepare(builder, target, cachingEnabled, cacheValidityMilliseconds, callback, model);
     }
 
     private static void load(RequestBuilder<Drawable> builder, Context context, boolean cachingEnabled, ImageLoaderCallback callback, Object model) {
+        load(builder, context, cachingEnabled, Long.MAX_VALUE, callback, model);
+    }
+
+    private static void load(RequestBuilder<Drawable> builder, Context context, boolean cachingEnabled, long cacheValidityMilliseconds, ImageLoaderCallback callback, Object model) {
         MauiCustomTarget target = new MauiCustomTarget(context, callback, model);
-        prepare(builder, target, cachingEnabled, callback);
+        prepare(builder, target, cachingEnabled, cacheValidityMilliseconds, callback, model);
     }
 
     public static void loadImageFromFile(ImageView imageView, String file, ImageLoaderCallback callback) {
@@ -336,6 +349,10 @@ public class PlatformInterop {
     }
 
     public static void loadImageFromUri(ImageView imageView, String uri, boolean cachingEnabled, ImageLoaderCallback callback) {
+        loadImageFromUri(imageView, uri, cachingEnabled, Long.MAX_VALUE, callback);
+    }
+
+    public static void loadImageFromUri(ImageView imageView, String uri, boolean cachingEnabled, long cacheValidityMilliseconds, ImageLoaderCallback callback) {
         Uri androidUri = Uri.parse(uri);
         if (androidUri == null) {
             callback.onComplete(false, null, null);
@@ -344,7 +361,7 @@ public class PlatformInterop {
         RequestBuilder<Drawable> builder = Glide
             .with(imageView)
             .load(androidUri);
-        loadInto(builder, imageView, cachingEnabled, callback, androidUri);
+        loadInto(builder, imageView, cachingEnabled, cacheValidityMilliseconds, callback, androidUri);
     }
 
     public static void loadImageFromStream(ImageView imageView, InputStream inputStream, ImageLoaderCallback callback) {
@@ -376,6 +393,10 @@ public class PlatformInterop {
     }
 
     public static void loadImageFromUri(Context context, String uri, boolean cachingEnabled, ImageLoaderCallback callback) {
+        loadImageFromUri(context, uri, cachingEnabled, Long.MAX_VALUE, callback);
+    }
+
+    public static void loadImageFromUri(Context context, String uri, boolean cachingEnabled, long cacheValidityMilliseconds, ImageLoaderCallback callback) {
         if (isContextDestroyed(context)) {
             callback.onComplete(false, null, null);
             return;
@@ -388,7 +409,7 @@ public class PlatformInterop {
         RequestBuilder<Drawable> builder = Glide
             .with(context)
             .load(androidUri);
-        load(builder, context, cachingEnabled, callback, androidUri);
+        load(builder, context, cachingEnabled, cacheValidityMilliseconds, callback, androidUri);
     }
 
     public static void loadImageFromStream(Context context, InputStream inputStream, ImageLoaderCallback callback) {
