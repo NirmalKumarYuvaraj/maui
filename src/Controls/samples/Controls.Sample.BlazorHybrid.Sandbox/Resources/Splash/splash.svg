@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 456 456">
+  <rect width="456" height="456" fill="#512BD4"/>
+  <text x="228" y="240" font-size="60" font-family="sans-serif" fill="white" text-anchor="middle">Blazor Hybrid</text>
+  <text x="228" y="310" font-size="44" font-family="sans-serif" fill="white" text-anchor="middle">Sandbox</text>
+</svg>

@@ -1,0 +1,176 @@
+@page "/"
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<PageTitle>Issue 34462 Android Repro</PageTitle>
+
+<div class="repro-shell">
+    <div class="repro-sidebar">
+        <div class="repro-title">Issue #34462 Android repro</div>
+        <div class="repro-subtitle">Blazor Hybrid safe-area diagnostics using the same broken WebKit-only CSS pattern from the issue report.</div>
+    </div>
+
+    <div class="repro-content">
+        <h1>Android safe area handling repro</h1>
+
+        <p>
+            This page intentionally keeps the broken <code>@@supports (-webkit-touch-callout: none)</code> wrapper from issue
+            <code>#34462</code> so Android ignores the safe-area filler entirely.
+        </p>
+
+        <p>
+            Run this sample on Android 15+ in portrait and the dark header should render underneath the system status bar instead
+            of below it. Use the diagnostics below to confirm that the filler remains hidden on Android.
+        </p>
+
+        <div class="repro-instructions">
+            <h2>Manual Android checks</h2>
+            <ol>
+                <li>Launch the sample on an Android 15+ emulator or device.</li>
+                <li>Keep the app in portrait mode.</li>
+                <li>Confirm the dark header starts behind the status bar instead of below it.</li>
+                <li>Tap <strong>Refresh diagnostics</strong> and verify <code>.status-bar-safe-area display</code> stays <code>none</code>.</li>
+            </ol>
+        </div>
+
+        <button class="btn btn-primary" @onclick="CaptureNowAsync">Refresh diagnostics</button>
+
+        @if (_current is null)
+        {
+            <p class="pending-message">Waiting for the first safe area measurement…</p>
+        }
+        else
+        {
+            <div class="diagnostic-grid">
+                <div class="metric-card">
+                    <span class="metric-label">Trigger</span>
+                    <span class="metric-value">@_current.Trigger</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Orientation</span>
+                    <span class="metric-value">@_current.OrientationType (@_current.OrientationAngle°)</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">safe-area-inset-top</span>
+                    <span class="metric-value">@_current.SafeAreaInsetTop</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">safe-area-inset-left</span>
+                    <span class="metric-value">@_current.SafeAreaInsetLeft</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">safe-area-inset-right</span>
+                    <span class="metric-value">@_current.SafeAreaInsetRight</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">safe-area-inset-bottom</span>
+                    <span class="metric-value">@_current.SafeAreaInsetBottom</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">.status-bar-safe-area display</span>
+                    <span class="metric-value">@_current.SafeAreaDivDisplay</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">.status-bar-safe-area height</span>
+                    <span class="metric-value">@_current.SafeAreaDivHeight</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Sidebar padding-left</span>
+                    <span class="metric-value">@_current.SidebarPaddingLeft</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Viewport</span>
+                    <span class="metric-value">@_current.WindowInnerWidth × @_current.WindowInnerHeight</span>
+                </div>
+            </div>
+        }
+
+        <h2>Recent Android samples</h2>
+        <ol class="history-list">
+            @foreach (var sample in RecentSamples)
+            {
+                <li>@sample.Timestamp: @FormatSummary(sample)</li>
+            }
+        </ol>
+    </div>
+</div>
+
+@code {
+    private readonly List<SafeAreaMetrics> _samples = [];
+    private DotNetObjectReference<Home>? _objectReference;
+    private SafeAreaMetrics? _current;
+    private bool _started;
+
+    private IEnumerable<SafeAreaMetrics> RecentSamples =>
+        _samples.Count <= 6 ? _samples : _samples.Skip(Math.Max(0, _samples.Count - 6));
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _started)
+        {
+            return;
+        }
+
+        _objectReference = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("safeAreaRepro.start", _objectReference);
+        _started = true;
+    }
+
+    private Task CaptureNowAsync() =>
+        JS.InvokeVoidAsync("safeAreaRepro.captureNow").AsTask();
+
+    [JSInvokable]
+    public Task UpdateMetrics(SafeAreaMetrics metrics)
+    {
+        metrics.Timestamp = DateTimeOffset.Now.ToString("HH:mm:ss.fff");
+        _current = metrics;
+        _samples.Add(metrics);
+
+        Console.WriteLine(
+            $"SAFE_AREA_REPRO trigger={metrics.Trigger} orientation={metrics.OrientationType} angle={metrics.OrientationAngle} " +
+            $"top={metrics.SafeAreaInsetTop} left={metrics.SafeAreaInsetLeft} right={metrics.SafeAreaInsetRight} bottom={metrics.SafeAreaInsetBottom} " +
+            $"display={metrics.SafeAreaDivDisplay} height={metrics.SafeAreaDivHeight} sidebarPaddingLeft={metrics.SidebarPaddingLeft} " +
+            $"viewport={metrics.WindowInnerWidth}x{metrics.WindowInnerHeight}");
+
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private static string FormatSummary(SafeAreaMetrics metrics) =>
+        $"{metrics.Trigger} | {metrics.OrientationType} ({metrics.OrientationAngle}°) | " +
+        $"top={metrics.SafeAreaInsetTop}, left={metrics.SafeAreaInsetLeft}, right={metrics.SafeAreaInsetRight}, " +
+        $"display={metrics.SafeAreaDivDisplay}, sidebarPaddingLeft={metrics.SidebarPaddingLeft}";
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_started)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("safeAreaRepro.stop");
+            }
+            catch
+            {
+                // Ignore cleanup failures during app shutdown.
+            }
+        }
+
+        _objectReference?.Dispose();
+    }
+
+    public sealed class SafeAreaMetrics
+    {
+        public string Trigger { get; set; } = "";
+        public string OrientationType { get; set; } = "";
+        public int OrientationAngle { get; set; }
+        public string SafeAreaInsetTop { get; set; } = "";
+        public string SafeAreaInsetLeft { get; set; } = "";
+        public string SafeAreaInsetRight { get; set; } = "";
+        public string SafeAreaInsetBottom { get; set; } = "";
+        public string SafeAreaDivDisplay { get; set; } = "";
+        public string SafeAreaDivHeight { get; set; } = "";
+        public string SidebarPaddingLeft { get; set; } = "";
+        public int WindowInnerWidth { get; set; }
+        public int WindowInnerHeight { get; set; }
+        public string Timestamp { get; set; } = "";
+    }
+}
