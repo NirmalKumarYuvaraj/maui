@@ -16,7 +16,9 @@ namespace Microsoft.Maui.Graphics.Platform
 	public partial class PlatformCanvas : AbstractCanvas<PlatformCanvasState>
 	{
 		private static readonly nfloat[] EmptyNFloatArray = Array.Empty<nfloat>();
+		private static readonly nfloat[] _fillPatternComponents = new nfloat[] { 1 };
 		private static readonly CGAffineTransform FlipTransform = new CGAffineTransform(1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f);
+		private static readonly CGColorSpace _deviceRgbColorSpace = CGColorSpace.CreateDeviceRGB();
 
 		private bool _antialias = true;
 		private CGContext _context;
@@ -26,6 +28,11 @@ namespace Microsoft.Maui.Graphics.Platform
 		private IFont _font;
 		private float _fontSize = 10f;
 		private CGGradient _gradient;
+		private nfloat[] _gradientColorBuffer = Array.Empty<nfloat>();
+		private nfloat[] _gradientOffsetBuffer = Array.Empty<nfloat>();
+		private float[] _cachedDashSourcePattern;
+		private float _cachedDashStrokeSize;
+		private nfloat[] _cachedDashPattern;
 
 		private PlatformCanvas _fillPatternCanvas;
 
@@ -55,7 +62,7 @@ namespace Microsoft.Maui.Graphics.Platform
 				_context = value;
 				if (_context != null)
 				{
-					var colorspace = _getColorspace?.Invoke() ?? CGColorSpace.CreateDeviceRGB();
+					var colorspace = _getColorspace?.Invoke() ?? _deviceRgbColorSpace;
 					_context.SetFillColorSpace(colorspace);
 					_context.SetStrokeColorSpace(colorspace);
 				}
@@ -164,12 +171,7 @@ namespace Microsoft.Maui.Graphics.Platform
 					_context.SetFillColor(1, 1, 1, 1); // White
 				}
 
-				_gradient?.Dispose();
-				_gradient = null;
-
-				_fillPattern = null;
-				_fillImage = null;
-				_paint = null;
+				ClearFillState();
 			}
 		}
 
@@ -287,13 +289,26 @@ namespace Microsoft.Maui.Graphics.Platform
 					var scale = CurrentState.Scale;
 					var scaledStrokeSize = scale * actualStrokeSize;
 					if (scaledStrokeSize < strokeLimit)
+					{
 						actualStrokeSize = strokeLimit / scale;
+					}
 				}
 
-				var actualDashPattern = new nfloat[strokePattern.Length];
-				for (var i = 0; i < strokePattern.Length; i++)
+				nfloat[] actualDashPattern;
+				if (_cachedDashSourcePattern != strokePattern || _cachedDashStrokeSize != actualStrokeSize)
 				{
-					actualDashPattern[i] = strokePattern[i] * actualStrokeSize;
+					actualDashPattern = new nfloat[strokePattern.Length];
+					for (var i = 0; i < strokePattern.Length; i++)
+					{
+						actualDashPattern[i] = strokePattern[i] * actualStrokeSize;
+					}
+					_cachedDashSourcePattern = strokePattern;
+					_cachedDashStrokeSize = actualStrokeSize;
+					_cachedDashPattern = actualDashPattern;
+				}
+				else
+				{
+					actualDashPattern = _cachedDashPattern;
 				}
 
 				var actualDashOffset = strokeDashOffset * actualStrokeSize;
@@ -311,12 +326,7 @@ namespace Microsoft.Maui.Graphics.Platform
 				paint = Colors.White.AsPaint();
 			}
 
-			_gradient?.Dispose();
-			_gradient = null;
-
-			_fillPattern = null;
-			_fillImage = null;
-			_paint = null;
+			ClearFillState();
 
 			if (paint is SolidPaint solidPaint)
 			{
@@ -324,50 +334,70 @@ namespace Microsoft.Maui.Graphics.Platform
 			}
 			else if (paint is LinearGradientPaint linearGradientPaint)
 			{
-				var gradientColors = new nfloat[linearGradientPaint.GradientStops.Length * 4];
-				var offsets = new nfloat[linearGradientPaint.GradientStops.Length];
-
-				int g = 0;
-				for (int i = 0; i < linearGradientPaint.GradientStops.Length; i++)
+				int stopCount = linearGradientPaint.GradientStops.Length;
+				if (_gradientColorBuffer.Length != stopCount * 4)
 				{
-					Color vColor = linearGradientPaint.GradientStops[i].Color;
-					offsets[i] = linearGradientPaint.GradientStops[i].Offset;
-
-					if (vColor == null)
-						vColor = Colors.White;
-
-					gradientColors[g++] = vColor.Red;
-					gradientColors[g++] = vColor.Green;
-					gradientColors[g++] = vColor.Blue;
-					gradientColors[g++] = vColor.Alpha;
+					_gradientColorBuffer = new nfloat[stopCount * 4];
 				}
 
-				var colorspace = _getColorspace?.Invoke() ?? CGColorSpace.CreateDeviceRGB();
-				_gradient = new CGGradient(colorspace, gradientColors, offsets);
+				if (_gradientOffsetBuffer.Length != stopCount)
+				{
+					_gradientOffsetBuffer = new nfloat[stopCount];
+				}
+
+				int g = 0;
+				for (int i = 0; i < stopCount; i++)
+				{
+					Color vColor = linearGradientPaint.GradientStops[i].Color;
+					_gradientOffsetBuffer[i] = linearGradientPaint.GradientStops[i].Offset;
+
+					if (vColor == null)
+					{
+						vColor = Colors.White;
+					}
+
+					_gradientColorBuffer[g++] = vColor.Red;
+					_gradientColorBuffer[g++] = vColor.Green;
+					_gradientColorBuffer[g++] = vColor.Blue;
+					_gradientColorBuffer[g++] = vColor.Alpha;
+				}
+
+				var colorspace = _getColorspace?.Invoke() ?? _deviceRgbColorSpace;
+				_gradient = new CGGradient(colorspace, _gradientColorBuffer, _gradientOffsetBuffer);
 				_paint = paint;
 			}
 			else if (paint is RadialGradientPaint radialGradientPaint)
 			{
-				var gradientColors = new nfloat[radialGradientPaint.GradientStops.Length * 4];
-				var offsets = new nfloat[radialGradientPaint.GradientStops.Length];
-
-				int g = 0;
-				for (int i = 0; i < radialGradientPaint.GradientStops.Length; i++)
+				int stopCount = radialGradientPaint.GradientStops.Length;
+				if (_gradientColorBuffer.Length != stopCount * 4)
 				{
-					Color vColor = radialGradientPaint.GradientStops[i].Color;
-					offsets[i] = radialGradientPaint.GradientStops[i].Offset;
-
-					if (vColor == null)
-						vColor = Colors.White;
-
-					gradientColors[g++] = vColor.Red;
-					gradientColors[g++] = vColor.Green;
-					gradientColors[g++] = vColor.Blue;
-					gradientColors[g++] = vColor.Alpha;
+					_gradientColorBuffer = new nfloat[stopCount * 4];
 				}
 
-				var colorspace = _getColorspace?.Invoke() ?? CGColorSpace.CreateDeviceRGB();
-				_gradient = new CGGradient(colorspace, gradientColors, offsets);
+				if (_gradientOffsetBuffer.Length != stopCount)
+				{
+					_gradientOffsetBuffer = new nfloat[stopCount];
+				}
+
+				int g = 0;
+				for (int i = 0; i < stopCount; i++)
+				{
+					Color vColor = radialGradientPaint.GradientStops[i].Color;
+					_gradientOffsetBuffer[i] = radialGradientPaint.GradientStops[i].Offset;
+
+					if (vColor == null)
+					{
+						vColor = Colors.White;
+					}
+
+					_gradientColorBuffer[g++] = vColor.Red;
+					_gradientColorBuffer[g++] = vColor.Green;
+					_gradientColorBuffer[g++] = vColor.Blue;
+					_gradientColorBuffer[g++] = vColor.Alpha;
+				}
+
+				var colorspace = _getColorspace?.Invoke() ?? _deviceRgbColorSpace;
+				_gradient = new CGGradient(colorspace, _gradientColorBuffer, _gradientOffsetBuffer);
 				_paint = paint;
 			}
 			else if (paint is PatternPaint patternPaint)
@@ -389,14 +419,18 @@ namespace Microsoft.Maui.Graphics.Platform
 		protected override void PlatformDrawLine(float x1, float y1, float x2, float y2)
 		{
 			if (!_antialias)
+			{
 				_context.SetShouldAntialias(false);
+			}
 
 			_context.MoveTo(x1, y1);
 			_context.AddLineToPoint(x2, y2);
 			_context.StrokePath();
 
 			if (!_antialias)
+			{
 				_context.SetShouldAntialias(true);
+			}
 		}
 
 		// Normalize the angle to be between 0 and 2PI
@@ -414,7 +448,9 @@ namespace Microsoft.Maui.Graphics.Platform
 			_rect.Height = height;
 
 			if (!_antialias)
+			{
 				_context.SetShouldAntialias(false);
+			}
 
 			var startAngleInRadians = NormalizeAngle(GeometryUtil.DegreesToRadians(-startAngle));
 			var endAngleInRadians = NormalizeAngle(GeometryUtil.DegreesToRadians(-endAngle));
@@ -449,7 +485,9 @@ namespace Microsoft.Maui.Graphics.Platform
 			}
 
 			if (!_antialias)
+			{
 				_context.SetShouldAntialias(true);
+			}
 		}
 
 		public override void FillArc(float x, float y, float width, float height, float startAngle, float endAngle, bool clockwise)
@@ -463,10 +501,14 @@ namespace Microsoft.Maui.Graphics.Platform
 			var endAngleInRadians = GeometryUtil.DegreesToRadians(-endAngle);
 
 			while (startAngleInRadians < 0)
+			{
 				startAngleInRadians += MathF.PI * 2;
+			}
 
 			while (endAngleInRadians < 0)
+			{
 				endAngleInRadians += MathF.PI * 2;
+			}
 
 			if (width == height)
 			{
@@ -555,13 +597,19 @@ namespace Microsoft.Maui.Graphics.Platform
 			}
 
 			_context.SaveState();
-			if (action())
+			try
 			{
-				_context.Clip();
-			}
+				if (action())
+				{
+					_context.Clip();
+				}
 
-			DrawGradient();
-			_context.RestoreState();
+				DrawGradient();
+			}
+			finally
+			{
+				_context.RestoreState();
+			}
 		}
 
 		protected override void PlatformDrawRectangle(float x, float y, float width, float height)
@@ -572,10 +620,15 @@ namespace Microsoft.Maui.Graphics.Platform
 			_rect.Height = height;
 
 			if (!_antialias)
+			{
 				_context.SetShouldAntialias(false);
+			}
+
 			_context.StrokeRect(_rect);
 			if (!_antialias)
+			{
 				_context.SetShouldAntialias(true);
+			}
 		}
 
 		private void DrawGradient()
@@ -609,10 +662,22 @@ namespace Microsoft.Maui.Graphics.Platform
 					CGGradientDrawingOptions.DrawsBeforeStartLocation | CGGradientDrawingOptions.DrawsAfterEndLocation);
 			}
 
-			_gradient.Dispose();
+			ClearGradient();
+			//System.Diagnostics.Debug.WriteLine("Gradient Painted and Cleared");
+		}
+
+		private void ClearGradient()
+		{
+			_gradient?.Dispose();
 			_gradient = null;
 			_paint = null;
-			//System.Diagnostics.Debug.WriteLine("Gradient Painted and Cleared");
+		}
+
+		private void ClearFillState()
+		{
+			ClearGradient();
+			_fillPattern = null;
+			_fillImage = null;
 		}
 
 		private static float GetDistance(CGPoint point1, CGPoint point2)
@@ -629,8 +694,16 @@ namespace Microsoft.Maui.Graphics.Platform
 			{
 				context.SetLineDash(0, EmptyNFloatArray);
 				if (_fillPatternCanvas == null)
+				{
 					_fillPatternCanvas = new PlatformCanvas(_getColorspace);
-				_fillPatternCanvas.Context = context;
+				}
+				// Only reassign the context when it changes to avoid the expensive
+				// colorspace setup and ResetState() on every tile callback invocation.
+				if (_fillPatternCanvas.Context != context)
+				{
+					_fillPatternCanvas.Context = context;
+				}
+
 				fillPattern.Draw(_fillPatternCanvas);
 			}
 		}
@@ -651,11 +724,17 @@ namespace Microsoft.Maui.Graphics.Platform
 #else
 				var cgImage = platformImage.CGImage;
 #endif
-				context.TranslateCTM(0, rect.Height);
-				context.ScaleCTM(1, -1);
-				context.DrawImage(rect, cgImage);
-				context.ScaleCTM(1, -1);
-				context.TranslateCTM(0, -rect.Height);
+				context.SaveState();
+				try
+				{
+					context.TranslateCTM(0, rect.Height);
+					context.ScaleCTM(1, -1);
+					context.DrawImage(rect, cgImage);
+				}
+				finally
+				{
+					context.RestoreState();
+				}
 			}
 		}
 
@@ -665,17 +744,24 @@ namespace Microsoft.Maui.Graphics.Platform
 			var platformRepresentation = platformImage?.PlatformRepresentation;
 			if (platformRepresentation != null)
 			{
-				_rect.X = x;
-				_rect.Y = -y;
+				_rect.X = 0;
+				_rect.Y = 0;
 				_rect.Width = width;
 				_rect.Height = height;
 
 				var cgImage = platformRepresentation.CGImage;
 				_context.SaveState();
-				_context.ScaleCTM(1, -1);
-				_context.TranslateCTM(0, -_rect.Height);
-				_context.DrawImage(_rect, cgImage);
-				_context.RestoreState();
+				try
+				{
+					_context.TranslateCTM(x, y);
+					_context.ScaleCTM(1, -1);
+					_context.TranslateCTM(0, -height);
+					_context.DrawImage(_rect, cgImage);
+				}
+				finally
+				{
+					_context.RestoreState();
+				}
 			}
 		}
 
@@ -733,13 +819,18 @@ namespace Microsoft.Maui.Graphics.Platform
 			var patternToDraw = _fillPattern;
 			var pattern = new CGPattern(_fillPatternRect, transform, _fillPattern.StepX, _fillPattern.StepY, CGPatternTiling.ConstantSpacing, true,
 				(handle) => DrawPatternCallback(handle, patternToDraw));
-			_context.SetFillPattern(pattern, new nfloat[] { 1 });
-			drawingAction();
-
-			// Dispose of the patterns and it's colorspace
-			pattern.Dispose();
-			colorspace.Dispose();
-			_context.RestoreState();
+			try
+			{
+				_context.SetFillPattern(pattern, _fillPatternComponents);
+				drawingAction();
+			}
+			finally
+			{
+				// Dispose of the patterns and it's colorspace
+				pattern.Dispose();
+				colorspace.Dispose();
+				_context.RestoreState();
+			}
 		}
 
 		private void FillWithImage(nfloat x, nfloat y, Action drawingAction)
@@ -760,13 +851,18 @@ namespace Microsoft.Maui.Graphics.Platform
 			transform.Multiply(new CGAffineTransform(1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f));
 
 			var pattern = new CGPattern(_fillPatternRect, transform, _fillImage.Width, _fillImage.Height, CGPatternTiling.NoDistortion, true, DrawImageCallback);
-			_context.SetFillPattern(pattern, new nfloat[] { 1 });
-			drawingAction();
-
-			// Dispose of the patterns and it's colorspace
-			pattern.Dispose();
-			colorspace.Dispose();
-			_context.RestoreState();
+			try
+			{
+				_context.SetFillPattern(pattern, _fillPatternComponents);
+				drawingAction();
+			}
+			finally
+			{
+				// Dispose of the patterns and it's colorspace
+				pattern.Dispose();
+				colorspace.Dispose();
+				_context.RestoreState();
+			}
 		}
 
 		protected override void PlatformDrawRoundedRectangle(float x, float y, float width, float height, float cornerRadius)
@@ -1009,16 +1105,29 @@ namespace Microsoft.Maui.Graphics.Platform
 
 		private void DrawString(string value, float x, float y)
 		{
-			_context.SetFillColor(_fontColor);
-			_context.SetFont(_font?.ToCGFont() ?? FontExtensions.GetDefaultCGFont());
-			_context.SetFontSize(_fontSize);
-			_context.SetTextDrawingMode(CGTextDrawingMode.Fill);
-			_context.TextMatrix = FlipTransform;
-#pragma warning disable BI1234 // Type or member is obsolete
-#pragma warning disable CA1422, CA1416 // Validate platform compatibility
-			_context.ShowTextAtPoint(x, y, value);
-#pragma warning restore CA1422 // Validate platform compatibility
-#pragma warning restore BI1234, CA1416 // Type or member is obsolete
+			var font = _font?.ToCTFont(_fontSize) ?? FontExtensions.GetDefaultCTFont(_fontSize);
+			var attributes = new CTStringAttributes
+			{
+				Font = font,
+				ForegroundColor = new CGColor(_fontColor.Red, _fontColor.Green, _fontColor.Blue, _fontColor.Alpha)
+			};
+
+			using var attributedString = new NSAttributedString(value, attributes);
+			using var line = new CTLine(attributedString);
+
+			_context.SaveState();
+			try
+			{
+				// CoreText draws with the y-axis pointing up; flip to match the canvas coordinate system.
+				_context.TranslateCTM(x, y);
+				_context.ScaleCTM(1, -1);
+				_context.TextPosition = CGPoint.Empty;
+				line.Draw(_context);
+			}
+			finally
+			{
+				_context.RestoreState();
+			}
 		}
 
 		public override void DrawString(
@@ -1060,8 +1169,14 @@ namespace Microsoft.Maui.Graphics.Platform
 #endif
 
 			_context.SaveState();
-			DrawStringInPlatformPath(path, value, horizontalAlignment, verticalAlignment, textFlow, _context, _font, _fontSize, _fontColor, 0, 0);
-			_context.RestoreState();
+			try
+			{
+				DrawStringInPlatformPath(path, value, horizontalAlignment, verticalAlignment, textFlow, _context, _font, _fontSize, _fontColor, 0, 0);
+			}
+			finally
+			{
+				_context.RestoreState();
+			}
 			path.Dispose();
 		}
 
@@ -1087,98 +1202,104 @@ namespace Microsoft.Maui.Graphics.Platform
 			var rect = path.PathBoundingBox;
 
 			context.SaveState();
-			context.TranslateCTM(0, rect.Height);
-			context.ScaleCTM(1, -1f);
-
-			context.TextMatrix = CGAffineTransform.MakeIdentity();
-			context.TextMatrix.Translate(ix, iy);
-
-			var attributedString = new NSMutableAttributedString(value);
-
-			var attributes = new CTStringAttributes();
-
-			// Create a color and add it as an attribute to the string.
-			attributes.ForegroundColor = new CGColor(fontColor.Red, fontColor.Green, fontColor.Blue, fontColor.Alpha);
-
-			var ctFont = font?.ToCTFont(fontSize) ?? FontExtensions.GetDefaultCTFont(fontSize);
-
-			if (ctFont != null && ctFont.Handle != IntPtr.Zero)
-				attributes.Font = ctFont;
-
-			if (verticalAlignment == VerticalAlignment.Center)
+			try
 			{
-				iy += -(float)(ctFont.DescentMetric / 2);
-			}
-			else if (verticalAlignment == VerticalAlignment.Bottom)
-			{
-				iy += -(float)(ctFont.DescentMetric);
-			}
+				context.TranslateCTM(0, rect.Height);
+				context.ScaleCTM(1, -1f);
 
-			// Set the horizontal alignment
-			var paragraphSettings = new CTParagraphStyleSettings();
-			switch (horizontalAlignment)
-			{
-				case HorizontalAlignment.Left:
-					paragraphSettings.Alignment = CTTextAlignment.Left;
-					break;
-				case HorizontalAlignment.Center:
-					paragraphSettings.Alignment = CTTextAlignment.Center;
-					break;
-				case HorizontalAlignment.Right:
-					paragraphSettings.Alignment = CTTextAlignment.Right;
-					break;
-				case HorizontalAlignment.Justified:
-					paragraphSettings.Alignment = CTTextAlignment.Justified;
-					break;
-			}
+				context.TextMatrix = CGAffineTransform.MakeIdentity();
+				context.TextMatrix.Translate(ix, iy);
 
-			var paragraphStyle = new CTParagraphStyle(paragraphSettings);
-			attributes.ParagraphStyle = paragraphStyle;
+				var attributedString = new NSMutableAttributedString(value);
 
-			// Set the attributes for the complete length of the string
-			attributedString.SetAttributes(attributes, new NSRange(0, value.Length));
+				var attributes = new CTStringAttributes();
 
-			// Create the framesetter with the attributed string.
-			var frameSetter = new CTFramesetter(attributedString);
+				// Create a color and add it as an attribute to the string.
+				attributes.ForegroundColor = new CGColor(fontColor.Red, fontColor.Green, fontColor.Blue, fontColor.Alpha);
 
-			// Create the frame and draw it into the graphics context
-			var frame = frameSetter.GetFrame(new NSRange(0, 0), path, null);
+				var ctFont = font?.ToCTFont(fontSize) ?? FontExtensions.GetDefaultCTFont(fontSize);
 
-			if (frame != null)
-			{
-				if (verticalAlignment != VerticalAlignment.Top)
+				if (ctFont != null && ctFont.Handle != IntPtr.Zero)
 				{
-					var textFrameSize = PlatformStringSizeService.GetTextSize(frame);
-					if (textFrameSize.Height > 0)
+					attributes.Font = ctFont;
+				}
+
+				if (verticalAlignment == VerticalAlignment.Center)
+				{
+					iy += -(float)(ctFont.DescentMetric / 2);
+				}
+				else if (verticalAlignment == VerticalAlignment.Bottom)
+				{
+					iy += -(float)(ctFont.DescentMetric);
+				}
+
+				// Set the horizontal alignment
+				var paragraphSettings = new CTParagraphStyleSettings();
+				switch (horizontalAlignment)
+				{
+					case HorizontalAlignment.Left:
+						paragraphSettings.Alignment = CTTextAlignment.Left;
+						break;
+					case HorizontalAlignment.Center:
+						paragraphSettings.Alignment = CTTextAlignment.Center;
+						break;
+					case HorizontalAlignment.Right:
+						paragraphSettings.Alignment = CTTextAlignment.Right;
+						break;
+					case HorizontalAlignment.Justified:
+						paragraphSettings.Alignment = CTTextAlignment.Justified;
+						break;
+				}
+
+				var paragraphStyle = new CTParagraphStyle(paragraphSettings);
+				attributes.ParagraphStyle = paragraphStyle;
+
+				// Set the attributes for the complete length of the string
+				attributedString.SetAttributes(attributes, new NSRange(0, value.Length));
+
+				// Create the framesetter with the attributed string.
+				var frameSetter = new CTFramesetter(attributedString);
+
+				// Create the frame and draw it into the graphics context
+				var frame = frameSetter.GetFrame(new NSRange(0, 0), path, null);
+
+				if (frame != null)
+				{
+					if (verticalAlignment != VerticalAlignment.Top)
 					{
-						if (verticalAlignment == VerticalAlignment.Bottom)
+						var textFrameSize = PlatformStringSizeService.GetTextSize(frame);
+						if (textFrameSize.Height > 0)
 						{
-							var dy = rect.Height - textFrameSize.Height + iy;
-							context.TranslateCTM(-ix, -dy);
-						}
-						else
-						{
-							var dy = (rect.Height - textFrameSize.Height) / 2 + iy;
-							context.TranslateCTM(-ix, -dy);
+							if (verticalAlignment == VerticalAlignment.Bottom)
+							{
+								var dy = rect.Height - textFrameSize.Height + iy;
+								context.TranslateCTM(-ix, -dy);
+							}
+							else
+							{
+								var dy = (rect.Height - textFrameSize.Height) / 2 + iy;
+								context.TranslateCTM(-ix, -dy);
+							}
 						}
 					}
-				}
-				else
-				{
-					context.TranslateCTM(-ix, -iy);
+					else
+					{
+						context.TranslateCTM(-ix, -iy);
+					}
+
+					frame.Draw(context);
+					frame.Dispose();
 				}
 
-				frame.Draw(context);
-				frame.Dispose();
+				frameSetter.Dispose();
+				attributedString.Dispose();
+				paragraphStyle.Dispose();
+				//font.Dispose();
 			}
-
-			frameSetter.Dispose();
-			attributedString.Dispose();
-			paragraphStyle.Dispose();
-			//font.Dispose();
-			path.Dispose();
-
-			context.RestoreState();
+			finally
+			{
+				context.RestoreState();
+			}
 		}
 
 		public static void DrawAttributedText(
@@ -1213,54 +1334,62 @@ namespace Microsoft.Maui.Graphics.Platform
 			var verticalAlignment = VerticalAlignment.Top;
 
 			context.SaveState();
-			context.TranslateCTM(0, rect.Height);
-			context.ScaleCTM(1, -1f);
-			context.TranslateCTM(0, rect.GetMinY() * -2);
-
-			context.TextMatrix = CGAffineTransform.MakeIdentity();
-			context.TextMatrix.Translate(ix, iy);
-
-			var attributedString = text.AsNSAttributedString(font, fontSize, fontColor?.ToHex(), true);
-			if (attributedString == null)
-				return;
-
-			// Create the frame setter with the attributed string.
-			var framesetter = new CTFramesetter(attributedString);
-
-			// Create the frame and draw it into the graphics context
-			var frame = framesetter.GetFrame(new NSRange(0, 0), path, null);
-
-			if (frame != null)
+			try
 			{
-				if (verticalAlignment != VerticalAlignment.Top)
+				context.TranslateCTM(0, rect.Height);
+				context.ScaleCTM(1, -1f);
+				context.TranslateCTM(0, rect.GetMinY() * -2);
+
+				context.TextMatrix = CGAffineTransform.MakeIdentity();
+				context.TextMatrix.Translate(ix, iy);
+
+				var attributedString = text.AsNSAttributedString(font, fontSize, fontColor?.ToHex(), true);
+				if (attributedString == null)
 				{
-					var textSize = PlatformStringSizeService.GetTextSize(frame);
-					if (textSize.Height > 0)
+					return;
+				}
+
+				// Create the frame setter with the attributed string.
+				var framesetter = new CTFramesetter(attributedString);
+
+				// Create the frame and draw it into the graphics context
+				var frame = framesetter.GetFrame(new NSRange(0, 0), path, null);
+
+				if (frame != null)
+				{
+					if (verticalAlignment != VerticalAlignment.Top)
 					{
-						if (verticalAlignment == VerticalAlignment.Bottom)
+						var textSize = PlatformStringSizeService.GetTextSize(frame);
+						if (textSize.Height > 0)
 						{
-							var dy = rect.Height - textSize.Height + iy;
-							context.TranslateCTM(-ix, -dy);
-						}
-						else
-						{
-							var dy = (rect.Height - textSize.Height) / 2 + iy;
-							context.TranslateCTM(-ix, -dy);
+							if (verticalAlignment == VerticalAlignment.Bottom)
+							{
+								var dy = rect.Height - textSize.Height + iy;
+								context.TranslateCTM(-ix, -dy);
+							}
+							else
+							{
+								var dy = (rect.Height - textSize.Height) / 2 + iy;
+								context.TranslateCTM(-ix, -dy);
+							}
 						}
 					}
-				}
-				else
-				{
-					context.TranslateCTM(-ix, -iy);
+					else
+					{
+						context.TranslateCTM(-ix, -iy);
+					}
+
+					frame.Draw(context);
+					frame.Dispose();
 				}
 
-				frame.Draw(context);
-				frame.Dispose();
+				framesetter.Dispose();
+				attributedString.Dispose();
 			}
-
-			framesetter.Dispose();
-			attributedString.Dispose();
-			context.RestoreState();
+			finally
+			{
+				context.RestoreState();
+			}
 		}
 
 		public override void SetShadow(SizeF offset, float blur, Color color)
@@ -1323,10 +1452,7 @@ namespace Microsoft.Maui.Graphics.Platform
 		{
 			base.ResetState();
 
-			_gradient = null;
-			_fillPattern = null;
-			_fillImage = null;
-			_paint = null;
+			ClearFillState();
 
 			_fontColor = Colors.Black;
 		}
@@ -1335,12 +1461,7 @@ namespace Microsoft.Maui.Graphics.Platform
 		{
 			var success = base.RestoreState();
 
-			_gradient?.Dispose();
-			_gradient = null;
-
-			_fillPattern = null;
-			_fillImage = null;
-			_paint = null;
+			ClearFillState();
 			_context.RestoreState();
 
 			return success;
@@ -1374,10 +1495,14 @@ namespace Microsoft.Maui.Graphics.Platform
 			var rect = new CGRect(x, y, width, height);
 
 			if (finalCornerRadius > rect.Width)
+			{
 				finalCornerRadius = rect.Width / 2;
+			}
 
 			if (finalCornerRadius > rect.Height)
+			{
 				finalCornerRadius = rect.Height / 2;
+			}
 
 			var minX = rect.X;
 			var minY = rect.Y;
