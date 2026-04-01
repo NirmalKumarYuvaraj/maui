@@ -1,5 +1,3 @@
-using System;
-
 namespace MauiApp._1.Models;
 
 public class IconData

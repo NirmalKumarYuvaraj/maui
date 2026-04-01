@@ -1,5 +1,3 @@
-using MauiApp._1.Services;
-
 namespace MauiApp._1.Utilities;
 
 /// <summary>

@@ -1,8 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using MauiApp._1.Models;
 using System.Collections.ObjectModel;
-using System.Windows.Input;
 
 namespace MauiApp._1.PageModels;
 

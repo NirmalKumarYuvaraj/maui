@@ -1,8 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using MauiApp._1.Data;
-using MauiApp._1.Models;
-using MauiApp._1.Services;
 
 namespace MauiApp._1.PageModels;
 

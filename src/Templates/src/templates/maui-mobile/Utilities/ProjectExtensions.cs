@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using MauiApp._1.Models;
 
 namespace MauiApp._1.Utilities;
 

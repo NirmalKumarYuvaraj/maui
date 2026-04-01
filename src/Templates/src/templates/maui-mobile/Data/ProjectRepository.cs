@@ -1,4 +1,3 @@
-using MauiApp._1.Models;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 
@@ -10,6 +9,7 @@ namespace MauiApp._1.Data;
 public class ProjectRepository
 {
 	private bool _hasBeenInitialized = false;
+	private readonly SemaphoreSlim _initLock = new(1, 1);
 	private readonly ILogger _logger;
 	private readonly TaskRepository _taskRepository;
 	private readonly TagRepository _tagRepository;
@@ -35,13 +35,19 @@ public class ProjectRepository
 		if (_hasBeenInitialized)
 			return;
 
-		await using var connection = new SqliteConnection(Constants.DatabasePath);
-		await connection.OpenAsync();
-
+		await _initLock.WaitAsync();
 		try
 		{
-			var createTableCmd = connection.CreateCommand();
-			createTableCmd.CommandText = @"
+			if (_hasBeenInitialized)
+				return;
+
+			await using var connection = new SqliteConnection(Constants.DatabasePath);
+			await connection.OpenAsync();
+
+			try
+			{
+				var createTableCmd = connection.CreateCommand();
+				createTableCmd.CommandText = @"
             CREATE TABLE IF NOT EXISTS Project (
                 ID INTEGER PRIMARY KEY AUTOINCREMENT,
                 Name TEXT NOT NULL,
@@ -49,15 +55,20 @@ public class ProjectRepository
                 Icon TEXT NOT NULL,
                 CategoryID INTEGER NOT NULL
             );";
-			await createTableCmd.ExecuteNonQueryAsync();
-		}
-		catch (Exception e)
-		{
-			_logger.LogError(e, "Error creating Project table");
-			throw;
-		}
+				await createTableCmd.ExecuteNonQueryAsync();
+			}
+			catch (Exception e)
+			{
+				_logger.LogError(e, "Error creating Project table");
+				throw;
+			}
 
-		_hasBeenInitialized = true;
+			_hasBeenInitialized = true;
+		}
+		finally
+		{
+			_initLock.Release();
+		}
 	}
 
 	/// <summary>
@@ -87,6 +98,8 @@ public class ProjectRepository
 			});
 		}
 
+		// NOTE: This loads tags and tasks per-project in separate queries (N+1 pattern).
+		// For small datasets this is acceptable, but consider using JOINs in production.
 		foreach (var project in projects)
 		{
 			project.Tags = await _tagRepository.ListAsync(project.ID);
@@ -192,9 +205,6 @@ public class ProjectRepository
 		return await deleteCmd.ExecuteNonQueryAsync();
 	}
 
-	/// <summary>
-	/// Drops the Project table from the database.
-	/// </summary>
 	public async Task DropTableAsync()
 	{
 		await Init();
@@ -205,6 +215,7 @@ public class ProjectRepository
 		dropCmd.CommandText = "DROP TABLE IF EXISTS Project";
 		await dropCmd.ExecuteNonQueryAsync();
 
+		// Cascade: drop related tables managed by their own repositories
 		await _taskRepository.DropTableAsync();
 		await _tagRepository.DropTableAsync();
 		_hasBeenInitialized = false;

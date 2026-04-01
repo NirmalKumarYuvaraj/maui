@@ -1,4 +1,4 @@
-﻿#if (IncludeSampleContent)
+#if (IncludeSampleContent)
 using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Core;
 using Font = Microsoft.Maui.Font;
@@ -14,14 +14,16 @@ public partial class AppShell : Shell
 		var currentTheme = Application.Current!.RequestedTheme;		
 		ThemeSegmentedControl.SelectedIndex = currentTheme == AppTheme.Light ? 0 : 1;
 #endif
+//-:cnd:noEmit
 #if ANDROID || WINDOWS
 		SemanticProperties.SetDescription(ThemeSegmentedControl, "Theme selection");
 #endif
+//+:cnd:noEmit
 	}
 #if (IncludeSampleContent)
 	public static async Task DisplaySnackbarAsync(string message)
 	{
-		CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+		using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 
 		var snackbarOptions = new SnackbarOptions
 		{

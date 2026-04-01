@@ -1,4 +1,3 @@
-using MauiApp._1.Models;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 
@@ -10,6 +9,7 @@ namespace MauiApp._1.Data;
 public class TagRepository
 {
 	private bool _hasBeenInitialized = false;
+	private readonly SemaphoreSlim _initLock = new(1, 1);
 	private readonly ILogger _logger;
 
 	/// <summary>
@@ -29,35 +29,46 @@ public class TagRepository
 		if (_hasBeenInitialized)
 			return;
 
-		await using var connection = new SqliteConnection(Constants.DatabasePath);
-		await connection.OpenAsync();
-
+		await _initLock.WaitAsync();
 		try
 		{
-			var createTableCmd = connection.CreateCommand();
-			createTableCmd.CommandText = @"
+			if (_hasBeenInitialized)
+				return;
+
+			await using var connection = new SqliteConnection(Constants.DatabasePath);
+			await connection.OpenAsync();
+
+			try
+			{
+				var createTableCmd = connection.CreateCommand();
+				createTableCmd.CommandText = @"
             CREATE TABLE IF NOT EXISTS Tag (
                 ID INTEGER PRIMARY KEY AUTOINCREMENT,
                 Title TEXT NOT NULL,
                 Color TEXT NOT NULL
             );";
-			await createTableCmd.ExecuteNonQueryAsync();
+				await createTableCmd.ExecuteNonQueryAsync();
 
-			createTableCmd.CommandText = @"
+				createTableCmd.CommandText = @"
             CREATE TABLE IF NOT EXISTS ProjectsTags (
                 ProjectID INTEGER NOT NULL,
                 TagID INTEGER NOT NULL,
                 PRIMARY KEY(ProjectID, TagID)
             );";
-			await createTableCmd.ExecuteNonQueryAsync();
-		}
-		catch (Exception e)
-		{
-			_logger.LogError(e, "Error creating tables");
-			throw;
-		}
+				await createTableCmd.ExecuteNonQueryAsync();
+			}
+			catch (Exception e)
+			{
+				_logger.LogError(e, "Error creating tables");
+				throw;
+			}
 
-		_hasBeenInitialized = true;
+			_hasBeenInitialized = true;
+		}
+		finally
+		{
+			_initLock.Release();
+		}
 	}
 
 	/// <summary>
@@ -105,7 +116,7 @@ public class TagRepository
         FROM Tag t
         JOIN ProjectsTags pt ON t.ID = pt.TagID
         WHERE pt.ProjectID = @ProjectID";
-		selectCmd.Parameters.AddWithValue("ProjectID", projectID);
+		selectCmd.Parameters.AddWithValue("@ProjectID", projectID);
 
 		var tags = new List<Tag>();
 

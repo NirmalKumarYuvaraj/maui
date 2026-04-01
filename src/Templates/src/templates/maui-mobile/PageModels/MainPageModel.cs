@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using MauiApp._1.Models;
 
 namespace MauiApp._1.PageModels;
 
@@ -156,7 +155,7 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
 
 	[RelayCommand]
 	private Task? NavigateToProject(Project project)
-		=> project is null ? null : Shell.Current.GoToAsync($"project?id={project.ID}");
+		=> project is null ? Task.CompletedTask : Shell.Current.GoToAsync($"project?id={project.ID}");
 
 	[RelayCommand]
 	private Task NavigateToTask(ProjectTask task)

@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
-using MauiApp._1.Models;
+
+namespace MauiApp._1.Data;
 
 [JsonSerializable(typeof(Project))]
 [JsonSerializable(typeof(ProjectTask))]

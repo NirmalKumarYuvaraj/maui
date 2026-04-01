@@ -1,5 +1,4 @@
 using System.Text.Json;
-using MauiApp._1.Models;
 using Microsoft.Extensions.Logging;
 
 namespace MauiApp._1.Data;
@@ -24,7 +23,7 @@ public class SeedDataService
 
 	public async Task LoadSeedDataAsync()
 	{
-		ClearTables();
+		await ClearTablesAsync();
 
 		await using Stream templateStream = await FileSystem.OpenAppPackageFileAsync(_seedDataFilePath);
 
@@ -83,19 +82,19 @@ public class SeedDataService
 		}
 	}
 
-	private async void ClearTables()
+	private async Task ClearTablesAsync()
 	{
 		try
 		{
+			// ProjectRepository.DropTableAsync also cascades to Task and Tag tables,
+			// so we only need to drop Project and Category here.
 			await Task.WhenAll(
 				_projectRepository.DropTableAsync(),
-				_taskRepository.DropTableAsync(),
-				_tagRepository.DropTableAsync(),
 				_categoryRepository.DropTableAsync());
 		}
 		catch (Exception e)
 		{
-			Console.WriteLine(e);
+			_logger.LogError(e, "Error clearing tables");
 		}
 	}
 }

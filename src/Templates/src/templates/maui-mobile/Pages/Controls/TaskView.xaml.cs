@@ -1,5 +1,4 @@
 using System.Windows.Input;
-using MauiApp._1.Models;
 
 namespace MauiApp._1.Pages.Controls;
 
