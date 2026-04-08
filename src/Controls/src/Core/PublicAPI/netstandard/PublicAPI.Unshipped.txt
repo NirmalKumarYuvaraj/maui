@@ -40,3 +40,11 @@ Microsoft.Maui.Controls.ImageSource.InvalidateStyle() -> void
 Microsoft.Maui.Controls.Span.InvalidateStyle() -> void
 Microsoft.Maui.Controls.StyleableElement.InvalidateStyle() -> void
 ~static Microsoft.Maui.Controls.VisualStateManager.InvalidateVisualStates(Microsoft.Maui.Controls.VisualElement visualElement) -> void
+Microsoft.Maui.Controls.IPointerGestureController
+Microsoft.Maui.Controls.IPointerGestureController.SendPointerEntered(Microsoft.Maui.Controls.View! sender, System.Func<Microsoft.Maui.IElement?, Microsoft.Maui.Graphics.Point?>? getPosition) -> void
+Microsoft.Maui.Controls.IPointerGestureController.SendPointerExited(Microsoft.Maui.Controls.View! sender, System.Func<Microsoft.Maui.IElement?, Microsoft.Maui.Graphics.Point?>? getPosition) -> void
+Microsoft.Maui.Controls.IPointerGestureController.SendPointerMoved(Microsoft.Maui.Controls.View! sender, System.Func<Microsoft.Maui.IElement?, Microsoft.Maui.Graphics.Point?>? getPosition) -> void
+Microsoft.Maui.Controls.IPointerGestureController.SendPointerPressed(Microsoft.Maui.Controls.View! sender, System.Func<Microsoft.Maui.IElement?, Microsoft.Maui.Graphics.Point?>? getPosition) -> void
+Microsoft.Maui.Controls.IPointerGestureController.SendPointerReleased(Microsoft.Maui.Controls.View! sender, System.Func<Microsoft.Maui.IElement?, Microsoft.Maui.Graphics.Point?>? getPosition) -> void
+Microsoft.Maui.Controls.ITapGestureController
+Microsoft.Maui.Controls.ITapGestureController.SendTapped(Microsoft.Maui.Controls.View! sender, System.Func<Microsoft.Maui.IElement?, Microsoft.Maui.Graphics.Point?>? getPosition = null) -> void

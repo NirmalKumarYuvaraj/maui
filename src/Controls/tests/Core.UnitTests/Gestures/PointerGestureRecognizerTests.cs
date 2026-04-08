@@ -342,6 +342,132 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 			Assert.Equal(testMask, pointerGesture.Buttons);
 		}
 
+		[Fact]
+		public void PointerGestureRecognizerImplementsIPointerGestureController()
+		{
+			var gesture = new PointerGestureRecognizer();
+			Assert.IsAssignableFrom<IPointerGestureController>(gesture);
+		}
+
+		[Fact]
+		public void IPointerGestureControllerSendPointerEnteredFiresEvent()
+		{
+			var view = new View();
+			var gesture = new PointerGestureRecognizer();
+			bool fired = false;
+			gesture.PointerEntered += (s, e) => fired = true;
+
+			((IPointerGestureController)gesture).SendPointerEntered(view, null);
+
+			Assert.True(fired);
+		}
+
+		[Fact]
+		public void IPointerGestureControllerSendPointerExitedFiresEvent()
+		{
+			var view = new View();
+			var gesture = new PointerGestureRecognizer();
+			bool fired = false;
+			gesture.PointerExited += (s, e) => fired = true;
+
+			((IPointerGestureController)gesture).SendPointerExited(view, null);
+
+			Assert.True(fired);
+		}
+
+		[Fact]
+		public void IPointerGestureControllerSendPointerMovedFiresEvent()
+		{
+			var view = new View();
+			var gesture = new PointerGestureRecognizer();
+			bool fired = false;
+			gesture.PointerMoved += (s, e) => fired = true;
+
+			((IPointerGestureController)gesture).SendPointerMoved(view, null);
+
+			Assert.True(fired);
+		}
+
+		[Fact]
+		public void IPointerGestureControllerSendPointerPressedFiresEvent()
+		{
+			var view = new View();
+			var gesture = new PointerGestureRecognizer();
+			bool fired = false;
+			gesture.PointerPressed += (s, e) => fired = true;
+
+			((IPointerGestureController)gesture).SendPointerPressed(view, null);
+
+			Assert.True(fired);
+		}
+
+		[Fact]
+		public void IPointerGestureControllerSendPointerReleasedFiresEvent()
+		{
+			var view = new View();
+			var gesture = new PointerGestureRecognizer();
+			bool fired = false;
+			gesture.PointerReleased += (s, e) => fired = true;
+
+			((IPointerGestureController)gesture).SendPointerReleased(view, null);
+
+			Assert.True(fired);
+		}
+
+		[Fact]
+		public void IPointerGestureControllerSendPointerEnteredExecutesCommand()
+		{
+			var view = new View();
+			var gesture = new PointerGestureRecognizer();
+			bool executed = false;
+			gesture.PointerEnteredCommand = new Command(() => executed = true);
+
+			((IPointerGestureController)gesture).SendPointerEntered(view, null);
+
+			Assert.True(executed);
+		}
+
+		[Fact]
+		public void IPointerGestureControllerSendPointerExitedExecutesCommand()
+		{
+			var view = new View();
+			var gesture = new PointerGestureRecognizer();
+			bool executed = false;
+			gesture.PointerExitedCommand = new Command(() => executed = true);
+
+			((IPointerGestureController)gesture).SendPointerExited(view, null);
+
+			Assert.True(executed);
+		}
+
+		[Fact]
+		public void IPointerGestureControllerSendPointerMovedExecutesCommand()
+		{
+			var view = new View();
+			var gesture = new PointerGestureRecognizer();
+			bool executed = false;
+			gesture.PointerMovedCommand = new Command(() => executed = true);
+
+			((IPointerGestureController)gesture).SendPointerMoved(view, null);
+
+			Assert.True(executed);
+		}
+
+		[Fact]
+		public void IPointerGestureControllerSendPointerEnteredPassesGetPosition()
+		{
+			var view = new View();
+			var gesture = new PointerGestureRecognizer();
+			PointerEventArgs capturedArgs = null;
+			gesture.PointerEntered += (s, e) => capturedArgs = e;
+
+			var expectedPoint = new Point(5, 10);
+			((IPointerGestureController)gesture).SendPointerEntered(view, _ => expectedPoint);
+
+			Assert.NotNull(capturedArgs);
+			Assert.Equal(expectedPoint, capturedArgs.GetPosition(null));
+		}
+
 		private class ButtonsSource : BindableObject
 		{
 			public static readonly BindableProperty ButtonsProperty = 

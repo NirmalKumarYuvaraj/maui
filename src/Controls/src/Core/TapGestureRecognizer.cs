@@ -5,7 +5,7 @@ using Microsoft.Maui.Graphics;
 namespace Microsoft.Maui.Controls
 {
 	/// <summary>Recognizes tap gestures on the attached element.</summary>
-	public sealed class TapGestureRecognizer : GestureRecognizer
+	public sealed class TapGestureRecognizer : GestureRecognizer, ITapGestureController
 	{
 		/// <summary>Bindable property for <see cref="Command"/>. This is a bindable property.</summary>
 		public static readonly BindableProperty CommandProperty = BindableProperty.Create(nameof(Command), typeof(ICommand), typeof(TapGestureRecognizer), null);
@@ -56,6 +56,11 @@ namespace Microsoft.Maui.Controls
 		public event EventHandler<TappedEventArgs>? Tapped;
 
 		internal void SendTapped(View sender, Func<IElement?, Point?>? getPosition = null)
+		{
+			((ITapGestureController)this).SendTapped(sender, getPosition);
+		}
+
+		void ITapGestureController.SendTapped(View sender, Func<IElement?, Point?>? getPosition)
 		{
 			var cmd = Command;
 			if (cmd != null && cmd.CanExecute(CommandParameter))

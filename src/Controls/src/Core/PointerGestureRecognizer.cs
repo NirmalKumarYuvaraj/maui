@@ -8,7 +8,7 @@ namespace Microsoft.Maui.Controls
 	/// <summary>
 	/// Provides pointer gesture recognition and events.
 	/// </summary>
-	public sealed class PointerGestureRecognizer : GestureRecognizer
+	public sealed class PointerGestureRecognizer : GestureRecognizer, IPointerGestureController
 	{
 		/// <summary>
 		/// The command to invoke when the pointer has entered the view. This is a bindable property.
@@ -228,6 +228,9 @@ namespace Microsoft.Maui.Controls
 			handler?.Invoke(sender, new PointerEventArgs(getPosition, platformArgs, button));
 		}
 
+		void IPointerGestureController.SendPointerEntered(View sender, Func<IElement?, Point?>? getPosition)
+			=> SendPointerEntered(sender, getPosition);
+
 		/// <summary>
 		/// For internal use by the .NET MAUI platform.
 		/// </summary>
@@ -240,6 +243,9 @@ namespace Microsoft.Maui.Controls
 			EventHandler<PointerEventArgs>? handler = PointerExited;
 			handler?.Invoke(sender, new PointerEventArgs(getPosition, platformArgs, button));
 		}
+
+		void IPointerGestureController.SendPointerExited(View sender, Func<IElement?, Point?>? getPosition)
+			=> SendPointerExited(sender, getPosition);
 
 		/// <summary>
 		/// For internal use by the .NET MAUI platform.
@@ -254,6 +260,9 @@ namespace Microsoft.Maui.Controls
 			handler?.Invoke(sender, new PointerEventArgs(getPosition, platformArgs, button));
 		}
 
+		void IPointerGestureController.SendPointerMoved(View sender, Func<IElement?, Point?>? getPosition)
+			=> SendPointerMoved(sender, getPosition);
+
 		/// <summary>
 		/// For internal use by the .NET MAUI platform.
 		/// </summary>
@@ -267,6 +276,9 @@ namespace Microsoft.Maui.Controls
 			handler?.Invoke(sender, new PointerEventArgs(getPosition, platformArgs, button));
 		}
 
+		void IPointerGestureController.SendPointerPressed(View sender, Func<IElement?, Point?>? getPosition)
+			=> SendPointerPressed(sender, getPosition);
+
 		/// <summary>
 		/// For internal use by the .NET MAUI platform.
 		/// </summary>
@@ -279,6 +291,9 @@ namespace Microsoft.Maui.Controls
 			EventHandler<PointerEventArgs>? handler = PointerReleased;
 			handler?.Invoke(sender, new PointerEventArgs(getPosition, platformArgs, button));
 		}
+
+		void IPointerGestureController.SendPointerReleased(View sender, Func<IElement?, Point?>? getPosition)
+			=> SendPointerReleased(sender, getPosition);
 
 		internal static void SetupForPointerOverVSM(
 			VisualElement element,
