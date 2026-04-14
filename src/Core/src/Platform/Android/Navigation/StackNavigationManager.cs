@@ -141,16 +141,7 @@ namespace Microsoft.Maui.Platform
 
 			// The incoming fragment uses these variables to pick the correct animation for the current
 			// incoming navigation request
-			if (newPageStack[newPageStack.Count - 1] == previousNavigationStack[previousNavigationStackCount - 1])
-			{
-				IsPopping = null;
-			}
-			else
-			{
-
-				IsPopping = newPageStack.Count < previousNavigationStackCount;
-			}
-
+			IsPopping = newPageStack.Count < previousNavigationStackCount;
 			IsAnimated = animated;
 
 			var fragmentNavDestinations = new List<FragmentNavigator.Destination>();
@@ -280,7 +271,7 @@ namespace Microsoft.Maui.Platform
 
 			// set this to one because when the graph is first attached to the controller
 			// it will add the graph and the first destination
-			if (PlatformNavigationStackCount < 0)
+			if (PlatformNavigationStackCount <= 0)
 				PlatformNavigationStackCount = 1;
 
 			for (var i = PlatformNavigationStackCount; i < pages.Count; i++)
@@ -398,7 +389,6 @@ namespace Microsoft.Maui.Platform
 
 				navHostFragment = navHostFragment ?? _fragmentManager.FindFragmentById(Resource.Id.nav_host);
 
-				_fragmentManager = MauiContext.GetFragmentManager();
 				_fragmentLifecycleCallbacks?.Disconnect();
 				_fragmentLifecycleCallbacks = null;
 				SetNavHost(navHostFragment as NavHostFragment);
