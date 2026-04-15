@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Maui.Controls.Sample.ViewControlMainPage"
+             xmlns:local="clr-namespace:Maui.Controls.Sample"
+             Title="View Feature Matrix">
+       <ContentPage.ToolbarItems>
+              <ToolbarItem Text="Options"
+                           Clicked="NavigateToOptionsPage_Clicked"
+                           AutomationId="Options"/>
+              <ToolbarItem Text="Reset"
+                           Command="{Binding ResetCommand}"
+                           AutomationId="Reset"/>
+       </ContentPage.ToolbarItems>
+
+
+       <Grid Padding="20">
+              <Grid.RowDefinitions>
+                     <RowDefinition Height="0.4*"/>
+                     <RowDefinition Height="0.6*"/>
+              </Grid.RowDefinitions>
+
+
+              <!-- Transform Demo Area -->
+              <local:UITestHostControl x:Name="TransformableFrame"
+                                       Grid.Row="0"
+                                       TargetRotation="{Binding Rotation}"
+                                       TargetRotationX="{Binding RotationX}"
+                                       TargetRotationY="{Binding RotationY}"
+                                       TargetScale="{Binding Scale}"
+                                       TargetScaleX="{Binding ScaleX}"
+                                       TargetScaleY="{Binding ScaleY}"
+                                       TargetTranslationX="{Binding TranslationX}"
+                                       TargetTranslationY="{Binding TranslationY}"
+                                       TargetAnchorX="{Binding AnchorX}"
+                                       TargetAnchorY="{Binding AnchorY}"
+                                       TargetIsVisible="{Binding IsVisible}"
+                                       TargetShadow="{Binding BoxShadow}"
+                                       TargetOpacity="{Binding Opacity}"
+                                       TargetBackgroundColor="{Binding BackgroundColor}"
+                                       TargetWidthRequest="{Binding WidthRequest}"
+                                       TargetHeightRequest="{Binding HeightRequest}"
+                                       TargetMinimumWidthRequest="{Binding MinimumWidthRequest}"
+                                       TargetMinimumHeightRequest="{Binding MinimumHeightRequest}"
+                                       TargetMaximumWidthRequest="{Binding MaximumWidthRequest}"
+                                       TargetMaximumHeightRequest="{Binding MaximumHeightRequest}"
+                                       TargetMargin="{Binding Margin}"
+                                       TargetHorizontalOptions="{Binding HorizontalOptions}"
+                                       TargetVerticalOptions="{Binding VerticalOptions}"
+                                       TargetIsEnabled="{Binding IsEnabled}"
+                                       TargetInputTransparent="{Binding InputTransparent}"
+                                       TargetFlowDirection="{Binding FlowDirection}"
+                                       AutomationId="TransformableElement">
+                     <local:UITestHostControl.Content>
+                            <Label Text="Transform Me!"/>
+                     </local:UITestHostControl.Content>
+              </local:UITestHostControl>
+
+              <!-- Property Values Display -->
+              <StackLayout Grid.Row="1">
+                     <Label Text="Current Property Values:"
+                            FontSize="18"
+                            FontAttributes="Bold"
+                            Margin="0,0,0,10"/>
+
+                     <Grid>
+                            <Grid.RowDefinitions>
+                                   <RowDefinition Height="Auto"/>
+                                   <RowDefinition Height="Auto"/>
+                                   <RowDefinition Height="Auto"/>
+                                   <RowDefinition Height="Auto"/>
+                                   <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                   <ColumnDefinition Width="*"/>
+                                   <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Core Transform Properties -->
+                            <StackLayout Grid.Row="0"
+                                         Grid.Column="0"
+                                         AutomationId="CoreTransformDisplay">
+                                   <Label Text="Core Transforms"
+                                          FontAttributes="Bold"
+                                          TextColor="DarkBlue"/>
+                                   <Label Text="{Binding Rotation, StringFormat='Rotation: {0:F1}°'}"
+                                          AutomationId="RotationValueLabel"/>
+                                   <Label Text="{Binding RotationX, StringFormat='RotationX: {0:F1}°'}"
+                                          AutomationId="RotationXValueLabel"/>
+                                   <Label Text="{Binding RotationY, StringFormat='RotationY: {0:F1}°'}"
+                                          AutomationId="RotationYValueLabel"/>
+                                   <Label Text="{Binding Scale, StringFormat='Scale: {0:F2}'}"
+                                          AutomationId="ScaleValueLabel"/>
+                            </StackLayout>
+
+                            <StackLayout Grid.Row="0"
+                                         Grid.Column="1"
+                                         AutomationId="ScalePositionDisplay">
+                                   <Label Text="Scale &amp; Position"
+                                          FontAttributes="Bold"
+                                          TextColor="DarkGreen"/>
+                                   <Label Text="{Binding ScaleX, StringFormat='ScaleX: {0:F2}'}"
+                                          AutomationId="ScaleXValueLabel"/>
+                                   <Label Text="{Binding ScaleY, StringFormat='ScaleY: {0:F2}'}"
+                                          AutomationId="ScaleYValueLabel"/>
+                                   <Label Text="{Binding TranslationX, StringFormat='TranslationX: {0:F1}'}"
+                                          AutomationId="TranslationXValueLabel"/>
+                                   <Label Text="{Binding TranslationY, StringFormat='TranslationY: {0:F1}'}"
+                                          AutomationId="TranslationYValueLabel"/>
+                            </StackLayout>
+
+                            <!-- Anchor Points -->
+                            <StackLayout Grid.Row="1"
+                                         Grid.Column="0"
+                                         Margin="0,10,0,0"
+                                         AutomationId="AnchorPointsDisplay">
+                                   <Label Text="Anchor Points"
+                                          FontAttributes="Bold"
+                                          TextColor="DarkRed"/>
+                                   <Label Text="{Binding AnchorX, StringFormat='AnchorX: {0:F2}'}"
+                                          AutomationId="AnchorXValueLabel"/>
+                                   <Label Text="{Binding AnchorY, StringFormat='AnchorY: {0:F2}'}"
+                                          AutomationId="AnchorYValueLabel"/>
+                            </StackLayout>
+
+                            <!-- Appearance -->
+                            <StackLayout Grid.Row="1"
+                                         Grid.Column="1"
+                                         Margin="0,10,0,0"
+                                         AutomationId="AppearanceDisplay">
+                                   <Label Text="Appearance"
+                                          FontAttributes="Bold"
+                                          TextColor="DarkMagenta"/>
+                                   <Label Text="{Binding Opacity, StringFormat='Opacity: {0:F2}'}"
+                                          AutomationId="OpacityValueLabel"/>
+                                   <Label Text="{Binding IsVisible, StringFormat='IsVisible: {0}'}"
+                                          AutomationId="IsVisibleValueLabel"/>
+                                   <Label Text="{Binding BackgroundColor, StringFormat='BgColor: {0}'}"
+                                          AutomationId="BackgroundColorValueLabel"/>
+                            </StackLayout>
+
+                            <!-- Layout Size -->
+                            <StackLayout Grid.Row="2"
+                                         Grid.Column="0"
+                                         Margin="0,10,0,0"
+                                         AutomationId="LayoutSizeDisplay">
+                                   <Label Text="Layout Size"
+                                          FontAttributes="Bold"
+                                          TextColor="DarkOrange"/>
+                                   <Label Text="{Binding WidthRequest, StringFormat='Width: {0:F1}'}"
+                                          AutomationId="WidthRequestValueLabel"/>
+                                   <Label Text="{Binding HeightRequest, StringFormat='Height: {0:F1}'}"
+                                          AutomationId="HeightRequestValueLabel"/>
+                                   <Label Text="{Binding MinimumWidthRequest, StringFormat='MinW: {0:F1}'}"
+                                          AutomationId="MinimumWidthRequestValueLabel"/>
+                                   <Label Text="{Binding MinimumHeightRequest, StringFormat='MinH: {0:F1}'}"
+                                          AutomationId="MinimumHeightRequestValueLabel"/>
+                                   <Label Text="{Binding MaximumWidthRequest, StringFormat='MaxW: {0:F1}'}"
+                                          AutomationId="MaximumWidthRequestValueLabel"/>
+                                   <Label Text="{Binding MaximumHeightRequest, StringFormat='MaxH: {0:F1}'}"
+                                          AutomationId="MaximumHeightRequestValueLabel"/>
+                            </StackLayout>
+
+                            <!-- Layout Options -->
+                            <StackLayout Grid.Row="2"
+                                         Grid.Column="1"
+                                         Margin="0,10,0,0"
+                                         AutomationId="LayoutOptionsDisplay">
+                                   <Label Text="Layout Options"
+                                          FontAttributes="Bold"
+                                          TextColor="DarkCyan"/>
+                                   <Label Text="{Binding Margin, StringFormat='Margin: {0}'}"
+                                          AutomationId="MarginValueLabel"/>
+                                   <Label Text="{Binding SelectedHorizontalOption, StringFormat='HOptions: {0}'}"
+                                          AutomationId="HorizontalOptionsValueLabel"/>
+                                   <Label Text="{Binding SelectedVerticalOption, StringFormat='VOptions: {0}'}"
+                                          AutomationId="VerticalOptionsValueLabel"/>
+                            </StackLayout>
+
+                            <!-- Input & Visual -->
+                            <StackLayout Grid.Row="3"
+                                         Grid.Column="0"
+                                         Margin="0,10,0,0"
+                                         AutomationId="InputVisualDisplay">
+                                   <Label Text="Input &amp; Visual"
+                                          FontAttributes="Bold"
+                                          TextColor="DarkSlateGray"/>
+                                   <Label Text="{Binding IsEnabled, StringFormat='IsEnabled: {0}'}"
+                                          AutomationId="IsEnabledValueLabel"/>
+                                   <Label Text="{Binding InputTransparent, StringFormat='InputTransparent: {0}'}"
+                                          AutomationId="InputTransparentValueLabel"/>
+                                   <Label Text="{Binding FlowDirection, StringFormat='FlowDir: {0}'}"
+                                          AutomationId="FlowDirectionValueLabel"/>
+                            </StackLayout>
+                     </Grid>
+              </StackLayout>
+
+       </Grid>
+
+</ContentPage>

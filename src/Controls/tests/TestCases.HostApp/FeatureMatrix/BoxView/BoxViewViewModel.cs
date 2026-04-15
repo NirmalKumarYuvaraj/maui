@@ -6,41 +6,20 @@ namespace Maui.Controls.Sample;
 public class BoxViewViewModel : INotifyPropertyChanged
 {
 	private Color _color = Colors.Blue;
-	private double _width = 200;
-	private double _height = 100;
-	private bool _isVisible = true;
-	private double _opacity = 1.0;
 	private CornerRadius _cornerRadius;
 	private bool _isRedChecked = false;
 	private bool _isBlueChecked = true;
-	private FlowDirection _flowDirection = FlowDirection.LeftToRight;
-	private bool _isRTL = false;
-
-
 	private bool _isGreenChecked = false;
-
 	private string _cornerRadiusEntryText = string.Empty;
-	private string _opacityEntryText = "1";
-	private string _widthEntryText = "200";
-	private string _heightEntryText = "100";
 
 	public void Reset()
 	{
 		Color = Colors.Blue;
-		Width = 200;
-		Height = 100;
-		IsVisible = true;
-		Opacity = 1.0;
 		CornerRadius = default;
 		IsRedChecked = false;
 		IsBlueChecked = true;
 		IsGreenChecked = false;
-		IsRTL = false;
-		HasShadow = false;
 		CornerRadiusEntryText = string.Empty;
-		OpacityEntryText = "1";
-		WidthEntryText = "200";
-		HeightEntryText = "100";
 	}
 
 	public string CornerRadiusEntryText
@@ -51,45 +30,6 @@ public class BoxViewViewModel : INotifyPropertyChanged
 			if (_cornerRadiusEntryText != value)
 			{
 				_cornerRadiusEntryText = value;
-				OnPropertyChanged();
-			}
-		}
-	}
-
-	public string OpacityEntryText
-	{
-		get => _opacityEntryText;
-		set
-		{
-			if (_opacityEntryText != value)
-			{
-				_opacityEntryText = value;
-				OnPropertyChanged();
-			}
-		}
-	}
-
-	public string WidthEntryText
-	{
-		get => _widthEntryText;
-		set
-		{
-			if (_widthEntryText != value)
-			{
-				_widthEntryText = value;
-				OnPropertyChanged();
-			}
-		}
-	}
-
-	public string HeightEntryText
-	{
-		get => _heightEntryText;
-		set
-		{
-			if (_heightEntryText != value)
-			{
-				_heightEntryText = value;
 				OnPropertyChanged();
 			}
 		}
@@ -148,18 +88,7 @@ public class BoxViewViewModel : INotifyPropertyChanged
 		other2 = false;
 		OnPropertyChanged(other2Name);
 	}
-	public double Opacity
-	{
-		get => _opacity;
-		set
-		{
-			if (_opacity != value)
-			{
-				_opacity = value;
-				OnPropertyChanged();
-			}
-		}
-	}
+
 	public CornerRadius CornerRadius
 	{
 		get => _cornerRadius;
@@ -168,55 +97,6 @@ public class BoxViewViewModel : INotifyPropertyChanged
 			if (_cornerRadius != value)
 			{
 				_cornerRadius = value;
-				OnPropertyChanged();
-			}
-		}
-	}
-	public bool IsVisible
-	{
-		get => _isVisible;
-		set
-		{
-			if (_isVisible != value)
-			{
-				_isVisible = value;
-				OnPropertyChanged();
-			}
-		}
-	}
-	private bool _hasShadow = false;
-	private Shadow _boxShadow = null;
-
-	public bool HasShadow
-	{
-		get => _hasShadow;
-		set
-		{
-			if (_hasShadow != value)
-			{
-				_hasShadow = value;
-				BoxShadow = value
-					? new Shadow
-					{
-						Radius = 10,
-						Opacity = 1.0f,
-						Brush = Colors.Black.AsPaint(),
-						Offset = new Point(5, 5)
-					}
-					: null;
-				OnPropertyChanged();
-			}
-		}
-	}
-
-	public Shadow BoxShadow
-	{
-		get => _boxShadow;
-		private set
-		{
-			if (_boxShadow != value)
-			{
-				_boxShadow = value;
 				OnPropertyChanged();
 			}
 		}
@@ -235,58 +115,6 @@ public class BoxViewViewModel : INotifyPropertyChanged
 		}
 	}
 
-	public double Width
-	{
-		get => _width;
-		set
-		{
-			if (_width != value)
-			{
-				_width = value;
-				OnPropertyChanged();
-			}
-		}
-	}
-
-	public double Height
-	{
-		get => _height;
-		set
-		{
-			if (_height != value)
-			{
-				_height = value;
-				OnPropertyChanged();
-			}
-		}
-	}
-
-	public bool IsRTL
-	{
-		get => _isRTL;
-		set
-		{
-			if (_isRTL != value)
-			{
-				_isRTL = value;
-				FlowDirection = value ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
-				OnPropertyChanged();
-			}
-		}
-	}
-
-	public FlowDirection FlowDirection
-	{
-		get => _flowDirection;
-		set
-		{
-			if (_flowDirection != value)
-			{
-				_flowDirection = value;
-				OnPropertyChanged();
-			}
-		}
-	}
 	public event PropertyChangedEventHandler PropertyChanged;
 
 	protected void OnPropertyChanged([CallerMemberName] string propertyName = null)

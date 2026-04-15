@@ -55,7 +55,7 @@ namespace Microsoft.Maui.TestCases.Tests
 			VerifyScreenshot(tolerance: 0.5, retryTimeout: TimeSpan.FromSeconds(2));
 		}
 
-		// ── CornerRadius tests (Order 4) ──
+		// ── CornerRadius tests (Order 4–5) ──
 
 		[Test, Order(4)]
 		public void BoxView_UniformCornerRadius()
@@ -67,47 +67,7 @@ namespace Microsoft.Maui.TestCases.Tests
 			VerifyScreenshot(tolerance: 0.5, retryTimeout: TimeSpan.FromSeconds(2));
 		}
 
-		// ── Dimension tests (Order 5) ──
-
 		[Test, Order(5)]
-		public void BoxView_WidthAndHeight()
-		{
-			ResetBoxView();
-			App.WaitForElement("WidthEntry");
-			App.ClearText("WidthEntry");
-			App.EnterText("WidthEntry", "300");
-			App.WaitForElement("HeightEntry");
-			App.ClearText("HeightEntry");
-			App.EnterText("HeightEntry", "150");
-			VerifyScreenshot(tolerance: 0.5, retryTimeout: TimeSpan.FromSeconds(2));
-		}
-
-		// ── Opacity tests (Order 6) ──
-
-		[Test, Order(6)]
-		public void BoxView_OpacityZero()
-		{
-			ResetBoxView();
-			App.WaitForElement("OpacityEntry");
-			App.ClearText("OpacityEntry");
-			App.EnterText("OpacityEntry", "0");
-			VerifyScreenshot(tolerance: 0.5, retryTimeout: TimeSpan.FromSeconds(2));
-		}
-
-		// ── Visibility tests (Order 7) ──
-
-		[Test, Order(7)]
-		public void BoxView_IsVisible()
-		{
-			ResetBoxView();
-			App.WaitForElement("VisibilityCheckBox");
-			App.Tap("VisibilityCheckBox");
-			VerifyScreenshot(tolerance: 0.5, retryTimeout: TimeSpan.FromSeconds(2));
-		}
-
-		// ── Combined property tests (Order 8–11) ──
-
-		[Test, Order(8)]
 		public void BoxView_CornerRadiusWithColor()
 		{
 			ResetBoxView();
@@ -119,32 +79,9 @@ namespace Microsoft.Maui.TestCases.Tests
 			VerifyScreenshot(tolerance: 0.5, retryTimeout: TimeSpan.FromSeconds(2));
 		}
 
-		[Test, Order(9)]
-		public void BoxView_ColorWithOpacity()
-		{
-			ResetBoxView();
-			App.WaitForElement("RedRadioButton");
-			App.Tap("RedRadioButton");
-			App.WaitForElement("OpacityEntry");
-			App.ClearText("OpacityEntry");
-			App.EnterText("OpacityEntry", "0.5");
-			VerifyScreenshot(tolerance: 0.5, retryTimeout: TimeSpan.FromSeconds(2));
-		}
+		// ── Reset test (Order 6) ──
 
-		[Test, Order(10)]
-		[Ignore("Fails on all platforms, related issue link: https://github.com/dotnet/maui/issues/34402")]
-		public void BoxView_CornerRadiusWithFlowDirection()
-		{
-			ResetBoxView();
-			App.WaitForElement("CornerRadiusEntry");
-			App.ClearText("CornerRadiusEntry");
-			App.EnterText("CornerRadiusEntry", "60,10,20,40");
-			App.WaitForElement("FlowDirectionRTLCheckBox");
-			App.Tap("FlowDirectionRTLCheckBox");
-			VerifyScreenshot(tolerance: 0.5, retryTimeout: TimeSpan.FromSeconds(2));
-		}
-
-		[Test, Order(11)]
+		[Test, Order(6)]
 		public void BoxView_Reset()
 		{
 			ResetBoxView();
@@ -159,52 +96,5 @@ namespace Microsoft.Maui.TestCases.Tests
 			App.Tap("ResetButton");
 			VerifyScreenshot(tolerance: 0.5, retryTimeout: TimeSpan.FromSeconds(2));
 		}
-
-#if TEST_FAILS_ON_WINDOWS // For more information see: https://github.com/dotnet/maui/issues/27732
-		// ── Shadow tests - disabled on Windows (Order 12–14) ──
-
-		[Test, Order(12)]
-		public void BoxView_CornerRadiusWithOpacityAndShadow()
-		{
-			ResetBoxView();
-			App.WaitForElement("CornerRadiusEntry");
-			App.ClearText("CornerRadiusEntry");
-			App.EnterText("CornerRadiusEntry", "60,10,20,40");
-			App.WaitForElement("OpacityEntry");
-			App.ClearText("OpacityEntry");
-			App.EnterText("OpacityEntry", "0.5");
-			App.WaitForElement("ShadowCheckBox");
-			App.Tap("ShadowCheckBox");
-			VerifyScreenshot(tolerance: 0.5, retryTimeout: TimeSpan.FromSeconds(2));
-		}
-
-		[Test, Order(13)]
-		public void BoxView_CornerRadiusWithColorAndShadow()
-		{
-			ResetBoxView();
-			App.WaitForElement("CornerRadiusEntry");
-			App.ClearText("CornerRadiusEntry");
-			App.EnterText("CornerRadiusEntry", "60,10,20,40");
-			App.WaitForElement("RedRadioButton");
-			App.Tap("RedRadioButton");
-			App.WaitForElement("ShadowCheckBox");
-			App.Tap("ShadowCheckBox");
-			VerifyScreenshot(tolerance: 0.5, retryTimeout: TimeSpan.FromSeconds(2));
-		}
-
-		[Test, Order(14)]
-		public void BoxView_ColorWithOpacityAndShadow()
-		{
-			ResetBoxView();
-			App.WaitForElement("RedRadioButton");
-			App.Tap("RedRadioButton");
-			App.WaitForElement("OpacityEntry");
-			App.ClearText("OpacityEntry");
-			App.EnterText("OpacityEntry", "0.5");
-			App.WaitForElement("ShadowCheckBox");
-			App.Tap("ShadowCheckBox");
-			VerifyScreenshot(tolerance: 0.5, retryTimeout: TimeSpan.FromSeconds(2));
-		}
-#endif
 	}
 }
