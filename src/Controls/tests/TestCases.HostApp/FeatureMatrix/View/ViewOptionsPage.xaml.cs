@@ -55,6 +55,11 @@ namespace Maui.Controls.Sample
 			}
 		}
 
+		private async void NavigateToVisualOptions_Clicked(object sender, EventArgs e)
+		{
+			await Navigation.PushAsync(new ViewVisualOptionsPage(_viewModel));
+		}
+
 		private void OnMarginEntryChanged(object sender, TextChangedEventArgs e)
 		{
 			if (string.IsNullOrWhiteSpace(e.NewTextValue))

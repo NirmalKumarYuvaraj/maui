@@ -16,7 +16,20 @@
 
        <ScrollView>
               <StackLayout Padding="10"
-                            Spacing="10">
+                           Spacing="10">
+
+                     <!-- Control Type Selector -->
+                     <Label Text="Hosted Control"
+                            FontSize="18"
+                            FontAttributes="Bold"
+                            HorizontalOptions="Center"
+                            TextColor="DarkViolet"/>
+
+                     <local:UITestEntry Text="{Binding SelectedControlType, Mode=TwoWay}"
+                                      AutomationId="ControlTypePicker"
+                                      IsCursorVisible="False"
+                                      Placeholder="e.g. Label, BoxView, Button"
+                                      HorizontalOptions="Center"/>
 
                      <!-- Transform Properties Section -->
                      <Label Text="Transform Properties"
@@ -26,7 +39,7 @@
                             TextColor="DarkBlue"/>
 
                      <Grid RowSpacing="5"
-                                   ColumnSpacing="10">
+                           ColumnSpacing="10">
                             <Grid.ColumnDefinitions>
                                    <ColumnDefinition Width="*"/>
                                    <ColumnDefinition Width="*"/>
@@ -41,145 +54,145 @@
 
                             <!-- Row 0: Rotation Properties -->
                             <StackLayout Grid.Row="0"
-                                          Grid.Column="0"
-                                          Spacing="2">
+                                         Grid.Column="0"
+                                         Spacing="2">
                                    <Label Text="Rotation"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"
-                                                 TextColor="DarkBlue"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"
+                                          TextColor="DarkBlue"/>
                                    <Entry Text="{Binding Rotation, Mode=TwoWay}"
-                                                 Keyboard="Numeric"
+                                          Keyboard="Numeric"
                                           HorizontalTextAlignment="Center"
-                                                 FontSize="12"
-                                                 AutomationId="RotationEntry"/>
+                                          FontSize="12"
+                                          AutomationId="RotationEntry"/>
                             </StackLayout>
 
                             <StackLayout Grid.Row="0"
-                                          Grid.Column="1"
-                                          Spacing="2">
+                                         Grid.Column="1"
+                                         Spacing="2">
                                    <Label Text="RotationX"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"
-                                                 TextColor="DarkBlue"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"
+                                          TextColor="DarkBlue"/>
                                    <Entry Text="{Binding RotationX, Mode=TwoWay}"
-                                                 Keyboard="Numeric"
+                                          Keyboard="Numeric"
                                           HorizontalTextAlignment="Center"
-                                                 FontSize="12"
-                                                 AutomationId="RotationXEntry"/>
+                                          FontSize="12"
+                                          AutomationId="RotationXEntry"/>
                             </StackLayout>
 
                             <StackLayout Grid.Row="0"
-                                          Grid.Column="2"
-                                          Spacing="2">
+                                         Grid.Column="2"
+                                         Spacing="2">
                                    <Label Text="RotationY"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"
-                                                 TextColor="DarkBlue"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"
+                                          TextColor="DarkBlue"/>
                                    <Entry Text="{Binding RotationY, Mode=TwoWay}"
-                                                 Keyboard="Numeric"
+                                          Keyboard="Numeric"
                                           HorizontalTextAlignment="Center"
-                                                 FontSize="12"
-                                                 AutomationId="RotationYEntry"/>
+                                          FontSize="12"
+                                          AutomationId="RotationYEntry"/>
                             </StackLayout>
 
                             <StackLayout Grid.Row="0"
-                                          Grid.Column="3"
-                                          Spacing="2">
+                                         Grid.Column="3"
+                                         Spacing="2">
                                    <Label Text="Scale"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"
-                                                 TextColor="DarkBlue"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"
+                                          TextColor="DarkBlue"/>
                                    <Entry Text="{Binding Scale, Mode=TwoWay}"
-                                                 Keyboard="Numeric"
+                                          Keyboard="Numeric"
                                           HorizontalTextAlignment="Center"
-                                                 FontSize="12"
-                                                 AutomationId="ScaleEntry"/>
+                                          FontSize="12"
+                                          AutomationId="ScaleEntry"/>
                             </StackLayout>
 
                             <!-- Row 1: Scale & Translation -->
                             <StackLayout Grid.Row="1"
-                                          Grid.Column="0"
-                                          Spacing="2">
+                                         Grid.Column="0"
+                                         Spacing="2">
                                    <Label Text="ScaleX"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"
-                                                 TextColor="DarkGreen"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"
+                                          TextColor="DarkGreen"/>
                                    <Entry Text="{Binding ScaleX, Mode=TwoWay}"
-                                                 Keyboard="Numeric"
+                                          Keyboard="Numeric"
                                           HorizontalTextAlignment="Center"
-                                                 FontSize="12"
-                                                 AutomationId="ScaleXEntry"/>
+                                          FontSize="12"
+                                          AutomationId="ScaleXEntry"/>
                             </StackLayout>
 
                             <StackLayout Grid.Row="1"
-                                          Grid.Column="1"
-                                          Spacing="2">
+                                         Grid.Column="1"
+                                         Spacing="2">
                                    <Label Text="ScaleY"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"
-                                                 TextColor="DarkGreen"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"
+                                          TextColor="DarkGreen"/>
                                    <Entry Text="{Binding ScaleY, Mode=TwoWay}"
-                                                 Keyboard="Numeric"
+                                          Keyboard="Numeric"
                                           HorizontalTextAlignment="Center"
-                                                 FontSize="12"
-                                                 AutomationId="ScaleYEntry"/>
+                                          FontSize="12"
+                                          AutomationId="ScaleYEntry"/>
                             </StackLayout>
 
                             <StackLayout Grid.Row="1"
-                                          Grid.Column="2"
-                                          Spacing="2">
+                                         Grid.Column="2"
+                                         Spacing="2">
                                    <Label Text="TranslationX"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"
-                                                 TextColor="DarkOrange"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"
+                                          TextColor="DarkOrange"/>
                                    <Entry Text="{Binding TranslationX, Mode=TwoWay}"
-                                                 Keyboard="Numeric"
+                                          Keyboard="Numeric"
                                           HorizontalTextAlignment="Center"
-                                                 FontSize="12"
-                                                 AutomationId="TranslationXEntry"/>
+                                          FontSize="12"
+                                          AutomationId="TranslationXEntry"/>
                             </StackLayout>
 
                             <StackLayout Grid.Row="1"
-                                          Grid.Column="3"
-                                          Spacing="2">
+                                         Grid.Column="3"
+                                         Spacing="2">
                                    <Label Text="TranslationY"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"
-                                                 TextColor="DarkOrange"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"
+                                          TextColor="DarkOrange"/>
                                    <Entry Text="{Binding TranslationY, Mode=TwoWay}"
-                                                 Keyboard="Numeric"
+                                          Keyboard="Numeric"
                                           HorizontalTextAlignment="Center"
-                                                 FontSize="12"
-                                                 AutomationId="TranslationYEntry"/>
+                                          FontSize="12"
+                                          AutomationId="TranslationYEntry"/>
                             </StackLayout>
 
                             <!-- Row 2: Anchor Points -->
                             <StackLayout Grid.Row="2"
-                                          Grid.Column="0"
-                                          Spacing="2">
+                                         Grid.Column="0"
+                                         Spacing="2">
                                    <Label Text="AnchorX"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"
-                                                 TextColor="DarkRed"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"
+                                          TextColor="DarkRed"/>
                                    <Entry Text="{Binding AnchorX, Mode=TwoWay}"
-                                                 Keyboard="Numeric"
+                                          Keyboard="Numeric"
                                           HorizontalTextAlignment="Center"
-                                                 FontSize="12"
-                                                 AutomationId="AnchorXEntry"/>
+                                          FontSize="12"
+                                          AutomationId="AnchorXEntry"/>
                             </StackLayout>
 
                             <StackLayout Grid.Row="2"
-                                          Grid.Column="1"
-                                          Spacing="2">
+                                         Grid.Column="1"
+                                         Spacing="2">
                                    <Label Text="AnchorY"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"
-                                                 TextColor="DarkRed"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"
+                                          TextColor="DarkRed"/>
                                    <Entry Text="{Binding AnchorY, Mode=TwoWay}"
-                                                 Keyboard="Numeric"
+                                          Keyboard="Numeric"
                                           HorizontalTextAlignment="Center"
-                                                 FontSize="12"
-                                                 AutomationId="AnchorYEntry"/>
+                                          FontSize="12"
+                                          AutomationId="AnchorYEntry"/>
                             </StackLayout>
                      </Grid>
 
@@ -192,7 +205,7 @@
                             Margin="0,10,0,5"/>
 
                      <Grid RowSpacing="5"
-                                   ColumnSpacing="10">
+                           ColumnSpacing="10">
                             <Grid.ColumnDefinitions>
                                    <ColumnDefinition Width="*"/>
                                    <ColumnDefinition Width="*"/>
@@ -207,132 +220,132 @@
 
                             <!-- Row 0: Opacity, Width, Height, ZIndex -->
                             <StackLayout Grid.Row="0"
-                                          Grid.Column="0"
-                                          Spacing="2">
+                                         Grid.Column="0"
+                                         Spacing="2">
                                    <Label Text="Opacity"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"
-                                                 TextColor="DarkOrange"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"
+                                          TextColor="DarkOrange"/>
                                    <Entry Text="{Binding Opacity, Mode=TwoWay}"
-                                                 Keyboard="Numeric"
+                                          Keyboard="Numeric"
                                           HorizontalTextAlignment="Center"
-                                                 FontSize="12"
-                                                 AutomationId="OpacityEntry"/>
+                                          FontSize="12"
+                                          AutomationId="OpacityEntry"/>
                             </StackLayout>
 
                             <StackLayout Grid.Row="0"
-                                          Grid.Column="1"
-                                          Spacing="2">
+                                         Grid.Column="1"
+                                         Spacing="2">
                                    <Label Text="WidthRequest"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"
-                                                 TextColor="DarkOrange"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"
+                                          TextColor="DarkOrange"/>
                                    <Entry Text="{Binding WidthRequest, Mode=TwoWay}"
-                                                 Keyboard="Numeric"
+                                          Keyboard="Numeric"
                                           HorizontalTextAlignment="Center"
-                                                 FontSize="12"
-                                                 AutomationId="WidthRequestEntry"/>
+                                          FontSize="12"
+                                          AutomationId="WidthRequestEntry"/>
                             </StackLayout>
 
                             <StackLayout Grid.Row="0"
-                                          Grid.Column="2"
-                                          Spacing="2">
+                                         Grid.Column="2"
+                                         Spacing="2">
                                    <Label Text="HeightRequest"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"
-                                                 TextColor="DarkOrange"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"
+                                          TextColor="DarkOrange"/>
                                    <Entry Text="{Binding HeightRequest, Mode=TwoWay}"
-                                                 Keyboard="Numeric"
+                                          Keyboard="Numeric"
                                           HorizontalTextAlignment="Center"
-                                                 FontSize="12"
-                                                 AutomationId="HeightRequestEntry"/>
+                                          FontSize="12"
+                                          AutomationId="HeightRequestEntry"/>
                             </StackLayout>
 
                             <StackLayout Grid.Row="0"
-                                          Grid.Column="3"
-                                          Spacing="2">
+                                         Grid.Column="3"
+                                         Spacing="2">
                                    <Label Text="ZIndex"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"
-                                                 TextColor="DarkOrange"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"
+                                          TextColor="DarkOrange"/>
                                    <Entry Text="{Binding ZIndex, Mode=TwoWay}"
-                                                 Keyboard="Numeric"
+                                          Keyboard="Numeric"
                                           HorizontalTextAlignment="Center"
-                                                 FontSize="12"
-                                                 AutomationId="ZIndexEntry"/>
+                                          FontSize="12"
+                                          AutomationId="ZIndexEntry"/>
                             </StackLayout>
 
                             <!-- Row 1: Min/Max sizing -->
                             <StackLayout Grid.Row="1"
-                                          Grid.Column="0"
-                                          Spacing="2">
+                                         Grid.Column="0"
+                                         Spacing="2">
                                    <Label Text="MinWidth"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"
-                                                 TextColor="Purple"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"
+                                          TextColor="Purple"/>
                                    <Entry Text="{Binding MinimumWidthRequest, Mode=TwoWay}"
-                                                 Keyboard="Numeric"
+                                          Keyboard="Numeric"
                                           HorizontalTextAlignment="Center"
-                                                 FontSize="12"
-                                                 AutomationId="MinWidthEntry"/>
+                                          FontSize="12"
+                                          AutomationId="MinWidthEntry"/>
                             </StackLayout>
 
                             <StackLayout Grid.Row="1"
-                                          Grid.Column="1"
-                                          Spacing="2">
+                                         Grid.Column="1"
+                                         Spacing="2">
                                    <Label Text="MinHeight"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"
-                                                 TextColor="Purple"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"
+                                          TextColor="Purple"/>
                                    <Entry Text="{Binding MinimumHeightRequest, Mode=TwoWay}"
-                                                 Keyboard="Numeric"
+                                          Keyboard="Numeric"
                                           HorizontalTextAlignment="Center"
-                                                 FontSize="12"
-                                                 AutomationId="MinHeightEntry"/>
+                                          FontSize="12"
+                                          AutomationId="MinHeightEntry"/>
                             </StackLayout>
 
                             <StackLayout Grid.Row="1"
-                                          Grid.Column="2"
-                                          Spacing="2">
+                                         Grid.Column="2"
+                                         Spacing="2">
                                    <Label Text="MaxWidth"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"
-                                                 TextColor="Purple"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"
+                                          TextColor="Purple"/>
                                    <Entry Text="{Binding MaximumWidthRequest, Mode=TwoWay}"
-                                                 Keyboard="Numeric"
+                                          Keyboard="Numeric"
                                           HorizontalTextAlignment="Center"
-                                                 FontSize="12"
-                                                 AutomationId="MaxWidthEntry"/>
+                                          FontSize="12"
+                                          AutomationId="MaxWidthEntry"/>
                             </StackLayout>
 
                             <StackLayout Grid.Row="1"
-                                          Grid.Column="3"
-                                          Spacing="2">
+                                         Grid.Column="3"
+                                         Spacing="2">
                                    <Label Text="MaxHeight"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"
-                                                 TextColor="Purple"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"
+                                          TextColor="Purple"/>
                                    <Entry Text="{Binding MaximumHeightRequest, Mode=TwoWay}"
-                                                 Keyboard="Numeric"
+                                          Keyboard="Numeric"
                                           HorizontalTextAlignment="Center"
-                                                 FontSize="12"
-                                                 AutomationId="MaxHeightEntry"/>
+                                          FontSize="12"
+                                          AutomationId="MaxHeightEntry"/>
                             </StackLayout>
 
                             <!-- Row 2: Margin -->
                             <StackLayout Grid.Row="2"
-                                          Grid.Column="0"
-                                          Grid.ColumnSpan="2"
-                                          Spacing="2">
+                                         Grid.Column="0"
+                                         Grid.ColumnSpan="2"
+                                         Spacing="2">
                                    <Label Text="Margin (uniform)"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"
-                                                 TextColor="Teal"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"
+                                          TextColor="Teal"/>
                                    <Entry Keyboard="Numeric"
-                                                 HorizontalTextAlignment="Center"
-                                                 FontSize="12"
+                                          HorizontalTextAlignment="Center"
+                                          FontSize="12"
                                           AutomationId="MarginEntry"
-                                                 Placeholder="e.g. 20"
+                                          Placeholder="e.g. 20"
                                           TextChanged="OnMarginEntryChanged"/>
                             </StackLayout>
                      </Grid>
@@ -354,150 +367,93 @@
 
                             <!-- Horizontal Options -->
                             <StackLayout Grid.Column="0"
-                                          Spacing="2">
+                                         Spacing="2">
                                    <Label Text="HorizontalOptions"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"/>
                                    <VerticalStackLayout>
                                           <RadioButton Content="Start"
-                                                        GroupName="HOptions"
-                                                        AutomationId="HorizontalStart"
+                                                       GroupName="HOptions"
+                                                       AutomationId="HorizontalStart"
                                                        IsChecked="{Binding SelectedHorizontalOption, Converter={StaticResource StringMatchConverter}, ConverterParameter=Start}"
                                                        CheckedChanged="OnHorizontalOptionChanged"/>
                                           <RadioButton Content="Center"
-                                                        GroupName="HOptions"
-                                                        AutomationId="HorizontalCenter"
+                                                       GroupName="HOptions"
+                                                       AutomationId="HorizontalCenter"
                                                        IsChecked="True"
                                                        CheckedChanged="OnHorizontalOptionChanged"/>
                                           <RadioButton Content="End"
-                                                        GroupName="HOptions"
-                                                        AutomationId="HorizontalEnd"
+                                                       GroupName="HOptions"
+                                                       AutomationId="HorizontalEnd"
                                                        CheckedChanged="OnHorizontalOptionChanged"/>
                                           <RadioButton Content="Fill"
-                                                        GroupName="HOptions"
-                                                        AutomationId="HorizontalFill"
+                                                       GroupName="HOptions"
+                                                       AutomationId="HorizontalFill"
                                                        CheckedChanged="OnHorizontalOptionChanged"/>
                                    </VerticalStackLayout>
                             </StackLayout>
 
                             <!-- Vertical Options -->
                             <StackLayout Grid.Column="1"
-                                          Spacing="2">
+                                         Spacing="2">
                                    <Label Text="VerticalOptions"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"/>
                                    <VerticalStackLayout>
                                           <RadioButton Content="Start"
-                                                        GroupName="VOptions"
-                                                        AutomationId="VerticalStart"
+                                                       GroupName="VOptions"
+                                                       AutomationId="VerticalStart"
                                                        CheckedChanged="OnVerticalOptionChanged"/>
                                           <RadioButton Content="Center"
-                                                        GroupName="VOptions"
-                                                        AutomationId="VerticalCenter"
+                                                       GroupName="VOptions"
+                                                       AutomationId="VerticalCenter"
                                                        IsChecked="True"
                                                        CheckedChanged="OnVerticalOptionChanged"/>
                                           <RadioButton Content="End"
-                                                        GroupName="VOptions"
-                                                        AutomationId="VerticalEnd"
+                                                       GroupName="VOptions"
+                                                       AutomationId="VerticalEnd"
                                                        CheckedChanged="OnVerticalOptionChanged"/>
                                           <RadioButton Content="Fill"
-                                                        GroupName="VOptions"
-                                                        AutomationId="VerticalFill"
+                                                       GroupName="VOptions"
+                                                       AutomationId="VerticalFill"
                                                        CheckedChanged="OnVerticalOptionChanged"/>
                                    </VerticalStackLayout>
                             </StackLayout>
 
                             <!-- Background Color -->
                             <StackLayout Grid.Column="2"
-                                          Spacing="2">
+                                         Spacing="2">
                                    <Label Text="BackgroundColor"
-                                                 FontAttributes="Bold"
-                                                 FontSize="12"/>
+                                          FontAttributes="Bold"
+                                          FontSize="12"/>
                                    <VerticalStackLayout>
                                           <RadioButton Content="None"
-                                                        GroupName="BgColor"
-                                                        AutomationId="BgColorNone"
+                                                       GroupName="BgColor"
+                                                       AutomationId="BgColorNone"
                                                        IsChecked="True"
                                                        CheckedChanged="OnBackgroundColorChanged"/>
                                           <RadioButton Content="Red"
-                                                        GroupName="BgColor"
-                                                        AutomationId="BgColorRed"
+                                                       GroupName="BgColor"
+                                                       AutomationId="BgColorRed"
                                                        CheckedChanged="OnBackgroundColorChanged"/>
                                           <RadioButton Content="Green"
-                                                        GroupName="BgColor"
-                                                        AutomationId="BgColorGreen"
+                                                       GroupName="BgColor"
+                                                       AutomationId="BgColorGreen"
                                                        CheckedChanged="OnBackgroundColorChanged"/>
                                           <RadioButton Content="Yellow"
-                                                        GroupName="BgColor"
-                                                        AutomationId="BgColorYellow"
+                                                       GroupName="BgColor"
+                                                       AutomationId="BgColorYellow"
                                                        CheckedChanged="OnBackgroundColorChanged"/>
                                    </VerticalStackLayout>
                             </StackLayout>
                      </Grid>
 
-                     <!-- Visual Options Section -->
-                     <Label Text="Visual Options"
-                            FontSize="16"
-                            FontAttributes="Bold"
-                            HorizontalOptions="Center"
-                            TextColor="Gray"
-                            Margin="0,10,0,5"/>
-
-                     <VerticalStackLayout Spacing="10"
-                                   Padding="10,5">
-                            <HorizontalStackLayout Spacing="10">
-                                   <CheckBox IsChecked="{Binding IsVisible}"
-                                                 AutomationId="VisibilityCheckBox"/>
-                                   <Label Text="Is Visible"
-                                                 VerticalOptions="Center"
-                                                 FontSize="14"/>
-                            </HorizontalStackLayout>
-
-                            <HorizontalStackLayout Spacing="10">
-                                   <CheckBox IsChecked="{Binding IsEnabled}"
-                                                 AutomationId="IsEnabledCheckBox"/>
-                                   <Label Text="Is Enabled"
-                                                 VerticalOptions="Center"
-                                                 FontSize="14"/>
-                            </HorizontalStackLayout>
-
-                            <HorizontalStackLayout Spacing="10">
-                                   <CheckBox IsChecked="{Binding InputTransparent}"
-                                                 AutomationId="InputTransparentCheckBox"/>
-                                   <Label Text="Input Transparent"
-                                                 VerticalOptions="Center"
-                                                 FontSize="14"/>
-                            </HorizontalStackLayout>
-
-                            <HorizontalStackLayout Spacing="10">
-                                   <CheckBox IsChecked="{Binding HasShadow}"
-                                                 AutomationId="ShadowCheckBox"/>
-                                   <Label Text="Has Shadow"
-                                                 VerticalOptions="Center"
-                                                 FontSize="14"/>
-                            </HorizontalStackLayout>
-
-                            <!-- FlowDirection -->
-                            <HorizontalStackLayout Spacing="10">
-                                   <Label Text="FlowDirection:"
-                                                 FontAttributes="Bold"
-                                                 FontSize="14"
-                                                 VerticalOptions="Center"/>
-                                   <RadioButton Content="MatchParent"
-                                                 GroupName="FlowDir"
-                                                 AutomationId="FlowDirectionMatchParent"
-                                                IsChecked="True"
-                                                 CheckedChanged="OnFlowDirectionChanged"/>
-                                   <RadioButton Content="LTR"
-                                                 GroupName="FlowDir"
-                                                 AutomationId="FlowDirectionLTR"
-                                                CheckedChanged="OnFlowDirectionChanged"/>
-                                   <RadioButton Content="RTL"
-                                                 GroupName="FlowDir"
-                                                 AutomationId="FlowDirectionRTL"
-                                                CheckedChanged="OnFlowDirectionChanged"/>
-                            </HorizontalStackLayout>
-                     </VerticalStackLayout>
+                     <!-- Visual Options - navigate to separate page -->
+                     <Button Text="Visual Options"
+                             AutomationId="VisualOptionsButton"
+                             Clicked="NavigateToVisualOptions_Clicked"
+                             HorizontalOptions="Center"
+                             Margin="0,10,0,0"/>
 
               </StackLayout>
        </ScrollView>

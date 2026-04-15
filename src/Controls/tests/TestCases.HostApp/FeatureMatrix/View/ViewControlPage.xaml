@@ -51,9 +51,6 @@
                                        TargetInputTransparent="{Binding InputTransparent}"
                                        TargetFlowDirection="{Binding FlowDirection}"
                                        AutomationId="TransformableElement">
-                     <local:UITestHostControl.Content>
-                            <Label Text="Transform Me!"/>
-                     </local:UITestHostControl.Content>
               </local:UITestHostControl>
 
               <!-- Property Values Display -->

@@ -9,36 +9,88 @@ public class ViewViewModel : INotifyPropertyChanged
 	public event PropertyChangedEventHandler PropertyChanged;
 
 	// Core Transformation Properties
-	private double _rotation = 0.0;
-	private double _rotationX = 0.0;
-	private double _rotationY = 0.0;
-	private double _scale = 1.0;
-	private double _scaleX = 1.0;
-	private double _scaleY = 1.0;
-	private bool _isVisible = true;
+	double _rotation = 0.0;
+	double _rotationX = 0.0;
+	double _rotationY = 0.0;
+	double _scale = 1.0;
+	double _scaleX = 1.0;
+	double _scaleY = 1.0;
+	bool _isVisible = true;
 
 	// Additional Related Properties
-	private double _translationX = 0.0;
-	private double _translationY = 0.0;
-	private double _anchorX = 0.5;
-	private double _anchorY = 0.5;
+	double _translationX = 0.0;
+	double _translationY = 0.0;
+	double _anchorX = 0.5;
+	double _anchorY = 0.5;
 
 	// View-level properties
-	private double _opacity = 1.0;
-	private double _widthRequest = 120;
-	private double _heightRequest = 120;
-	private double _minimumWidthRequest = -1;
-	private double _minimumHeightRequest = -1;
-	private double _maximumWidthRequest = double.PositiveInfinity;
-	private double _maximumHeightRequest = double.PositiveInfinity;
-	private Color _backgroundColor = null;
-	private bool _isEnabled = true;
-	private bool _inputTransparent = false;
-	private FlowDirection _flowDirection = FlowDirection.MatchParent;
-	private int _zIndex = 0;
-	private Thickness _margin = new Thickness(0);
-	private LayoutOptions _horizontalOptions = LayoutOptions.Center;
-	private LayoutOptions _verticalOptions = LayoutOptions.Center;
+	double _opacity = 1.0;
+	double _widthRequest = 120;
+	double _heightRequest = 120;
+	double _minimumWidthRequest = -1;
+	double _minimumHeightRequest = -1;
+	double _maximumWidthRequest = double.PositiveInfinity;
+	double _maximumHeightRequest = double.PositiveInfinity;
+	Color _backgroundColor = null;
+	bool _isEnabled = true;
+	bool _inputTransparent = false;
+	FlowDirection _flowDirection = FlowDirection.MatchParent;
+	int _zIndex = 0;
+	Thickness _margin = new Thickness(0);
+	LayoutOptions _horizontalOptions = LayoutOptions.Center;
+	LayoutOptions _verticalOptions = LayoutOptions.Center;
+
+	// Control type selection
+	string _selectedControlType = "Label";
+
+	public static readonly string[] AvailableControlTypes =
+	[
+		"Label",
+		"BoxView",
+		"Button",
+		"ImageButton",
+		"Entry",
+		"Editor",
+		"SearchBar",
+		"CheckBox",
+		"RadioButton",
+		"Switch",
+		"Slider",
+		"Stepper",
+		"Picker",
+		"DatePicker",
+		"TimePicker",
+		"ProgressBar",
+		"ActivityIndicator",
+		"Image",
+		"Border",
+		"Frame",
+		"WebView",
+		"GraphicsView",
+		"CollectionView",
+		"ListView",
+		"CarouselView",
+		"ScrollView",
+		"Grid",
+		"StackLayout",
+		"HorizontalStackLayout",
+		"VerticalStackLayout",
+		"FlexLayout",
+		"AbsoluteLayout",
+	];
+
+	public string SelectedControlType
+	{
+		get => _selectedControlType;
+		set
+		{
+			if (_selectedControlType != value)
+			{
+				_selectedControlType = value;
+				OnPropertyChanged();
+			}
+		}
+	}
 
 	// Core Transformation Properties
 	public bool IsVisible
@@ -54,8 +106,8 @@ public class ViewViewModel : INotifyPropertyChanged
 		}
 	}
 
-	private bool _hasShadow = false;
-	private Shadow _boxShadow = null;
+	bool _hasShadow = false;
+	Shadow _boxShadow = null;
 
 	public bool HasShadow
 	{
@@ -82,7 +134,7 @@ public class ViewViewModel : INotifyPropertyChanged
 	public Shadow BoxShadow
 	{
 		get => _boxShadow;
-		private set
+		set
 		{
 			if (_boxShadow != value)
 			{
@@ -419,7 +471,7 @@ public class ViewViewModel : INotifyPropertyChanged
 	}
 
 	// Selected option strings for pickers
-	private string _selectedHorizontalOption = "Center";
+	string _selectedHorizontalOption = "Center";
 	public string SelectedHorizontalOption
 	{
 		get => _selectedHorizontalOption;
@@ -441,7 +493,7 @@ public class ViewViewModel : INotifyPropertyChanged
 		}
 	}
 
-	private string _selectedVerticalOption = "Center";
+	string _selectedVerticalOption = "Center";
 	public string SelectedVerticalOption
 	{
 		get => _selectedVerticalOption;
@@ -463,7 +515,7 @@ public class ViewViewModel : INotifyPropertyChanged
 		}
 	}
 
-	private string _selectedBackgroundColor = "None";
+	string _selectedBackgroundColor = "None";
 	public string SelectedBackgroundColor
 	{
 		get => _selectedBackgroundColor;
@@ -488,7 +540,7 @@ public class ViewViewModel : INotifyPropertyChanged
 	// Reset Command
 	public ICommand ResetCommand => new Command(Reset);
 
-	private void Reset()
+	void Reset()
 	{
 		Rotation = 0.0;
 		RotationX = 0.0;
@@ -520,6 +572,7 @@ public class ViewViewModel : INotifyPropertyChanged
 		SelectedHorizontalOption = "Center";
 		SelectedVerticalOption = "Center";
 		SelectedBackgroundColor = "None";
+		SelectedControlType = string.Empty;
 	}
 
 	protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)

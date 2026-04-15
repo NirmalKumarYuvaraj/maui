@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:Maui.Controls.Sample"
+             x:Class="Maui.Controls.Sample.ViewVisualOptionsPage"
+             x:DataType="local:ViewViewModel"
+             Title="Visual Options">
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Apply"
+                     Clicked="ApplyButton_Clicked"
+                     AutomationId="Apply"/>
+    </ContentPage.ToolbarItems>
+
+    <VerticalStackLayout Padding="20"
+                         Spacing="10">
+
+        <HorizontalStackLayout Spacing="10">
+            <CheckBox IsChecked="{Binding IsVisible}"
+                      AutomationId="VisibilityCheckBox"/>
+            <Label Text="Is Visible"
+                   VerticalOptions="Center"
+                   FontSize="14"/>
+        </HorizontalStackLayout>
+
+        <HorizontalStackLayout Spacing="10">
+            <CheckBox IsChecked="{Binding IsEnabled}"
+                      AutomationId="IsEnabledCheckBox"/>
+            <Label Text="Is Enabled"
+                   VerticalOptions="Center"
+                   FontSize="14"/>
+        </HorizontalStackLayout>
+
+        <HorizontalStackLayout Spacing="10">
+            <CheckBox IsChecked="{Binding InputTransparent}"
+                      AutomationId="InputTransparentCheckBox"/>
+            <Label Text="Input Transparent"
+                   VerticalOptions="Center"
+                   FontSize="14"/>
+        </HorizontalStackLayout>
+
+        <HorizontalStackLayout Spacing="10">
+            <CheckBox IsChecked="{Binding HasShadow}"
+                      AutomationId="ShadowCheckBox"/>
+            <Label Text="Has Shadow"
+                   VerticalOptions="Center"
+                   FontSize="14"/>
+        </HorizontalStackLayout>
+
+        <!-- FlowDirection -->
+        <HorizontalStackLayout Spacing="10">
+            <Label Text="FlowDirection:"
+                   FontAttributes="Bold"
+                   FontSize="14"
+                   VerticalOptions="Center"/>
+            <RadioButton Content="MatchParent"
+                         GroupName="FlowDir"
+                         AutomationId="FlowDirectionMatchParent"
+                         IsChecked="True"
+                         CheckedChanged="OnFlowDirectionChanged"/>
+            <RadioButton Content="LTR"
+                         GroupName="FlowDir"
+                         AutomationId="FlowDirectionLTR"
+                         CheckedChanged="OnFlowDirectionChanged"/>
+            <RadioButton Content="RTL"
+                         GroupName="FlowDir"
+                         AutomationId="FlowDirectionRTL"
+                         CheckedChanged="OnFlowDirectionChanged"/>
+        </HorizontalStackLayout>
+
+    </VerticalStackLayout>
+</ContentPage>
