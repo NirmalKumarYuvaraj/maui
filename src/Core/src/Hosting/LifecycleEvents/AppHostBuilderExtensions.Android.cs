@@ -33,6 +33,11 @@ namespace Microsoft.Maui.LifecycleEvents
 					// it's called after onstart or it's called after app is unpausing
 					activity.GetWindow()?.Activated();
 
+					// Re-check theme in case it changed while the app was backgrounded
+					if (IPlatformApplication.Current is IPlatformApplication platformApplication)
+					{
+						platformApplication.Application?.ThemeChanged();
+					}
 				})
 				.OnPause(activity =>
 				{

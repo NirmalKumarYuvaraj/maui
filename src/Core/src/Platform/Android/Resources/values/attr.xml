@@ -4,6 +4,7 @@
   <attr name="maui_edgetoedge_optout" format="boolean" />
 
   <attr name="appBarLayoutStyle" format="reference" />
+  <attr name="mauiAppBarThemeOverlay" format="reference" />
   <attr name="bottomNavigationViewStyle" format="reference" />
 
   <!-- 

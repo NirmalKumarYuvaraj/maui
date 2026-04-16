@@ -11,6 +11,7 @@
         <item name="colorAccent">@color/colorAccent</item>
         <item name="android:actionMenuTextColor">@color/colorActionMenuTextColor</item>
         <item name="appBarLayoutStyle">@style/MauiAppBarLayout</item>
+        <item name="mauiAppBarThemeOverlay">@style/MauiAppBarLayout</item>
         <item name="bottomNavigationViewStyle">@style/Widget.Design.BottomNavigationView</item>
         <item name="materialButtonStyle">@style/MauiMaterialButton</item>
         <item name="checkboxStyle">@style/MauiCheckBox</item>

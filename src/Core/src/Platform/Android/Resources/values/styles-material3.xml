@@ -7,6 +7,7 @@
         <item name="maui_splash">false</item>
         <item name="bottomNavigationViewStyle">@style/Widget.Material3.BottomNavigationView</item>
         <item name="materialButtonStyle">@style/MauiMaterialButton</item>
+        <item name="mauiAppBarThemeOverlay">@style/MauiMaterial3AppBarLayout</item>
     </style>
 
 
@@ -23,6 +24,11 @@
     <style name="Material3ActionMode">
       <item name="android:background">?attr/colorSurface</item>
       <item name="android:height">?attr/actionBarSize</item>
+    </style>
+
+    <!-- Material 3 AppBarLayout theme overlay: uses colorSurface and follows light/dark theme -->
+    <style name="MauiMaterial3AppBarLayout" parent="">
+        <item name="android:background">?attr/colorSurface</item>
     </style>
 
     <style name="MauiMaterialButton" parent="Widget.Material3.Button">
