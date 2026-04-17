@@ -245,10 +245,11 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 		internal void ReloadData()
 		{
-			// Reset cached first item size when reloading data
+			// Reset cached first item size and section max widths when reloading data
 			if (ItemsView.Handler is CollectionViewHandler2 handler)
 			{
 				handler.SetCachedFirstItemSize(CoreGraphics.CGSize.Empty);
+				handler.ClearSectionMaxItemWidths();
 			}
 
 			CollectionView.ReloadData();

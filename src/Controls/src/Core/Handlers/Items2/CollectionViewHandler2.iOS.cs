@@ -37,6 +37,22 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 		// Cache for MeasureFirstItem optimization
 		CoreGraphics.CGSize _firstItemMeasuredSize = CoreGraphics.CGSize.Empty;
 
+		// Per-section max item widths for horizontal grid layout.
+		// Ensures items within the same vertical group-column all use the group's widest item width,
+		// preventing narrow items from leaving grey gaps (issue #25859).
+		Dictionary<int, nfloat> _sectionMaxItemWidths = new();
+
+		internal nfloat GetSectionMaxItemWidth(int section)
+			=> _sectionMaxItemWidths.TryGetValue(section, out var max) ? max : (nfloat)0;
+
+		internal void UpdateSectionMaxItemWidth(int section, nfloat width)
+		{
+			if (!_sectionMaxItemWidths.TryGetValue(section, out var current) || width > current)
+				_sectionMaxItemWidths[section] = width;
+		}
+
+		internal void ClearSectionMaxItemWidths() => _sectionMaxItemWidths.Clear();
+
 		public CollectionViewHandler2() : base(Mapper)
 		{
 

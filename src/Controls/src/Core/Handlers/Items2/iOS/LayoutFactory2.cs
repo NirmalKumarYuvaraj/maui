@@ -90,7 +90,11 @@ internal static class LayoutFactory2
 		var layoutConfiguration = new UICollectionViewCompositionalLayoutConfiguration();
 		layoutConfiguration.ScrollDirection = scrollDirection;
 
-		//create global header and footer
+		if (groupingInfo.IsGrouped && itemSpacing > 0)
+		{
+			layoutConfiguration.InterSectionSpacing = new NFloat(itemSpacing);
+		}
+
 		layoutConfiguration.BoundarySupplementaryItems = CreateSupplementaryItems(null, layoutHeaderFooterInfo, scrollDirection, groupWidth, groupHeight);
 
 		var layout = new CustomUICollectionViewCompositionalLayout(snapInfo, groupingInfo, layoutHeaderFooterInfo, (sectionIndex, environment) =>
@@ -132,7 +136,33 @@ internal static class LayoutFactory2
 			// Disable section-level safe area insets — MAUI handles safe area via CellSafeAreaOverride.
 			// On iOS 26.1+, the default (.automatic → .safeArea) actively insets cells at section level.
 			if (OperatingSystem.IsIOSVersionAtLeast(26))
+			{
 				section.ContentInsetsReference = UIContentInsetsReference.None;
+			}
+
+			if (groupingInfo.IsGrouped && itemSpacing > 0)
+			{
+				if (scrollDirection == UICollectionViewScrollDirection.Horizontal)
+				{
+					var leadingInset = groupingInfo.HasHeader ? new NFloat(itemSpacing) : new NFloat(0);
+					var trailingInset = groupingInfo.HasFooter ? new NFloat(itemSpacing) : new NFloat(0);
+
+					if (leadingInset > 0 || trailingInset > 0)
+					{
+						section.ContentInsets = new NSDirectionalEdgeInsets(0, leadingInset, 0, trailingInset);
+					}
+				}
+				else
+				{
+					var topInset = groupingInfo.HasHeader ? new NFloat(itemSpacing) : new NFloat(0);
+					var bottomInset = groupingInfo.HasFooter ? new NFloat(itemSpacing) : new NFloat(0);
+
+					if (topInset > 0 || bottomInset > 0)
+					{
+						section.ContentInsets = new NSDirectionalEdgeInsets(topInset, 0, bottomInset, 0);
+					}
+				}
+			}
 
 			// Create header and footer for group
 			section.BoundarySupplementaryItems = CreateSupplementaryItems(
@@ -152,18 +182,56 @@ internal static class LayoutFactory2
 
 	static UICollectionViewLayout CreateGridLayout(UICollectionViewScrollDirection scrollDirection, LayoutGroupingInfo groupingInfo, LayoutHeaderFooterInfo headerFooterInfo, LayoutSnapInfo snapInfo, NSCollectionLayoutDimension itemWidth, NSCollectionLayoutDimension itemHeight, NSCollectionLayoutDimension groupWidth, NSCollectionLayoutDimension groupHeight, double verticalItemSpacing, double horizontalItemSpacing, int columns, ItemsUpdatingScrollMode itemsUpdatingScrollMode)
 	{
+
 		var layoutConfiguration = new UICollectionViewCompositionalLayoutConfiguration();
 		layoutConfiguration.ScrollDirection = scrollDirection;
 
+		var interSectionSpacing = scrollDirection == UICollectionViewScrollDirection.Vertical
+			? verticalItemSpacing
+			: horizontalItemSpacing;
+
+
+		if (groupingInfo.IsGrouped && interSectionSpacing > 0)
+		{
+			layoutConfiguration.InterSectionSpacing = new NFloat(interSectionSpacing);
+		}
+
 		var layout = new CustomUICollectionViewCompositionalLayout(snapInfo, groupingInfo, headerFooterInfo, (sectionIndex, environment) =>
 		{
+
+			// For horizontal grid layouts the items are stacked vertically in groups whose width
+			// is estimated (self-sizing). UIKit's self-sizing mechanism can override FractionalHeight
+			// values when InterItemSpacing is zero, causing items to render at their natural content
+			// height instead of an equal fractional share of the available height. Using absolute
+			// heights derived from the actual container size prevents this (see GitHub #25859).
+			var effectiveItemHeight = itemHeight;
+			var effectiveGroupHeight = groupHeight;
+			if (scrollDirection == UICollectionViewScrollDirection.Horizontal && columns > 0)
+			{
+				var containerHeight = environment.Container.ContentSize.Height;
+				if (containerHeight > 0)
+				{
+					var totalSpacing = verticalItemSpacing * (columns - 1);
+					var absoluteItemH = (nfloat)((containerHeight - totalSpacing) / columns);
+					effectiveItemHeight = NSCollectionLayoutDimension.CreateAbsolute(absoluteItemH);
+					effectiveGroupHeight = NSCollectionLayoutDimension.CreateAbsolute((nfloat)containerHeight);
+				}
+				else
+				{
+				}
+			}
+			else
+			{
+			}
+
 			// Each item has a size
-			var itemSize = NSCollectionLayoutSize.Create(itemWidth, itemHeight);
+			var itemSize = NSCollectionLayoutSize.Create(itemWidth, effectiveItemHeight);
 			// Create the item itself from the size
 			var item = NSCollectionLayoutItem.Create(layoutSize: itemSize);
 
 			// Each group of items (for grouped collections) has a size
-			var groupSize = NSCollectionLayoutSize.Create(groupWidth, groupHeight);
+			var groupSize = NSCollectionLayoutSize.Create(groupWidth, effectiveGroupHeight);
+
 
 			// Create the group
 			// If vertical list, we want the group to layout horizontally (eg: grid columns go left to right)
@@ -173,28 +241,66 @@ internal static class LayoutFactory2
 				? NSCollectionLayoutGroup.CreateHorizontal(groupSize, item, columns)
 				: NSCollectionLayoutGroup.CreateVertical(groupSize, item, columns);
 
+
 			if (scrollDirection == UICollectionViewScrollDirection.Vertical)
+			{
 				group.InterItemSpacing = NSCollectionLayoutSpacing.CreateFixed(new NFloat(horizontalItemSpacing));
+			}
 			else
+			{
 				group.InterItemSpacing = NSCollectionLayoutSpacing.CreateFixed(new NFloat(verticalItemSpacing));
+			}
 
 			// Create our section layout
 			var section = NSCollectionLayoutSection.Create(group: group);
 			if (OperatingSystem.IsIOSVersionAtLeast(26))
+			{
 				section.ContentInsetsReference = UIContentInsetsReference.None;
+			}
 
 			if (scrollDirection == UICollectionViewScrollDirection.Vertical)
+			{
 				section.InterGroupSpacing = new NFloat(verticalItemSpacing);
+			}
 			else
+			{
 				section.InterGroupSpacing = new NFloat(horizontalItemSpacing);
+			}
 
+			if (groupingInfo.IsGrouped && interSectionSpacing > 0)
+			{
+				if (scrollDirection == UICollectionViewScrollDirection.Horizontal)
+				{
+					var leadingInset = groupingInfo.HasHeader ? new NFloat(interSectionSpacing) : new NFloat(0);
+					var trailingInset = groupingInfo.HasFooter ? new NFloat(interSectionSpacing) : new NFloat(0);
+
+
+					if (leadingInset > 0 || trailingInset > 0)
+					{
+						section.ContentInsets = new NSDirectionalEdgeInsets(0, leadingInset, 0, trailingInset);
+					}
+				}
+				else
+				{
+					// Vertical: top inset creates gap between header and first item,
+					// bottom inset creates gap between last item and footer.
+					var topInset = groupingInfo.HasHeader ? new NFloat(interSectionSpacing) : new NFloat(0);
+					var bottomInset = groupingInfo.HasFooter ? new NFloat(interSectionSpacing) : new NFloat(0);
+
+
+					if (topInset > 0 || bottomInset > 0)
+					{
+						section.ContentInsets = new NSDirectionalEdgeInsets(topInset, 0, bottomInset, 0);
+					}
+				}
+			}
 
 			section.BoundarySupplementaryItems = CreateSupplementaryItems(
 				groupingInfo,
 				headerFooterInfo,
 				scrollDirection,
 				groupWidth,
-				groupHeight);
+				effectiveGroupHeight);
 
 			return section;
 		}, layoutConfiguration, itemsUpdatingScrollMode);
@@ -441,7 +547,9 @@ internal static class LayoutFactory2
 				return false;
 			}
 
-			if (indexPath.Item >= collectionView.NumberOfItemsInSection(indexPath.Section))
+			var itemCount = collectionView.NumberOfItemsInSection(indexPath.Section);
+
+			if (indexPath.Item >= itemCount)
 			{
 				return false;
 			}
@@ -455,186 +563,214 @@ internal static class LayoutFactory2
 			return false;
 		}
 	}
-	class CustomUICollectionViewCompositionalLayout : UICollectionViewCompositionalLayout
+}
+class CustomUICollectionViewCompositionalLayout : UICollectionViewCompositionalLayout
+{
+	LayoutSnapInfo? _snapInfo;
+	ItemsUpdatingScrollMode _itemsUpdatingScrollMode;
+	LayoutGroupingInfo? _groupingInfo;
+	LayoutHeaderFooterInfo? _headerFooterInfo;
+
+	public CustomUICollectionViewCompositionalLayout(LayoutSnapInfo snapInfo, LayoutGroupingInfo? groupingInfo, LayoutHeaderFooterInfo? headerFooterInfo, UICollectionViewCompositionalLayoutSectionProvider sectionProvider, UICollectionViewCompositionalLayoutConfiguration configuration, ItemsUpdatingScrollMode itemsUpdatingScrollMode) : base(sectionProvider, configuration)
 	{
-		LayoutSnapInfo _snapInfo;
-		ItemsUpdatingScrollMode _itemsUpdatingScrollMode;
-		LayoutGroupingInfo? _groupingInfo;
-		LayoutHeaderFooterInfo? _headerFooterInfo;
 
-		public CustomUICollectionViewCompositionalLayout(LayoutSnapInfo snapInfo, LayoutGroupingInfo? groupingInfo, LayoutHeaderFooterInfo? headerFooterInfo, UICollectionViewCompositionalLayoutSectionProvider sectionProvider, UICollectionViewCompositionalLayoutConfiguration configuration, ItemsUpdatingScrollMode itemsUpdatingScrollMode) : base(sectionProvider, configuration)
+		_snapInfo = snapInfo;
+		_itemsUpdatingScrollMode = itemsUpdatingScrollMode;
+		_groupingInfo = groupingInfo;
+		_headerFooterInfo = headerFooterInfo;
+	}
+
+	public override void FinalizeCollectionViewUpdates()
+	{
+		base.FinalizeCollectionViewUpdates();
+
+		if (_itemsUpdatingScrollMode == ItemsUpdatingScrollMode.KeepLastItemInView)
 		{
-			_snapInfo = snapInfo;
-			_itemsUpdatingScrollMode = itemsUpdatingScrollMode;
-			_groupingInfo = groupingInfo;
-			_headerFooterInfo = headerFooterInfo;
-		}
-
-		public override void FinalizeCollectionViewUpdates()
-		{
-			base.FinalizeCollectionViewUpdates();
-
-			if (_itemsUpdatingScrollMode == ItemsUpdatingScrollMode.KeepLastItemInView)
-			{
-				ForceScrollToLastItem(CollectionView);
-			}
-		}
-
-		void ForceScrollToLastItem(UICollectionView collectionView)
-		{
-			var sections = (int)collectionView.NumberOfSections();
-
-			if (sections == 0)
-			{
-				return;
-			}
-
-			for (int section = sections - 1; section >= 0; section--)
-			{
-				var itemCount = collectionView.NumberOfItemsInSection(section);
-				if (itemCount > 0)
-				{
-					var lastIndexPath = NSIndexPath.FromItemSection(itemCount - 1, section);
-					if (Configuration.ScrollDirection == UICollectionViewScrollDirection.Vertical)
-					{
-						collectionView.ScrollToItem(lastIndexPath, UICollectionViewScrollPosition.Bottom, true);
-					}
-					else
-					{
-						// Adjust scroll position for RTL layouts
-						var layoutDirection = collectionView.EffectiveUserInterfaceLayoutDirection;
-						var scrollPosition = layoutDirection == UIUserInterfaceLayoutDirection.RightToLeft
-							? UICollectionViewScrollPosition.Left
-							: UICollectionViewScrollPosition.Right;
-						collectionView.ScrollToItem(lastIndexPath, scrollPosition, true);
-					}
-					return;
-				}
-			}
-		}
-
-		public override CGPoint TargetContentOffset(CGPoint proposedContentOffset, CGPoint scrollingVelocity)
-		{
-			var snapPointsType = _snapInfo.SnapType;
-			var alignment = _snapInfo.SnapAligment;
-
-			if (snapPointsType == SnapPointsType.None)
-			{
-				// Nothing to do here; fall back to the default
-				return base.TargetContentOffset(proposedContentOffset, scrollingVelocity);
-			}
-
-			if (snapPointsType == SnapPointsType.MandatorySingle)
-			{
-				// Mandatory snapping, single element
-				return ScrollSingle(alignment, proposedContentOffset, scrollingVelocity);
-			}
-
-			// Get the viewport of the UICollectionView at the proposed content offset
-			var viewport = new CGRect(proposedContentOffset, CollectionView.Bounds.Size);
-
-			// And find all the elements currently visible in the viewport
-			var visibleElements = LayoutAttributesForElementsInRect(viewport);
-
-			if (visibleElements.Length == 0)
-			{
-				// Nothing to see here; fall back to the default
-				return base.TargetContentOffset(proposedContentOffset, scrollingVelocity);
-			}
-
-			if (visibleElements.Length == 1)
-			{
-				// If there is only one item in the viewport,  then we need to align the viewport with it
-				return Items.SnapHelpers.AdjustContentOffset(proposedContentOffset, visibleElements[0].Frame, viewport,
-					alignment, Configuration.ScrollDirection);
-			}
-
-			// If there are multiple items in the viewport, we need to choose the one which is 
-			// closest to the relevant part of the viewport while being sufficiently visible
-
-			// Find the spot in the viewport we're trying to align with
-			var alignmentTarget = Items.SnapHelpers.FindAlignmentTarget(alignment, proposedContentOffset,
-				CollectionView, Configuration.ScrollDirection);
-
-			// Find the closest sufficiently visible candidate
-			var bestCandidate = Items.SnapHelpers.FindBestSnapCandidate(visibleElements, viewport, alignmentTarget);
-
-			if (bestCandidate != null)
-			{
-				return Items.SnapHelpers.AdjustContentOffset(proposedContentOffset, bestCandidate.Frame, viewport, alignment,
-					Configuration.ScrollDirection);
-			}
-
-			// If we got this far an nothing matched, it means that we have multiple items but somehow
-			// none of them fit at least half in the viewport. So just fall back to the first item
-			return Items.SnapHelpers.AdjustContentOffset(proposedContentOffset, visibleElements[0].Frame, viewport, alignment,
-					Configuration.ScrollDirection);
-		}
-
-		public override CGSize CollectionViewContentSize
-		{
-			get
-			{
-				if (CollectionView != null)
-				{
-					bool hasGlobalHeaders = _headerFooterInfo?.HasHeader == true || _headerFooterInfo?.HasFooter == true;
-					bool hasGroupHeaders = _groupingInfo?.HasHeader == true || _groupingInfo?.HasFooter == true;
-
-					if (hasGlobalHeaders || hasGroupHeaders)
-					{
-						return base.CollectionViewContentSize;
-					}
-
-					if (CollectionView.NumberOfSections() > 0 &&
-				CollectionView.NumberOfItemsInSection(0) > 0)
-					{
-						return base.CollectionViewContentSize;
-					}
-
-					return CGSize.Empty;
-				}
-
-				return base.CollectionViewContentSize;
-			}
-		}
-
-		CGPoint ScrollSingle(SnapPointsAlignment alignment, CGPoint proposedContentOffset, CGPoint scrollingVelocity)
-		{
-			// Get the viewport of the UICollectionView at the current content offset
-			var contentOffset = CollectionView.ContentOffset;
-			var viewport = new CGRect(contentOffset, CollectionView.Bounds.Size);
-
-			// Find the spot in the viewport we're trying to align with
-			var alignmentTarget = Items.SnapHelpers.FindAlignmentTarget(alignment, contentOffset, CollectionView, Configuration.ScrollDirection);
-
-			var visibleElements = LayoutAttributesForElementsInRect(viewport);
-
-			// Find the current aligned item
-			var currentItem = Items.SnapHelpers.FindBestSnapCandidate(visibleElements, viewport, alignmentTarget);
-
-			if (currentItem == null)
-			{
-				// Somehow we don't currently have an item in the viewport near the target; fall back to the
-				// default behavior
-				return base.TargetContentOffset(proposedContentOffset, scrollingVelocity);
-			}
-
-			// Determine the index of the current item
-			var currentIndex = visibleElements.IndexOf(currentItem);
-
-			// Figure out the step size when jumping to the "next" element 
-			var span = 1;
-			// if (_itemsLayout is GridItemsLayout gridItemsLayout)
-			// {
-			// 	span = gridItemsLayout.Span;
-			// }
-
-			// Find the next item in the
-			currentItem = Items.SnapHelpers.FindNextItem(visibleElements, Configuration.ScrollDirection, span, scrollingVelocity, currentIndex);
-
-			return Items.SnapHelpers.AdjustContentOffset(CollectionView.ContentOffset, currentItem.Frame, viewport, alignment,
-				Configuration.ScrollDirection);
+			ForceScrollToLastItem(CollectionView);
 		}
 	}
 
+	void ForceScrollToLastItem(UICollectionView collectionView)
+	{
+		var sections = (int)collectionView.NumberOfSections();
+
+		if (sections == 0)
+		{
+			return;
+		}
+
+		for (int section = sections - 1; section >= 0; section--)
+		{
+			var itemCount = collectionView.NumberOfItemsInSection(section);
+
+			if (itemCount > 0)
+			{
+				var lastIndexPath = NSIndexPath.FromItemSection(itemCount - 1, section);
+
+				if (Configuration.ScrollDirection == UICollectionViewScrollDirection.Vertical)
+				{
+					collectionView.ScrollToItem(lastIndexPath, UICollectionViewScrollPosition.Bottom, true);
+				}
+				else
+				{
+					// Adjust scroll position for RTL layouts
+					var layoutDirection = collectionView.EffectiveUserInterfaceLayoutDirection;
+
+					var scrollPosition = layoutDirection == UIUserInterfaceLayoutDirection.RightToLeft
+						? UICollectionViewScrollPosition.Left
+						: UICollectionViewScrollPosition.Right;
+
+					collectionView.ScrollToItem(lastIndexPath, scrollPosition, true);
+				}
+				return;
+			}
+		}
+	}
+
+	public override CGPoint TargetContentOffset(CGPoint proposedContentOffset, CGPoint scrollingVelocity)
+	{
+
+		if (_snapInfo is null)
+		{
+			return base.TargetContentOffset(proposedContentOffset, scrollingVelocity);
+		}
+
+		var snapPointsType = _snapInfo.SnapType;
+		var alignment = _snapInfo.SnapAligment;
+
+		if (snapPointsType == SnapPointsType.None)
+		{
+			return base.TargetContentOffset(proposedContentOffset, scrollingVelocity);
+		}
+
+		if (snapPointsType == SnapPointsType.MandatorySingle)
+		{
+			return ScrollSingle(alignment, proposedContentOffset, scrollingVelocity);
+		}
+
+		// Get the viewport of the UICollectionView at the proposed content offset
+		var viewport = new CGRect(proposedContentOffset, CollectionView.Bounds.Size);
+
+		// And find all the elements currently visible in the viewport
+		var visibleElements = LayoutAttributesForElementsInRect(viewport);
+
+		if (visibleElements is null || visibleElements.Length == 0)
+		{
+			return base.TargetContentOffset(proposedContentOffset, scrollingVelocity);
+		}
+
+		if (visibleElements.Length == 1)
+		{
+			return Items.SnapHelpers.AdjustContentOffset(proposedContentOffset, visibleElements[0].Frame, viewport,
+				alignment, Configuration.ScrollDirection);
+		}
+
+		// If there are multiple items in the viewport, we need to choose the one which is 
+		// closest to the relevant part of the viewport while being sufficiently visible
+
+		// Find the spot in the viewport we're trying to align with
+		var alignmentTarget = Items.SnapHelpers.FindAlignmentTarget(alignment, proposedContentOffset,
+			CollectionView, Configuration.ScrollDirection);
+
+		// Find the closest sufficiently visible candidate
+		var bestCandidate = Items.SnapHelpers.FindBestSnapCandidate(visibleElements, viewport, alignmentTarget);
+
+		if (bestCandidate != null)
+		{
+			return Items.SnapHelpers.AdjustContentOffset(proposedContentOffset, bestCandidate.Frame, viewport, alignment,
+				Configuration.ScrollDirection);
+		}
+
+		// If we got this far an nothing matched, it means that we have multiple items but somehow
+		// none of them fit at least half in the viewport. So just fall back to the first item
+		return Items.SnapHelpers.AdjustContentOffset(proposedContentOffset, visibleElements[0].Frame, viewport, alignment,
+				Configuration.ScrollDirection);
+	}
+
+	public override CGSize CollectionViewContentSize
+	{
+		get
+		{
+
+			if (CollectionView != null)
+			{
+				bool hasGlobalHeaders = _headerFooterInfo?.HasHeader == true || _headerFooterInfo?.HasFooter == true;
+				bool hasGroupHeaders = _groupingInfo?.HasHeader == true || _groupingInfo?.HasFooter == true;
+
+
+				if (hasGlobalHeaders || hasGroupHeaders)
+				{
+					return base.CollectionViewContentSize;
+				}
+
+				var numberOfSections = CollectionView.NumberOfSections();
+
+				if (numberOfSections > 0)
+				{
+					var itemsInFirstSection = CollectionView.NumberOfItemsInSection(0);
+
+					if (itemsInFirstSection > 0)
+					{
+						return base.CollectionViewContentSize;
+					}
+				}
+
+				return CGSize.Empty;
+			}
+
+			return base.CollectionViewContentSize;
+		}
+	}
+
+	CGPoint ScrollSingle(SnapPointsAlignment alignment, CGPoint proposedContentOffset, CGPoint scrollingVelocity)
+	{
+
+		// Get the viewport of the UICollectionView at the current content offset
+		var contentOffset = CollectionView.ContentOffset;
+		var viewport = new CGRect(contentOffset, CollectionView.Bounds.Size);
+
+		// Find the spot in the viewport we're trying to align with
+		var alignmentTarget = Items.SnapHelpers.FindAlignmentTarget(alignment, contentOffset, CollectionView, Configuration.ScrollDirection);
+
+		var visibleElements = LayoutAttributesForElementsInRect(viewport);
+
+		if (visibleElements is null || visibleElements.Length == 0)
+		{
+			return base.TargetContentOffset(proposedContentOffset, scrollingVelocity);
+		}
+
+		// Find the current aligned item
+		var currentItem = Items.SnapHelpers.FindBestSnapCandidate(visibleElements, viewport, alignmentTarget);
+
+		if (currentItem == null)
+		{
+			// Somehow we don't currently have an item in the viewport near the target; fall back to the
+			// default behavior
+			return base.TargetContentOffset(proposedContentOffset, scrollingVelocity);
+		}
+
+		// Determine the index of the current item
+		var currentIndex = visibleElements.IndexOf(currentItem);
+
+		// Figure out the step size when jumping to the "next" element 
+		var span = 1;
+
+		// if (_itemsLayout is GridItemsLayout gridItemsLayout)
+		// {
+		// 	span = gridItemsLayout.Span;
+		// }
+
+		// Find the next item in the
+		currentItem = Items.SnapHelpers.FindNextItem(visibleElements, Configuration.ScrollDirection, span, scrollingVelocity, currentIndex);
+
+		if (currentItem is null)
+		{
+			return base.TargetContentOffset(proposedContentOffset, scrollingVelocity);
+		}
+
+		var result = Items.SnapHelpers.AdjustContentOffset(CollectionView.ContentOffset, currentItem.Frame, viewport, alignment,
+			Configuration.ScrollDirection);
+
+		return result;
+	}
 }

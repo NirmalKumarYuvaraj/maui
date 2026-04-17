@@ -143,6 +143,23 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 					double.IsPositiveInfinity(constraints.Height) ? _measuredSize.Height : preferredSize.Height
 				);
 
+				// For horizontal grid layouts, items within the same vertical group-column can each
+				// self-size to their natural content width, leaving grey gaps beside narrower items.
+				// Track the maximum natural width per section and use it for all items so every item
+				// fills the full group column width (issue #25859).
+				if (!isSupplementaryView && double.IsPositiveInfinity(constraints.Width))
+				{
+					var handler = CollectionViewHandler;
+					var section = layoutAttributes.IndexPath?.Section;
+					if (handler != null && section.HasValue)
+					{
+						var naturalWidth = (nfloat)size.Width;
+						handler.UpdateSectionMaxItemWidth(section.Value, naturalWidth);
+						var maxWidth = handler.GetSectionMaxItemWidth(section.Value);
+						size = new Size(maxWidth, size.Height);
+					}
+				}
+
 				preferredAttributes.Frame = new CGRect(preferredAttributes.Frame.Location, size);
 				preferredAttributes.ZIndex = 2;
 
