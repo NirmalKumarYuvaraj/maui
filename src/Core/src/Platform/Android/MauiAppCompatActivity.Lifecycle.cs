@@ -5,7 +5,6 @@ using Android.Content.PM;
 using Android.Content.Res;
 using Android.OS;
 using Android.Views;
-using Microsoft.Maui.Devices;
 using Microsoft.Maui.LifecycleEvents;
 
 namespace Microsoft.Maui
@@ -18,16 +17,6 @@ namespace Microsoft.Maui
 
 			ActivityResultCallbackRegistry.InvokeCallback(requestCode, resultCode, data);
 			IPlatformApplication.Current?.Services?.InvokeLifecycleEvents<AndroidLifecycle.OnActivityResult>(del => del(this, requestCode, resultCode, data));
-		}
-
-		// TODO: Investigate whether the new AndroidX way is actually useful:
-		//       https://developer.android.com/reference/android/app/Activity#onBackPressed()
-		[Obsolete]
-#pragma warning disable 809
-		public override void OnBackPressed()
-#pragma warning restore 809
-		{
-			HandleBackNavigation();
 		}
 
 		public override void OnConfigurationChanged(Configuration newConfig)
@@ -133,22 +122,6 @@ namespace Microsoft.Maui
 			});
 
 			return handled || base.OnKeyUp(keyCode, e);
-		}
-
-		/// <summary>
-		/// Central handler used by both legacy <see cref="OnBackPressed"/> and the Android 13+ predictive back gesture callback.
-		/// Implements lifecycle event invocation and default back stack propagation unless explicitly prevented.
-		/// </summary>
-		void HandleBackNavigation()
-		{
-			var preventBackPropagation = false;
-			IPlatformApplication.Current?.Services?.InvokeLifecycleEvents<AndroidLifecycle.OnBackPressed>(del =>
-			{
-				preventBackPropagation = del(this) || preventBackPropagation;
-			});
-
-			if (!preventBackPropagation)
-				base.OnBackPressed();
 		}
 	}
 }
