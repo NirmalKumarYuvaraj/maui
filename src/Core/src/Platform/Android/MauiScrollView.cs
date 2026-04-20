@@ -10,6 +10,7 @@ using Android.Views;
 using Android.Widget;
 using AndroidX.Core.View;
 using AndroidX.Core.Widget;
+using Google.Android.Material.AppBar;
 
 namespace Microsoft.Maui.Platform
 {
@@ -25,6 +26,7 @@ namespace Microsoft.Maui.Platform
 		ScrollBarVisibility _horizontalScrollVisibility;
 		bool _didSafeAreaEdgeConfigurationChange = true;
 		bool _isInsetListenerSet;
+		AppBarLayout? _liftOnScrollAppBar;
 
 		internal float LastX { get; set; }
 		internal float LastY { get; set; }
@@ -62,6 +64,14 @@ namespace Microsoft.Maui.Platform
 		{
 			base.OnAttachedToWindow();
 			_isInsetListenerSet = MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(this, _context);
+
+			// Pin the MAUI navigation AppBarLayout's lift-on-scroll target to this NestedScrollView.
+			// Otherwise AppBarLayout auto-detects the outer FragmentContainerView as the scrolling target,
+			// and its ViewTreeObserver-driven shouldLift() check evaluates canScrollVertically() on the
+			// container (which is always 0), causing the lifted state to flip on every layout pass
+			// triggered by sibling views (e.g. CheckBox/Switch state animations) and producing a
+			// visible scrolledContainerColor flicker.
+			TrySetAppBarLiftTarget();
 		}
 
 		protected override void OnDetachedFromWindow()
@@ -72,6 +82,67 @@ namespace Microsoft.Maui.Platform
 
 			_isInsetListenerSet = false;
 			_didSafeAreaEdgeConfigurationChange = true;
+
+			ClearAppBarLiftTarget();
+		}
+
+		void TrySetAppBarLiftTarget()
+		{
+			var appBar = FindNavigationAppBarLayout();
+			if (appBar is null)
+			{
+				return;
+			}
+
+			if (Id == NoId)
+			{
+				Id = GenerateViewId();
+			}
+
+			_liftOnScrollAppBar = appBar;
+			appBar.LiftOnScrollTargetViewId = Id;
+		}
+
+		void ClearAppBarLiftTarget()
+		{
+			if (_liftOnScrollAppBar is null)
+			{
+				return;
+			}
+
+			// Only clear if we're still the current target; avoid stomping on another scroll view
+			// that may have been set as the target after us.
+			if (_liftOnScrollAppBar.LiftOnScrollTargetViewId == Id)
+			{
+				_liftOnScrollAppBar.LiftOnScrollTargetViewId = NoId;
+			}
+
+			_liftOnScrollAppBar = null;
+		}
+
+		AppBarLayout? FindNavigationAppBarLayout()
+		{
+			// Walk up the ancestry looking for the MAUI navigation AppBarLayout that is a sibling
+			// of the content view hosting this scroll view.
+			var parent = Parent;
+			while (parent is View parentView)
+			{
+				if (parentView is ViewGroup group)
+				{
+					for (int i = 0; i < group.ChildCount; i++)
+					{
+						if (group.GetChildAt(i) is AppBarLayout appBar &&
+							appBar.Id == Resource.Id.navigationlayout_appbar)
+						{
+							return appBar;
+						}
+					}
+				}
+
+				parent = parentView.Parent;
+			}
+
+			return null;
 		}
 
 		#region IHandleWindowInsets Implementation
