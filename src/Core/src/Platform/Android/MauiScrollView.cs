@@ -65,13 +65,16 @@ namespace Microsoft.Maui.Platform
 			base.OnAttachedToWindow();
 			_isInsetListenerSet = MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(this, _context);
 
-			// Pin the MAUI navigation AppBarLayout's lift-on-scroll target to this NestedScrollView.
-			// Otherwise AppBarLayout auto-detects the outer FragmentContainerView as the scrolling target,
-			// and its ViewTreeObserver-driven shouldLift() check evaluates canScrollVertically() on the
-			// container (which is always 0), causing the lifted state to flip on every layout pass
-			// triggered by sibling views (e.g. CheckBox/Switch state animations) and producing a
-			// visible scrolledContainerColor flicker.
-			TrySetAppBarLiftTarget();
+			if (RuntimeFeature.IsMaterial3Enabled)
+			{
+				// Pin the MAUI navigation AppBarLayout's lift-on-scroll target to this NestedScrollView.
+				// Otherwise AppBarLayout auto-detects the outer FragmentContainerView as the scrolling target,
+				// and its ViewTreeObserver-driven shouldLift() check evaluates canScrollVertically() on the
+				// container (which is always 0), causing the lifted state to flip on every layout pass
+				// triggered by sibling views (e.g. CheckBox/Switch state animations) and producing a
+				// visible scrolledContainerColor flicker.
+				TrySetAppBarLiftTarget();
+			}
 		}
 
 		protected override void OnDetachedFromWindow()
@@ -82,14 +85,32 @@ namespace Microsoft.Maui.Platform
 
 			_isInsetListenerSet = false;
 			_didSafeAreaEdgeConfigurationChange = true;
+			if (RuntimeFeature.IsMaterial3Enabled)
+			{
 
-			ClearAppBarLiftTarget();
+				ClearAppBarLiftTarget();
+			}
 		}
 
 		void TrySetAppBarLiftTarget()
 		{
+			// If another MauiScrollView already sits between us and the AppBarLayout, let it own
+			// the lift target. The outermost scroll view in the page is the one whose scroll
+			// offset should drive the AppBar's lifted state.
+			if (HasAncestorMauiScrollView())
+			{
+				return;
+			}
+
 			var appBar = FindNavigationAppBarLayout();
 			if (appBar is null)
+			{
+				return;
+			}
+
+			// If another scroll view (e.g. a CollectionView's RecyclerView, or a sibling page
+			// mid-transition) has already claimed the target, don't overwrite it.
+			if (appBar.LiftOnScrollTargetViewId != NoId)
 			{
 				return;
 			}
@@ -118,6 +139,29 @@ namespace Microsoft.Maui.Platform
 			}
 
 			_liftOnScrollAppBar = null;
+		}
+
+		bool HasAncestorMauiScrollView()
+		{
+			var parent = Parent;
+			while (parent is View parentView)
+			{
+				if (parentView is MauiScrollView)
+				{
+					return true;
+				}
+
+				// Stop once we reach the AppBarLayout level — anything above that isn't "inside the page".
+				if (parentView is AppBarLayout ||
+					(parentView.Id != NoId && parentView.Id == Resource.Id.navigationlayout_appbar))
+				{
+					return false;
+				}
+
+				parent = parentView.Parent;
+			}
+
+			return false;
 		}
 
 		AppBarLayout? FindNavigationAppBarLayout()
