@@ -29,6 +29,11 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 		public virtual void ResetAppearance(AToolbar toolbar, IShellToolbarTracker toolbarTracker)
 		{
+			// Under Material 3, Widget.Material3.Toolbar paints itself via
+			// the platform theme — no MAUI override needed.
+			if (RuntimeFeature.IsMaterial3Enabled)
+				return;
+
 			var context = toolbar.Context;
 			SetColors(toolbar, toolbarTracker,
 				ShellRenderer.GetDefaultForegroundColor(context),
@@ -46,10 +51,23 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			if (shellToolbar is null)
 				return;
 
+			// Default helpers return null under Material 3; leave the
+			// corresponding toolbar property untouched so the native style
+			// shows through. Under Material 2 the helpers supply the
+			// legacy MAUI defaults.
 			var context = toolbar.Context;
-			shellToolbar.BarTextColor = title ?? ShellRenderer.GetDefaultTitleColor(context);
-			shellToolbar.BarBackground = new SolidColorBrush(background ?? ShellRenderer.GetDefaultBackgroundColor(context));
-			shellToolbar.IconColor = foreground ?? ShellRenderer.GetDefaultForegroundColor(context);
+			var effectiveTitle = title ?? ShellRenderer.GetDefaultTitleColor(context);
+			var effectiveBackground = background ?? ShellRenderer.GetDefaultBackgroundColor(context);
+			var effectiveForeground = foreground ?? ShellRenderer.GetDefaultForegroundColor(context);
+
+			if (effectiveTitle is not null)
+				shellToolbar.BarTextColor = effectiveTitle;
+
+			if (effectiveBackground is not null)
+				shellToolbar.BarBackground = new SolidColorBrush(effectiveBackground);
+
+			if (effectiveForeground is not null)
+				shellToolbar.IconColor = effectiveForeground;
 		}
 
 		#region IDisposable

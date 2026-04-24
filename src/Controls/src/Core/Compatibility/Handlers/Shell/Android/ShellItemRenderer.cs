@@ -142,10 +142,18 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				return;
 			}
 
-			// Apply background color from appearance, fallback to default if unavailable
+			// Apply background color from appearance, fallback to default if unavailable.
+			// Under Material 3, GetDefaultBottomNavigationViewBackgroundColor returns null
+			// (native Widget.Material3.BottomNavigationView paints its own background),
+			// so we only repaint when either a user-supplied color or a Material 2
+			// default is available.
 			if (_bottomView.Background is ColorDrawable background && appearance is IShellAppearanceElement appearanceElement)
 			{
-				background.Color = appearanceElement.EffectiveTabBarBackgroundColor?.ToPlatform() ?? ShellRenderer.GetDefaultBottomNavigationViewBackgroundColor(Context).ToPlatform();
+				var effective = appearanceElement.EffectiveTabBarBackgroundColor?.ToPlatform()
+					?? ShellRenderer.GetDefaultBottomNavigationViewBackgroundColor(Context)?.ToPlatform();
+
+				if (effective is not null)
+					background.Color = effective.Value;
 			}
 			_appearanceSet = true;
 			_appearanceTracker.SetAppearance(_bottomView, appearance);

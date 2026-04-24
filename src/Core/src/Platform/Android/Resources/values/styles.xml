@@ -12,12 +12,14 @@
         <item name="android:actionMenuTextColor">@color/colorActionMenuTextColor</item>
         <item name="appBarLayoutStyle">@style/MauiAppBarLayout</item>
         <item name="bottomNavigationViewStyle">@style/Widget.Design.BottomNavigationView</item>
-        <item name="mauiShellTabBarStyle">@style/MauiShellTabBar</item>
-        <item name="mauiShellToolbarStyle">@style/MauiShellToolbar</item>
-        <item name="mauiShellFlyoutStyle">@style/MauiShellFlyout</item>
-        <!-- Default color tokens used by ShellRenderer when no ShellAppearance
-             override is supplied. Resolved at runtime via Context.Theme so
-             dark mode is handled by Theme.MaterialComponents.DayNight. -->
+        <!-- Default color tokens used by ShellRenderer when running under the
+             Material 2 theme (Theme.MaterialComponents.DayNight) and no
+             ShellAppearance override is supplied. Resolved at runtime via
+             Context.Theme so dark mode handles itself automatically.
+             These attributes are deliberately NOT bound in the Material 3
+             theme — under Material 3 the native Widget.Material3 styles
+             (e.g. Widget.Material3.BottomNavigationView) paint correctly
+             on their own and MAUI does not override them. -->
         <item name="mauiShellBarBackgroundColor">?attr/colorPrimary</item>
         <item name="mauiShellBarForegroundColor">@android:color/white</item>
         <item name="mauiShellBarTitleColor">@android:color/white</item>
@@ -115,29 +117,5 @@
 
   <style name="scrollViewTheme">
     <item name="scrollViewStyle">@style/scrollViewScrollBars</item>
-  </style>
-
-  <!-- ===== Shell styles (Material 2) =====
-       These replace the hardcoded RGB literals that were previously defined
-       in ShellRenderer.DefaultBackgroundColor / DefaultForegroundColor /
-       DefaultTitleColor / DefaultUnselectedColor /
-       DefaultBottomNavigationViewBackgroundColor.
-       Values reference theme attributes so dark mode resolves automatically
-       through the parent Theme.MaterialComponents.DayNight. -->
-  <style name="MauiShellTabBar" parent="Widget.Design.BottomNavigationView">
-    <item name="android:background">?attr/colorPrimary</item>
-    <item name="itemIconTint">@android:color/white</item>
-    <item name="itemTextColor">@android:color/white</item>
-  </style>
-
-  <style name="MauiShellToolbar" parent="Widget.MaterialComponents.Toolbar">
-    <item name="android:background">?attr/colorPrimary</item>
-    <item name="titleTextColor">@android:color/white</item>
-    <item name="subtitleTextColor">@android:color/white</item>
-  </style>
-
-  <style name="MauiShellFlyout">
-    <item name="android:background">?attr/colorSurface</item>
-    <item name="android:textColorPrimary">?attr/colorOnSurface</item>
   </style>
 </resources>

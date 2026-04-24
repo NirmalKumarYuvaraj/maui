@@ -18,6 +18,12 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 		public virtual void ResetAppearance(TabLayout tabLayout)
 		{
+			// Under Material 3, the native Widget.Material3.* tab styles
+			// paint the TabLayout correctly — we leave it alone. Under
+			// Material 2 we restore the MAUI defaults.
+			if (RuntimeFeature.IsMaterial3Enabled)
+				return;
+
 			var context = tabLayout.Context;
 			SetColors(tabLayout,
 				ShellRenderer.GetDefaultForegroundColor(context),
@@ -39,12 +45,23 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 		protected virtual void SetColors(TabLayout tabLayout, Color foreground, Color background, Color title, Color unselected)
 		{
 			var context = tabLayout.Context;
-			var titleArgb = title.ToPlatform(ShellRenderer.GetDefaultTitleColor(context)).ToArgb();
-			var unselectedArgb = unselected.ToPlatform(ShellRenderer.GetDefaultUnselectedColor(context)).ToArgb();
 
-			tabLayout.SetTabTextColors(unselectedArgb, titleArgb);
-			tabLayout.SetBackground(new ColorDrawable(background.ToPlatform(ShellRenderer.GetDefaultBackgroundColor(context))));
-			tabLayout.SetSelectedTabIndicatorColor(foreground.ToPlatform(ShellRenderer.GetDefaultForegroundColor(context)));
+			// Fall back to defaults. Under Material 3 these return null,
+			// signalling "don't touch" — we preserve the native style for
+			// any slot the user didn't explicitly set.
+			var effectiveTitle = title ?? ShellRenderer.GetDefaultTitleColor(context);
+			var effectiveUnselected = unselected ?? ShellRenderer.GetDefaultUnselectedColor(context);
+			var effectiveBackground = background ?? ShellRenderer.GetDefaultBackgroundColor(context);
+			var effectiveForeground = foreground ?? ShellRenderer.GetDefaultForegroundColor(context);
+
+			if (effectiveTitle is not null && effectiveUnselected is not null)
+				tabLayout.SetTabTextColors(effectiveUnselected.ToPlatform().ToArgb(), effectiveTitle.ToPlatform().ToArgb());
+
+			if (effectiveBackground is not null)
+				tabLayout.SetBackground(new ColorDrawable(effectiveBackground.ToPlatform()));
+
+			if (effectiveForeground is not null)
+				tabLayout.SetSelectedTabIndicatorColor(effectiveForeground.ToPlatform());
 		}
 
 		#region IDisposable

@@ -110,26 +110,45 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 			return light;
 		}
 
-		// Context-aware overloads used by the Shell trackers. These prefer
-		// theme-attribute resolution (so Material 2 vs Material 3 and
-		// light vs dark are handled entirely by the Android theme pipeline,
-		// mirroring how navigationlayout.axml works), and fall back to the
-		// hardcoded public static values only when the attribute can't be
-		// resolved (e.g. from a non-MAUI Context).
+		// Context-aware default-color helpers used by the Shell trackers.
+		//
+		// Under Material 2 (legacy Theme.MaterialComponents.DayNight) MAUI
+		// continues to drive Shell colors: these helpers resolve the
+		// mauiShellBar*Color theme attributes (bound in values/styles.xml)
+		// and fall back to the hardcoded public static properties if
+		// attribute resolution fails.
+		//
+		// Under Material 3 (Theme.Material3.DayNight) MAUI deliberately
+		// does NOT override the native Widget.Material3.* widget styles:
+		// the BottomNavigationView, Toolbar, etc. render correctly through
+		// the platform theme pipeline. These helpers return null in that
+		// case so that callers can skip applying a default and leave the
+		// native style intact. User-supplied ShellAppearance values still
+		// win (they are applied before these defaults are consulted).
 		internal static Color GetDefaultBackgroundColor(Context context) =>
-			ResolveThemedColor(context, Resource.Attribute.mauiShellBarBackgroundColor, DefaultBackgroundColor);
+			RuntimeFeature.IsMaterial3Enabled
+				? null
+				: ResolveThemedColor(context, Resource.Attribute.mauiShellBarBackgroundColor, DefaultBackgroundColor);
 
 		internal static Color GetDefaultForegroundColor(Context context) =>
-			ResolveThemedColor(context, Resource.Attribute.mauiShellBarForegroundColor, DefaultForegroundColor);
+			RuntimeFeature.IsMaterial3Enabled
+				? null
+				: ResolveThemedColor(context, Resource.Attribute.mauiShellBarForegroundColor, DefaultForegroundColor);
 
 		internal static Color GetDefaultTitleColor(Context context) =>
-			ResolveThemedColor(context, Resource.Attribute.mauiShellBarTitleColor, DefaultTitleColor);
+			RuntimeFeature.IsMaterial3Enabled
+				? null
+				: ResolveThemedColor(context, Resource.Attribute.mauiShellBarTitleColor, DefaultTitleColor);
 
 		internal static Color GetDefaultUnselectedColor(Context context) =>
-			ResolveThemedColor(context, Resource.Attribute.mauiShellBarUnselectedColor, DefaultUnselectedColor);
+			RuntimeFeature.IsMaterial3Enabled
+				? null
+				: ResolveThemedColor(context, Resource.Attribute.mauiShellBarUnselectedColor, DefaultUnselectedColor);
 
 		internal static Color GetDefaultBottomNavigationViewBackgroundColor(Context context) =>
-			ResolveThemedColor(context, Resource.Attribute.mauiShellTabBarBackgroundColor, DefaultBottomNavigationViewBackgroundColor);
+			RuntimeFeature.IsMaterial3Enabled
+				? null
+				: ResolveThemedColor(context, Resource.Attribute.mauiShellTabBarBackgroundColor, DefaultBottomNavigationViewBackgroundColor);
 
 		static Color ResolveThemedColor(Context context, int attrId, Color fallback)
 		{

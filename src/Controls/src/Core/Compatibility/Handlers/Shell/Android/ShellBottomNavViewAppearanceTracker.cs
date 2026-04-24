@@ -40,6 +40,13 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 		public virtual void ResetAppearance(BottomNavigationView bottomView)
 		{
+			// Under Material 3, Widget.Material3.BottomNavigationView paints
+			// its own item text/icon tints and background through the
+			// platform theme. Leave everything alone so the native style
+			// can render unmodified.
+			if (RuntimeFeature.IsMaterial3Enabled)
+				return;
+
 			bottomView.ItemIconTintList = GetDefaultTabColorList(_shellContext.AndroidContext);
 			bottomView.ItemTextColor = GetDefaultTabColorList(_shellContext.AndroidContext);
 			SetBackgroundColor(bottomView, null);
@@ -53,6 +60,33 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			var disabledColor = controller.EffectiveTabBarDisabledColor;
 			var unselectedColor = controller.EffectiveTabBarUnselectedColor;
 			var titleColor = controller.EffectiveTabBarTitleColor;
+
+			// Under Material 3 we only apply user-supplied overrides.
+			// Anything the user did not explicitly set remains painted by
+			// the native Widget.Material3.BottomNavigationView style.
+			if (RuntimeFeature.IsMaterial3Enabled)
+			{
+				if (titleColor is not null || foregroundColor is not null || disabledColor is not null || unselectedColor is not null)
+				{
+					_itemTextColor = MakeColorStateList(
+						titleColor ?? foregroundColor,
+						disabledColor,
+						unselectedColor);
+
+					_itemIconTint = MakeColorStateList(
+						foregroundColor ?? titleColor,
+						disabledColor,
+						unselectedColor);
+
+					bottomView.ItemTextColor = _itemTextColor;
+					bottomView.ItemIconTintList = _itemIconTint;
+				}
+
+				if (backgroundColor is not null)
+					SetBackgroundColor(bottomView, backgroundColor);
+
+				return;
+			}
 
 			_itemTextColor = MakeColorStateList(
 				titleColor ?? foregroundColor,
@@ -82,7 +116,14 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			AColor newColor;
 
 			if (color == null)
+			{
+				// Under Material 3, leave the native Widget.Material3
+				// background intact — do not repaint with a MAUI default.
+				if (RuntimeFeature.IsMaterial3Enabled)
+					return;
+
 				newColor = ShellRenderer.GetDefaultBottomNavigationViewBackgroundColor(bottomView.Context).ToPlatform();
+			}
 			else
 				newColor = color.ToPlatform();
 
