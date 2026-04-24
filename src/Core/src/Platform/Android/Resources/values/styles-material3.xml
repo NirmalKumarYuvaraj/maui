@@ -7,6 +7,17 @@
         <item name="maui_splash">false</item>
         <item name="bottomNavigationViewStyle">@style/Widget.Material3.BottomNavigationView</item>
         <item name="materialButtonStyle">@style/MauiMaterialButton</item>
+        <item name="mauiShellTabBarStyle">@style/MauiShellTabBar.Material3</item>
+        <item name="mauiShellToolbarStyle">@style/MauiShellToolbar.Material3</item>
+        <item name="mauiShellFlyoutStyle">@style/MauiShellFlyout.Material3</item>
+        <!-- Default color tokens used by ShellRenderer when no ShellAppearance
+             override is supplied. Resolved at runtime via Context.Theme so
+             dark mode is handled by Theme.Material3.DayNight. -->
+        <item name="mauiShellBarBackgroundColor">?attr/colorSurface</item>
+        <item name="mauiShellBarForegroundColor">?attr/colorOnSurface</item>
+        <item name="mauiShellBarTitleColor">?attr/colorOnSurface</item>
+        <item name="mauiShellBarUnselectedColor">?attr/colorOnSurfaceVariant</item>
+        <item name="mauiShellTabBarBackgroundColor">?attr/colorSurface</item>
     </style>
 
 
@@ -41,5 +52,28 @@
       <item name="android:insetRight">0dp</item>
       <!-- Icon size attribute to allow proper icon sizing in Material 3 -->
       <item name="iconSize">0dp</item>
+    </style>
+
+    <!-- ===== Shell styles (Material 3) =====
+         Mirrors the Material 2 equivalents but resolves colors against
+         Material 3 tokens (colorSurface, colorOnSurface, …). These are
+         selected automatically when MauiAppCompatActivity applies
+         Maui_Material3_Theme_NoActionBar. -->
+    <style name="MauiShellTabBar.Material3" parent="Widget.Material3.BottomNavigationView">
+      <item name="android:background">?attr/colorSurface</item>
+      <item name="itemActiveIndicatorStyle">@style/Widget.Material3.BottomNavigationView.ActiveIndicator</item>
+      <item name="itemIconTint">?attr/colorOnSurface</item>
+      <item name="itemTextColor">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="MauiShellToolbar.Material3" parent="Widget.Material3.Toolbar">
+      <item name="android:background">?attr/colorSurface</item>
+      <item name="titleTextColor">?attr/colorOnSurface</item>
+      <item name="subtitleTextColor">?attr/colorOnSurfaceVariant</item>
+    </style>
+
+    <style name="MauiShellFlyout.Material3">
+      <item name="android:background">?attr/colorSurface</item>
+      <item name="android:textColorPrimary">?attr/colorOnSurface</item>
     </style>
 </resources>

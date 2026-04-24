@@ -7,7 +7,6 @@ import android.content.res.ColorStateList;
 import android.graphics.BlendMode;
 import android.graphics.BlendModeColorFilter;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PathEffect;
@@ -206,7 +205,9 @@ public class PlatformInterop {
     public static BottomNavigationView createNavigationBar(Context context, int styleAttribute, LinearLayout linearLayout, BottomNavigationView.OnItemSelectedListener listener) {
         BottomNavigationView navigationView = new BottomNavigationView(context, null, styleAttribute);
         navigationView.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        navigationView.setBackgroundColor(Color.WHITE);
+        // Background is inherited from the current theme's bottomNavigationViewStyle
+        // (Widget.Design.BottomNavigationView for M2, Widget.Material3.BottomNavigationView for M3).
+        // Callers that want a specific color should set it through ShellAppearance.
         navigationView.setOnItemSelectedListener(listener);
         linearLayout.addView(navigationView);
         return navigationView;

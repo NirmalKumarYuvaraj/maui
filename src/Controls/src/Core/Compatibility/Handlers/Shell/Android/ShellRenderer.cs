@@ -13,6 +13,7 @@ using Microsoft.Maui.Controls.Internals;
 using Microsoft.Maui.Controls.Platform;
 using Microsoft.Maui.Controls.Platform.Compatibility;
 using Microsoft.Maui.Graphics;
+using Microsoft.Maui.Platform;
 using AColor = Android.Graphics.Color;
 using ARect = Android.Graphics.Rect;
 using AToolbar = AndroidX.AppCompat.Widget.Toolbar;
@@ -107,6 +108,46 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 			}
 
 			return light;
+		}
+
+		// Context-aware overloads used by the Shell trackers. These prefer
+		// theme-attribute resolution (so Material 2 vs Material 3 and
+		// light vs dark are handled entirely by the Android theme pipeline,
+		// mirroring how navigationlayout.axml works), and fall back to the
+		// hardcoded public static values only when the attribute can't be
+		// resolved (e.g. from a non-MAUI Context).
+		internal static Color GetDefaultBackgroundColor(Context context) =>
+			ResolveThemedColor(context, Resource.Attribute.mauiShellBarBackgroundColor, DefaultBackgroundColor);
+
+		internal static Color GetDefaultForegroundColor(Context context) =>
+			ResolveThemedColor(context, Resource.Attribute.mauiShellBarForegroundColor, DefaultForegroundColor);
+
+		internal static Color GetDefaultTitleColor(Context context) =>
+			ResolveThemedColor(context, Resource.Attribute.mauiShellBarTitleColor, DefaultTitleColor);
+
+		internal static Color GetDefaultUnselectedColor(Context context) =>
+			ResolveThemedColor(context, Resource.Attribute.mauiShellBarUnselectedColor, DefaultUnselectedColor);
+
+		internal static Color GetDefaultBottomNavigationViewBackgroundColor(Context context) =>
+			ResolveThemedColor(context, Resource.Attribute.mauiShellTabBarBackgroundColor, DefaultBottomNavigationViewBackgroundColor);
+
+		static Color ResolveThemedColor(Context context, int attrId, Color fallback)
+		{
+			if (context == null || context.Theme == null)
+				return fallback;
+
+			if (!context.TryResolveAttribute(attrId))
+				return fallback;
+
+			var argb = context.GetThemeAttrColor(attrId);
+			if (argb == 0)
+				return fallback;
+
+			return Color.FromRgba(
+				AColor.GetRedComponent(argb),
+				AColor.GetGreenComponent(argb),
+				AColor.GetBlueComponent(argb),
+				AColor.GetAlphaComponent(argb));
 		}
 
 		IShellFlyoutRenderer _flyoutView;

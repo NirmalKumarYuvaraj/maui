@@ -6,6 +6,25 @@
   <attr name="appBarLayoutStyle" format="reference" />
   <attr name="bottomNavigationViewStyle" format="reference" />
 
+  <!-- Shell theme attributes. These are bound to concrete Shell styles in
+       values/styles.xml (Material 2) and values/styles-material3.xml
+       (Material 3). The active theme is selected at runtime by
+       MauiAppCompatActivity based on RuntimeFeature.IsMaterial3Enabled. -->
+  <attr name="mauiShellTabBarStyle" format="reference" />
+  <attr name="mauiShellToolbarStyle" format="reference" />
+  <attr name="mauiShellFlyoutStyle" format="reference" />
+
+  <!-- Color attributes used by ShellRenderer.Default*Color fallbacks.
+       Declared as format="color" so they can be resolved directly from
+       Context.Theme.ResolveAttribute. Each theme (M2, M3) binds them to
+       the appropriate theme-attribute color (e.g., ?attr/colorPrimary or
+       ?attr/colorSurface). -->
+  <attr name="mauiShellBarBackgroundColor" format="color" />
+  <attr name="mauiShellBarForegroundColor" format="color" />
+  <attr name="mauiShellBarTitleColor" format="color" />
+  <attr name="mauiShellBarUnselectedColor" format="color" />
+  <attr name="mauiShellTabBarBackgroundColor" format="color" />
+
   <!-- 
     This defines the collectionViewStyle attribute so that we can use it 
     to add the scrollbars style to the CollectionView/CarouselView renderers.

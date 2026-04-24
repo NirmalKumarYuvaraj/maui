@@ -82,7 +82,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			AColor newColor;
 
 			if (color == null)
-				newColor = ShellRenderer.DefaultBottomNavigationViewBackgroundColor.ToPlatform();
+				newColor = ShellRenderer.GetDefaultBottomNavigationViewBackgroundColor(bottomView.Context).ToPlatform();
 			else
 				newColor = color.ToPlatform();
 
@@ -131,7 +131,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				return null;
 
 			var baseCSL = AppCompatResources.GetColorStateList(context, mTypedValue.ResourceId);
-			var colorPrimary = (ShellRenderer.IsDarkTheme) ? AColor.White : RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#625B71").ToPlatform() : ShellRenderer.DefaultBackgroundColor.ToPlatform();
+			var colorPrimary = (ShellRenderer.IsDarkTheme) ? AColor.White : RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#625B71").ToPlatform() : ShellRenderer.GetDefaultBackgroundColor(context).ToPlatform();
 			int defaultColor = baseCSL.DefaultColor;
 			var disabledcolor = baseCSL.GetColorForState(new[] { -R.Attribute.StateEnabled }, AColor.Gray);
 
