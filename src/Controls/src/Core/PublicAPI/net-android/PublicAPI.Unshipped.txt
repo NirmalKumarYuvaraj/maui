@@ -1,19 +1,18 @@
 ﻿#nullable enable
-*REMOVED*~static readonly Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer.DefaultForegroundColor -> Microsoft.Maui.Graphics.Color
-*REMOVED*~static readonly Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer.DefaultTitleColor -> Microsoft.Maui.Graphics.Color
-~static Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer.DefaultForegroundColor.get -> Microsoft.Maui.Graphics.Color
-~static Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer.DefaultTitleColor.get -> Microsoft.Maui.Graphics.Color
-override Microsoft.Maui.Controls.Shapes.Shape.OnPropertyChanged(string? propertyName = null) -> void
+~Microsoft.Maui.Controls.ShellAppearance.Background.get -> Microsoft.Maui.Controls.Brush
+override Microsoft.Maui.Controls.GraphicsView.OnBindingContextChanged() -> void
 ~override Microsoft.Maui.Controls.Handlers.Items.MauiRecyclerView<TItemsView, TAdapter, TItemsViewSource>.OnInterceptTouchEvent(Android.Views.MotionEvent e) -> bool
 ~override Microsoft.Maui.Controls.Handlers.Items.MauiRecyclerView<TItemsView, TAdapter, TItemsViewSource>.OnTouchEvent(Android.Views.MotionEvent e) -> bool
-override Microsoft.Maui.Controls.GraphicsView.OnBindingContextChanged() -> void
-override Microsoft.Maui.Controls.Platform.Compatibility.ShellSectionRenderer.OnHiddenChanged(bool hidden) -> void
 ~override Microsoft.Maui.Controls.Handlers.Items.RecyclerViewScrollListener<TItemsView, TItemsViewSource>.OnScrollStateChanged(AndroidX.RecyclerView.Widget.RecyclerView recyclerView, int newState) -> void
 ~override Microsoft.Maui.Controls.Handlers.Items.SelectableItemsViewAdapter<TItemsView, TItemsSource>.IsSelectionEnabled(Android.Views.ViewGroup parent, int viewType) -> bool
+override Microsoft.Maui.Controls.Platform.Compatibility.ShellSectionRenderer.OnHiddenChanged(bool hidden) -> void
+override Microsoft.Maui.Controls.Shapes.Shape.OnPropertyChanged(string? propertyName = null) -> void
 override Microsoft.Maui.Controls.TitleBar.OnBindingContextChanged() -> void
-#nullable enable
-~Microsoft.Maui.Controls.ShellAppearance.Background.get -> Microsoft.Maui.Controls.Brush
+~static Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer.DefaultForegroundColor.get -> Microsoft.Maui.Graphics.Color
+~static Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer.DefaultTitleColor.get -> Microsoft.Maui.Graphics.Color
 ~static Microsoft.Maui.Controls.Shell.GetBackground(Microsoft.Maui.Controls.BindableObject obj) -> Microsoft.Maui.Controls.Brush
 ~static Microsoft.Maui.Controls.Shell.SetBackground(Microsoft.Maui.Controls.BindableObject obj, Microsoft.Maui.Controls.Brush value) -> void
+*REMOVED*~static readonly Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer.DefaultForegroundColor -> Microsoft.Maui.Graphics.Color
+*REMOVED*~static readonly Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer.DefaultTitleColor -> Microsoft.Maui.Graphics.Color
 ~static readonly Microsoft.Maui.Controls.Shell.BackgroundProperty -> Microsoft.Maui.Controls.BindableProperty
-~virtual Microsoft.Maui.Controls.Platform.Compatibility.ShellToolbarAppearanceTracker.SetColors(AndroidX.AppCompat.Widget.Toolbar toolbar, Microsoft.Maui.Controls.Platform.Compatibility.IShellToolbarTracker toolbarTracker, Microsoft.Maui.Graphics.Color foreground, Microsoft.Maui.Controls.Brush background, Microsoft.Maui.Graphics.Color backgroundColor, Microsoft.Maui.Graphics.Color title) -> void
+~virtual Microsoft.Maui.Controls.Platform.Compatibility.ShellToolbarAppearanceTracker.SetColors(AndroidX.AppCompat.Widget.Toolbar toolbar, Microsoft.Maui.Controls.Platform.Compatibility.IShellToolbarTracker toolbarTracker, Microsoft.Maui.Graphics.Color foreground, Microsoft.Maui.Controls.Brush background, Microsoft.Maui.Graphics.Color title) -> void
