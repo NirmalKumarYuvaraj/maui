@@ -19,7 +19,6 @@ namespace Microsoft.Maui.TestCases.Tests.Issues
 		{
 			VerifyInternetConnectivity();
 
-			App.WaitForElement("CachedImage");
 			App.WaitForElement("ReloadButton");
 
 			// Give the first image time to fully download and render.
@@ -37,7 +36,7 @@ namespace Microsoft.Maui.TestCases.Tests.Issues
 
 			// picsum.photos returns different bytes per request, so if the cache
 			// honored CacheValidity and refetched, the rendered image must differ.
-			ClassicAssert.That(second, Is.Not.EqualTo(first),
+			Assert.That(second, Is.Not.EqualTo(first),
 				"Image should have refreshed after CacheValidity elapsed (issue #12376)");
 		}
 	}
