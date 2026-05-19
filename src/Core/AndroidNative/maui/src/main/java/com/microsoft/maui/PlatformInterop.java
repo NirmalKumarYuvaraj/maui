@@ -47,6 +47,7 @@ import com.bumptech.glide.RequestBuilder;
 import com.bumptech.glide.RequestManager;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.target.Target;
+import com.bumptech.glide.signature.ObjectKey;
 
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -343,16 +344,19 @@ public class PlatformInterop {
         loadInto(builder, imageView, true, callback, file);
     }
 
-    public static void loadImageFromUri(ImageView imageView, String uri, boolean cachingEnabled, ImageLoaderCallback callback) {
+    public static void loadImageFromUri(ImageView imageView, String uri, boolean cachingEnabled, long cacheValidityMillis, ImageLoaderCallback callback) {
         Uri androidUri = Uri.parse(uri);
         if (androidUri == null) {
             callback.onComplete(false, null, null);
             return;
         }
+        // A non-positive cacheValidity means "always refresh" — treat as caching disabled.
+        boolean effectiveCaching = cachingEnabled && cacheValidityMillis != 0;
         RequestBuilder<Drawable> builder = Glide
             .with(imageView)
             .load(androidUri);
-        loadInto(builder, imageView, cachingEnabled, callback, androidUri);
+        builder = applyCacheValiditySignature(builder, effectiveCaching, cacheValidityMillis);
+        loadInto(builder, imageView, effectiveCaching, callback, androidUri);
     }
 
     public static void loadImageFromStream(ImageView imageView, InputStream inputStream, ImageLoaderCallback callback) {
@@ -383,7 +387,7 @@ public class PlatformInterop {
         load(builder, context, true, callback, file);
     }
 
-    public static void loadImageFromUri(Context context, String uri, boolean cachingEnabled, ImageLoaderCallback callback) {
+    public static void loadImageFromUri(Context context, String uri, boolean cachingEnabled, long cacheValidityMillis, ImageLoaderCallback callback) {
         if (isContextDestroyed(context)) {
             callback.onComplete(false, null, null);
             return;
@@ -393,10 +397,28 @@ public class PlatformInterop {
             callback.onComplete(false, null, null);
             return;
         }
+        boolean effectiveCaching = cachingEnabled && cacheValidityMillis != 0;
         RequestBuilder<Drawable> builder = Glide
             .with(context)
             .load(androidUri);
-        load(builder, context, cachingEnabled, callback, androidUri);
+        builder = applyCacheValiditySignature(builder, effectiveCaching, cacheValidityMillis);
+        load(builder, context, effectiveCaching, callback, androidUri);
+    }
+
+    private static RequestBuilder<Drawable> applyCacheValiditySignature(RequestBuilder<Drawable> builder, boolean cachingEnabled, long cacheValidityMillis) {
+        // Signature is irrelevant when not caching; Glide will refetch anyway.
+        if (!cachingEnabled)
+            return builder;
+
+        // Long.MAX_VALUE (and any negative — defensively) means "never expire": leave the default
+        // (no signature) so the cached entry survives forever.
+        if (cacheValidityMillis == Long.MAX_VALUE || cacheValidityMillis < 0)
+            return builder;
+
+        // Bucket the current time by validity. When the bucket changes (i.e. cacheValidity elapses)
+        // Glide treats the load as a different resource and refetches from the network.
+        long bucket = System.currentTimeMillis() / cacheValidityMillis;
+        return builder.signature(new ObjectKey(bucket));
     }
 
     public static void loadImageFromStream(Context context, InputStream inputStream, ImageLoaderCallback callback) {

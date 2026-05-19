@@ -89,25 +89,41 @@ namespace Microsoft.Maui.Controls
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 
-			Stream stream = null;
-
 			if (CachingEnabled)
 			{
-				// TODO: CACHING https://github.com/dotnet/runtime/issues/52332
+				IUriImageSource self = this;
 
-				// var key = GetKey();
-				// var cached = TryGetFromCache(key, out stream)
+				// Cache hit: serve from disk.
+				if (UriImageDiskCache.TryGetValidPath(self, out var freshPath))
+				{
+					try
+					{
+						return File.OpenRead(freshPath);
+					}
+					catch
+					{
+						// Fall through to re-download if the cached file becomes unreadable.
+					}
+				}
+
+				var stream = await DownloadStreamAsync(uri, cancellationToken).ConfigureAwait(false);
 				if (stream is null)
-					stream = await DownloadStreamAsync(uri, cancellationToken).ConfigureAwait(false);
-				// if (!cached)
-				//    Cache(key, stream)
-			}
-			else
-			{
-				stream = await DownloadStreamAsync(uri, cancellationToken).ConfigureAwait(false);
+					return null;
+
+				// Tee the network bytes into the cache so subsequent reads hit disk.
+				var cachedPath = await UriImageDiskCache.WriteAsync(self, stream, cancellationToken).ConfigureAwait(false);
+				if (cachedPath is null)
+				{
+					// Cache directory unavailable (e.g. netstandard host) — return the original stream.
+					return stream;
+				}
+
+				stream.Dispose();
+				return File.OpenRead(cachedPath);
 			}
 
-			return stream;
+			UriImageDiskCache.Invalidate(this);
+			return await DownloadStreamAsync(uri, cancellationToken).ConfigureAwait(false);
 		}
 
 		async Task<Stream> DownloadStreamAsync(Uri uri, CancellationToken cancellationToken)

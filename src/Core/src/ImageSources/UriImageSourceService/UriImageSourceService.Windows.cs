@@ -19,31 +19,52 @@ namespace Microsoft.Maui
 			if (imageSource.IsEmpty)
 				return null;
 
-			// TODO: use a real caching library with the URI
 			if (imageSource is not IStreamImageSource streamImageSource)
 				throw new InvalidOperationException("Unable to load URI as a stream.");
 
 			try
 			{
-				using var stream = await streamImageSource.GetStreamAsync(cancellationToken);
+				if (imageSource.CachingEnabled && UriImageDiskCache.TryGetValidPath(imageSource, out var freshPath))
+				{
+					using var cached = File.OpenRead(freshPath);
+					return await CreateResultFromStreamAsync(cached).ConfigureAwait(true);
+				}
 
-				if (stream == null)
+				using var stream = await streamImageSource.GetStreamAsync(cancellationToken);
+				if (stream is null)
 					throw new InvalidOperationException("Unable to load image stream.");
 
-				var image = new BitmapImage();
+				if (imageSource.CachingEnabled)
+				{
+					// Tee the network stream into the cache, then load the BitmapImage from the cached file
+					// so we don't have to buffer the whole image in memory twice.
+					var cachedPath = await UriImageDiskCache.WriteAsync(imageSource, stream, cancellationToken).ConfigureAwait(false);
+					if (cachedPath is not null)
+					{
+						using var cached = File.OpenRead(cachedPath);
+						return await CreateResultFromStreamAsync(cached).ConfigureAwait(true);
+					}
+				}
+				else
+				{
+					UriImageDiskCache.Invalidate(imageSource);
+				}
 
-				using var ras = stream.AsRandomAccessStream();
-				await image.SetSourceAsync(ras);
-
-				var result = new ImageSourceServiceResult(image);
-
-				return result;
+				return await CreateResultFromStreamAsync(stream).ConfigureAwait(true);
 			}
 			catch (Exception ex)
 			{
 				Logger?.LogWarning(ex, "Unable to load image URI '{Uri}'.", imageSource.Uri);
 				throw;
 			}
+		}
+
+		static async Task<IImageSourceServiceResult<WImageSource>?> CreateResultFromStreamAsync(Stream stream)
+		{
+			var image = new BitmapImage();
+			using var ras = stream.AsRandomAccessStream();
+			await image.SetSourceAsync(ras);
+			return new ImageSourceServiceResult(image);
 		}
 	}
 }

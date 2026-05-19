@@ -12,7 +12,7 @@ namespace Microsoft.Maui
 {
 	public partial class UriImageSourceService
 	{
-		internal static readonly string CacheDirectory = Path.Combine(FileSystem.CacheDirectory, "com.microsoft.maui", "MauiUriImages");
+		internal static string CacheDirectory => UriImageDiskCache.CacheDirectory ?? Path.Combine(FileSystem.CacheDirectory, "com.microsoft.maui", "MauiUriImages");
 
 		public override Task<IImageSourceServiceResult<UIImage>?> GetImageAsync(IImageSource imageSource, float scale = 1, CancellationToken cancellationToken = default) =>
 			GetImageAsync((IUriImageSource)imageSource, scale, cancellationToken);
@@ -45,22 +45,26 @@ namespace Microsoft.Maui
 
 		internal async Task<NSData> DownloadAndCacheImageAsync(IUriImageSource imageSource, CancellationToken cancellationToken)
 		{
-			// TODO: use a real caching library with the URI
-
-			var filename = GetCachedFileName(imageSource);
-			var pathToImageCache = Path.Combine(CacheDirectory, filename);
-
 			NSData? imageData;
 
-			if (imageSource.CachingEnabled && IsImageCached(pathToImageCache))
+			if (imageSource.CachingEnabled && UriImageDiskCache.TryGetValidPath(imageSource, out var freshPath))
 			{
-				imageData = GetCachedImage(pathToImageCache);
+				imageData = GetCachedImage(freshPath);
 			}
 			else
 			{
 				imageData = await DownloadImageAsync(imageSource, cancellationToken);
 				if (imageSource.CachingEnabled)
+				{
+					var pathToImageCache = UriImageDiskCache.GetCachedFilePath(imageSource)
+						?? Path.Combine(CacheDirectory, GetCachedFileName(imageSource));
 					CacheImage(imageData, pathToImageCache);
+				}
+				else
+				{
+					// If caching was previously enabled for this URI, ensure stale entries are dropped.
+					UriImageDiskCache.Invalidate(imageSource);
+				}
 			}
 
 			return imageData;
@@ -99,6 +103,16 @@ namespace Microsoft.Maui
 
 			if (result == false)
 				throw new InvalidOperationException($"Unable to cache image at '{path}'.");
+
+			// Refresh the modified timestamp so the cache TTL is measured from "now".
+			try
+			{
+				File.SetLastWriteTimeUtc(path, DateTime.UtcNow);
+			}
+			catch
+			{
+				// best-effort; lack of mtime update only affects TTL accuracy.
+			}
 		}
 
 		public bool IsImageCached(string path)
