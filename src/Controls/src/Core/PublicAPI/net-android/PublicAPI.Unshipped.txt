@@ -1,13 +1,43 @@
 ﻿#nullable enable
-*REMOVED*~static readonly Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer.DefaultForegroundColor -> Microsoft.Maui.Graphics.Color
-*REMOVED*~static readonly Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer.DefaultTitleColor -> Microsoft.Maui.Graphics.Color
-~static Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer.DefaultForegroundColor.get -> Microsoft.Maui.Graphics.Color
-~static Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer.DefaultTitleColor.get -> Microsoft.Maui.Graphics.Color
-override Microsoft.Maui.Controls.Shapes.Shape.OnPropertyChanged(string? propertyName = null) -> void
+Microsoft.Maui.Controls.Handlers.Items2.CarouselViewHandler2
+Microsoft.Maui.Controls.Handlers.Items2.CarouselViewHandler2.CarouselViewHandler2() -> void
+~Microsoft.Maui.Controls.Handlers.Items2.CarouselViewHandler2.CarouselViewHandler2(Microsoft.Maui.PropertyMapper mapper = null) -> void
+Microsoft.Maui.Controls.Handlers.Items2.IMauiCarouselRecyclerView2
+Microsoft.Maui.Controls.Handlers.Items2.IMauiCarouselRecyclerView2.IsSwipeEnabled.get -> bool
+Microsoft.Maui.Controls.Handlers.Items2.IMauiCarouselRecyclerView2.IsSwipeEnabled.set -> void
+Microsoft.Maui.Controls.Handlers.Items2.IMauiCarouselRecyclerView2.UpdateFromCurrentItem() -> void
+Microsoft.Maui.Controls.Handlers.Items2.IMauiCarouselRecyclerView2.UpdateFromPosition() -> void
+Microsoft.Maui.Controls.Handlers.Items2.MauiCarouselRecyclerView2
+~Microsoft.Maui.Controls.Handlers.Items2.MauiCarouselRecyclerView2.MauiCarouselRecyclerView2(Android.Content.Context context, System.Func<Microsoft.Maui.Controls.IItemsLayout> getItemsLayout, System.Func<Microsoft.Maui.Controls.Handlers.Items.ItemsViewAdapter<Microsoft.Maui.Controls.CarouselView, Microsoft.Maui.Controls.Handlers.Items.IItemsViewSource>> getAdapter) -> void
+override Microsoft.Maui.Controls.GraphicsView.OnBindingContextChanged() -> void
 ~override Microsoft.Maui.Controls.Handlers.Items.MauiRecyclerView<TItemsView, TAdapter, TItemsViewSource>.OnInterceptTouchEvent(Android.Views.MotionEvent e) -> bool
 ~override Microsoft.Maui.Controls.Handlers.Items.MauiRecyclerView<TItemsView, TAdapter, TItemsViewSource>.OnTouchEvent(Android.Views.MotionEvent e) -> bool
-override Microsoft.Maui.Controls.GraphicsView.OnBindingContextChanged() -> void
-override Microsoft.Maui.Controls.Platform.Compatibility.ShellSectionRenderer.OnHiddenChanged(bool hidden) -> void
 ~override Microsoft.Maui.Controls.Handlers.Items.RecyclerViewScrollListener<TItemsView, TItemsViewSource>.OnScrollStateChanged(AndroidX.RecyclerView.Widget.RecyclerView recyclerView, int newState) -> void
 ~override Microsoft.Maui.Controls.Handlers.Items.SelectableItemsViewAdapter<TItemsView, TItemsSource>.IsSelectionEnabled(Android.Views.ViewGroup parent, int viewType) -> bool
+~override Microsoft.Maui.Controls.Handlers.Items2.CarouselViewHandler2.CreateAdapter() -> Microsoft.Maui.Controls.Handlers.Items.ItemsViewAdapter<Microsoft.Maui.Controls.CarouselView, Microsoft.Maui.Controls.Handlers.Items.IItemsViewSource>
+~override Microsoft.Maui.Controls.Handlers.Items2.CarouselViewHandler2.CreatePlatformView() -> AndroidX.RecyclerView.Widget.RecyclerView
+override Microsoft.Maui.Controls.Handlers.Items2.CarouselViewHandler2.GetDesiredSize(double widthConstraint, double heightConstraint) -> Microsoft.Maui.Graphics.Size
+~override Microsoft.Maui.Controls.Handlers.Items2.CarouselViewHandler2.GetItemsLayout() -> Microsoft.Maui.Controls.IItemsLayout
+override Microsoft.Maui.Controls.Handlers.Items2.CarouselViewHandler2.PlatformArrange(Microsoft.Maui.Graphics.Rect frame) -> void
+~override Microsoft.Maui.Controls.Handlers.Items2.MauiCarouselRecyclerView2.CreateScrollListener() -> Microsoft.Maui.Controls.Handlers.Items.RecyclerViewScrollListener<Microsoft.Maui.Controls.CarouselView, Microsoft.Maui.Controls.Handlers.Items.IItemsViewSource>
+~override Microsoft.Maui.Controls.Handlers.Items2.MauiCarouselRecyclerView2.CreateSpacingDecoration(Microsoft.Maui.Controls.IItemsLayout itemsLayout) -> AndroidX.RecyclerView.Widget.RecyclerView.ItemDecoration
+override Microsoft.Maui.Controls.Handlers.Items2.MauiCarouselRecyclerView2.Dispose(bool disposing) -> void
+override Microsoft.Maui.Controls.Handlers.Items2.MauiCarouselRecyclerView2.OnAttachedToWindow() -> void
+~override Microsoft.Maui.Controls.Handlers.Items2.MauiCarouselRecyclerView2.ScrollToRequested(object sender, Microsoft.Maui.Controls.ScrollToRequestEventArgs args) -> void
+~override Microsoft.Maui.Controls.Handlers.Items2.MauiCarouselRecyclerView2.SelectLayoutManager(Microsoft.Maui.Controls.IItemsLayout layoutSpecification) -> AndroidX.RecyclerView.Widget.RecyclerView.LayoutManager
+~override Microsoft.Maui.Controls.Handlers.Items2.MauiCarouselRecyclerView2.SetUpNewElement(Microsoft.Maui.Controls.CarouselView newElement) -> void
+override Microsoft.Maui.Controls.Handlers.Items2.MauiCarouselRecyclerView2.UpdateSnapBehavior() -> void
+override Microsoft.Maui.Controls.Platform.Compatibility.ShellSectionRenderer.OnHiddenChanged(bool hidden) -> void
+override Microsoft.Maui.Controls.Shapes.Shape.OnPropertyChanged(string? propertyName = null) -> void
 override Microsoft.Maui.Controls.TitleBar.OnBindingContextChanged() -> void
+~static Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer.DefaultForegroundColor.get -> Microsoft.Maui.Graphics.Color
+~static Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer.DefaultTitleColor.get -> Microsoft.Maui.Graphics.Color
+~static Microsoft.Maui.Controls.Handlers.Items2.CarouselViewHandler2.MapCurrentItem(Microsoft.Maui.Controls.Handlers.Items2.CarouselViewHandler2 handler, Microsoft.Maui.Controls.CarouselView carouselView) -> void
+~static Microsoft.Maui.Controls.Handlers.Items2.CarouselViewHandler2.MapIsBounceEnabled(Microsoft.Maui.Controls.Handlers.Items2.CarouselViewHandler2 handler, Microsoft.Maui.Controls.CarouselView carouselView) -> void
+~static Microsoft.Maui.Controls.Handlers.Items2.CarouselViewHandler2.MapIsSwipeEnabled(Microsoft.Maui.Controls.Handlers.Items2.CarouselViewHandler2 handler, Microsoft.Maui.Controls.CarouselView carouselView) -> void
+~static Microsoft.Maui.Controls.Handlers.Items2.CarouselViewHandler2.MapPeekAreaInsets(Microsoft.Maui.Controls.Handlers.Items2.CarouselViewHandler2 handler, Microsoft.Maui.Controls.CarouselView carouselView) -> void
+~static Microsoft.Maui.Controls.Handlers.Items2.CarouselViewHandler2.MapPosition(Microsoft.Maui.Controls.Handlers.Items2.CarouselViewHandler2 handler, Microsoft.Maui.Controls.CarouselView carouselView) -> void
+~static Microsoft.Maui.Controls.Handlers.Items2.CarouselViewHandler2.Mapper -> Microsoft.Maui.PropertyMapper<Microsoft.Maui.Controls.CarouselView, Microsoft.Maui.Controls.Handlers.Items2.CarouselViewHandler2>
+*REMOVED*~static readonly Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer.DefaultForegroundColor -> Microsoft.Maui.Graphics.Color
+*REMOVED*~static readonly Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer.DefaultTitleColor -> Microsoft.Maui.Graphics.Color
+~virtual Microsoft.Maui.Controls.Handlers.Items2.MauiCarouselRecyclerView2.CreateCarouselStrategy() -> Google.Android.Material.Carousel.CarouselStrategy
