@@ -26,6 +26,8 @@ override Microsoft.Maui.Controls.Handlers.Items2.MauiCarouselRecyclerView2.OnAtt
 ~override Microsoft.Maui.Controls.Handlers.Items2.MauiCarouselRecyclerView2.ScrollToRequested(object sender, Microsoft.Maui.Controls.ScrollToRequestEventArgs args) -> void
 ~override Microsoft.Maui.Controls.Handlers.Items2.MauiCarouselRecyclerView2.SelectLayoutManager(Microsoft.Maui.Controls.IItemsLayout layoutSpecification) -> AndroidX.RecyclerView.Widget.RecyclerView.LayoutManager
 ~override Microsoft.Maui.Controls.Handlers.Items2.MauiCarouselRecyclerView2.SetUpNewElement(Microsoft.Maui.Controls.CarouselView newElement) -> void
+~override Microsoft.Maui.Controls.Handlers.Items2.MauiCarouselRecyclerView2.TearDownOldElement(Microsoft.Maui.Controls.CarouselView oldElement) -> void
+override Microsoft.Maui.Controls.Handlers.Items2.MauiCarouselRecyclerView2.UpdateLayoutManager() -> void
 override Microsoft.Maui.Controls.Handlers.Items2.MauiCarouselRecyclerView2.UpdateSnapBehavior() -> void
 override Microsoft.Maui.Controls.Platform.Compatibility.ShellSectionRenderer.OnHiddenChanged(bool hidden) -> void
 override Microsoft.Maui.Controls.Shapes.Shape.OnPropertyChanged(string? propertyName = null) -> void

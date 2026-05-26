@@ -10,7 +10,12 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 	/// Uses <see cref="MauiCarouselRecyclerView2"/> as the platform view, which replaces
 	/// <see cref="AndroidX.RecyclerView.Widget.LinearLayoutManager"/> with the Material Design
 	/// <see cref="Google.Android.Material.Carousel.CarouselLayoutManager"/>.
-	/// All MAUI <see cref="CarouselView"/> properties are preserved.
+	///
+	/// <para>
+	/// <b>Looping is not supported by this handler.</b> Callers must keep
+	/// <see cref="CarouselView.Loop"/> set to <c>false</c> — see
+	/// <see cref="MauiCarouselRecyclerView2"/> for details.
+	/// </para>
 	/// </summary>
 	public partial class CarouselViewHandler2 : Items.ItemsViewHandler<CarouselView>
 	{
@@ -34,8 +39,8 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 		bool IsHorizontal() =>
 			VirtualView?.ItemsLayout is not LinearItemsLayout { Orientation: ItemsLayoutOrientation.Vertical };
 
-		protected override RecyclerView CreatePlatformView() =>
-			new MauiCarouselRecyclerView2(Context, GetItemsLayout, CreateAdapter);
+		protected override RecyclerView CreatePlatformView()
+			=> new MauiCarouselRecyclerView2(Context, GetItemsLayout, CreateAdapter);
 
 		// -----------------------------------------------------------------------
 		// Property mappers
@@ -78,7 +83,17 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 		{
 			// CarouselLayoutManager manages item sizing via its strategy; applying PeekAreaInsets
 			// as RecyclerView padding with clipToPadding=false achieves the peek effect.
+			//
+			// NOTE: With the default FullScreenCarouselStrategy items are sized to the full
+			// content area, so peek insets reduce that area but do not reveal neighboring items.
+			// A peek-capable Material strategy (MultiBrowse / Uncontained) would be required
+			// for true peeking; that is intentionally not the default here because those
+			// strategies require items to be smaller than the viewport, which conflicts with
+			// SizedItemContentView's full-viewport sizing.
 			var ctx = handler.Context;
+			if (ctx is null)
+				return;
+
 			int leftPx = (int)ctx.ToPixels(carouselView.PeekAreaInsets.Left);
 			int topPx = (int)ctx.ToPixels(carouselView.PeekAreaInsets.Top);
 			int rightPx = (int)ctx.ToPixels(carouselView.PeekAreaInsets.Right);
@@ -122,19 +137,25 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 			_widthConstraint = widthConstraint;
 			_heightConstraint = heightConstraint;
 
-			if (!double.IsInfinity(_widthConstraint))
-				_widthConstraint = Context.ToPixels(_widthConstraint);
+			if (Context is not null)
+			{
+				if (!double.IsInfinity(_widthConstraint))
+					_widthConstraint = Context.ToPixels(_widthConstraint);
 
-			if (!double.IsInfinity(_heightConstraint))
-				_heightConstraint = Context.ToPixels(_heightConstraint);
+				if (!double.IsInfinity(_heightConstraint))
+					_heightConstraint = Context.ToPixels(_heightConstraint);
+			}
 
 			return base.GetDesiredSize(widthConstraint, heightConstraint);
 		}
 
 		public override void PlatformArrange(Rect frame)
 		{
-			_widthConstraint = Context.ToPixels(frame.Width);
-			_heightConstraint = Context.ToPixels(frame.Height);
+			if (Context is not null)
+			{
+				_widthConstraint = Context.ToPixels(frame.Width);
+				_heightConstraint = Context.ToPixels(frame.Height);
+			}
 
 			base.PlatformArrange(frame);
 		}
@@ -151,13 +172,13 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 				is LinearItemsLayout { Orientation: ItemsLayoutOrientation.Horizontal })
 			{
 				var width = PlatformView.MeasuredWidth == 0 ? _widthConstraint : PlatformView.MeasuredWidth;
-
 				if (double.IsInfinity(width))
 					return width;
 
-				itemWidth = (int)(width
-					- Context?.ToPixels(VirtualView.PeekAreaInsets.Left)
-					- Context?.ToPixels(VirtualView.PeekAreaInsets.Right));
+				var ctx = Context;
+				double leftPx = ctx?.ToPixels(VirtualView.PeekAreaInsets.Left) ?? 0;
+				double rightPx = ctx?.ToPixels(VirtualView.PeekAreaInsets.Right) ?? 0;
+				itemWidth = (int)(width - leftPx - rightPx);
 			}
 
 			return itemWidth;
@@ -171,13 +192,13 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 				is LinearItemsLayout { Orientation: ItemsLayoutOrientation.Vertical })
 			{
 				var height = PlatformView.MeasuredHeight == 0 ? _heightConstraint : PlatformView.MeasuredHeight;
-
 				if (double.IsInfinity(height))
 					return height;
 
-				itemHeight = (int)(height
-					- Context?.ToPixels(VirtualView.PeekAreaInsets.Top)
-					- Context?.ToPixels(VirtualView.PeekAreaInsets.Bottom));
+				var ctx = Context;
+				double topPx = ctx?.ToPixels(VirtualView.PeekAreaInsets.Top) ?? 0;
+				double bottomPx = ctx?.ToPixels(VirtualView.PeekAreaInsets.Bottom) ?? 0;
+				itemHeight = (int)(height - topPx - bottomPx);
 			}
 
 			return itemHeight;

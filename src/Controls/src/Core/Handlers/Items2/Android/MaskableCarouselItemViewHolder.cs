@@ -18,6 +18,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 		readonly Items.ItemContentView _itemContentView;
 		readonly DataTemplate _template;
 		DataTemplate _selectedTemplate;
+		bool _logicalChildAdded;
 
 		public Controls.View View { get; private set; }
 
@@ -45,24 +46,36 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 			if (templateChanging)
 			{
+				// Tear down the previous content (if any) before realizing the new template.
+				if (View is not null)
+				{
+					itemsView.RemoveLogicalChild(View);
+					_logicalChildAdded = false;
+				}
 				_itemContentView.Recycle();
 
 				var content = template.CreateContent();
 				View = content as Controls.View
-					?? throw new InvalidOperationException(
-						$"{template} could not be created from {content}");
+					?? throw new InvalidOperationException($"{template} could not be created from {content}");
 
 				View.BindingContext = itemBindingContext;
 				PropertyPropagationExtensions.PropagatePropertyChanged(null, View, itemsView);
 				_itemContentView.RealizeContent(View, itemsView);
 				_selectedTemplate = template;
 			}
-			else
+			else if (View is not null)
 			{
+				// Same template, new data — refresh binding context and re-propagate parent values
+				// so visual states / inherited bindings update on rebind.
 				View.BindingContext = itemBindingContext;
+				PropertyPropagationExtensions.PropagatePropertyChanged(null, View, itemsView);
 			}
 
-			itemsView.AddLogicalChild(View);
+			if (View is not null && !_logicalChildAdded)
+			{
+				itemsView.AddLogicalChild(View);
+				_logicalChildAdded = true;
+			}
 		}
 
 		public void Recycle(ItemsView itemsView)
@@ -70,10 +83,14 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 			if (View is null)
 				return;
 
-			itemsView.RemoveLogicalChild(View);
+			if (_logicalChildAdded && itemsView is not null)
+				itemsView.RemoveLogicalChild(View);
+
 			_itemContentView.Recycle();
+
 			View = null;
 			_selectedTemplate = null;
+			_logicalChildAdded = false;
 		}
 	}
 }

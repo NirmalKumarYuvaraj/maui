@@ -1,5 +1,5 @@
 #nullable disable
-using Android.Views;
+using System;
 using AndroidX.RecyclerView.Widget;
 using Google.Android.Material.Carousel;
 using AView = Android.Views.View;
@@ -16,13 +16,16 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 	internal class CarouselViewOnScrollListener2 : Items.RecyclerViewScrollListener<CarouselView, Items.IItemsViewSource>
 	{
 		readonly CarouselView _carouselView;
+		readonly Func<CarouselSnapHelper> _snapHelperProvider;
 
 		public CarouselViewOnScrollListener2(
 			CarouselView carouselView,
-			Items.ItemsViewAdapter<CarouselView, Items.IItemsViewSource> itemsViewAdapter)
+			Items.ItemsViewAdapter<CarouselView, Items.IItemsViewSource> itemsViewAdapter,
+			Func<CarouselSnapHelper> snapHelperProvider)
 			: base(carouselView, itemsViewAdapter, true)
 		{
 			_carouselView = carouselView;
+			_snapHelperProvider = snapHelperProvider;
 		}
 
 		public override void OnScrollStateChanged(RecyclerView recyclerView, int state)
@@ -50,19 +53,21 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 			if (first == RecyclerView.NoPosition)
 				return (-1, -1, -1);
 
-			// Find the view closest to the center of the RecyclerView as the "current" item.
-			float centerX = recyclerView.Width / 2f;
-			float centerY = recyclerView.Height / 2f;
-			var centerChild = recyclerView.FindChildViewUnder(centerX, centerY);
-			var centerPosition = centerChild != null
-				? recyclerView.GetChildAdapterPosition(centerChild)
-				: (first + last) / 2;
+			// Prefer the CarouselSnapHelper's snap target as the "current" item; that's the
+			// position the user lands on after a fling.
+			int centerPosition = -1;
+			var snapHelper = _snapHelperProvider?.Invoke();
+			if (snapHelper is not null)
+			{
+				var snapView = snapHelper.FindSnapView(carouselLayoutManager);
+				if (snapView is not null)
+					centerPosition = recyclerView.GetChildAdapterPosition(snapView);
+			}
 
-			return (
-				GetDataIndexFromView(recyclerView.FindViewHolderForAdapterPosition(first)?.ItemView),
-				GetDataIndexFromView(recyclerView.FindViewHolderForAdapterPosition(centerPosition)?.ItemView),
-				GetDataIndexFromView(recyclerView.FindViewHolderForAdapterPosition(last)?.ItemView)
-			);
+			if (centerPosition == RecyclerView.NoPosition || centerPosition < 0)
+				centerPosition = (first + last) / 2;
+
+			return (first, centerPosition, last);
 		}
 
 		static (int First, int Last) GetFirstAndLastVisiblePositions(CarouselLayoutManager layoutManager)
@@ -77,30 +82,16 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 					continue;
 
 				int pos = layoutManager.GetPosition(child);
-				if (pos < first) first = pos;
-				if (pos > last) last = pos;
+				if (pos < first)
+					first = pos;
+				if (pos > last)
+					last = pos;
 			}
 
 			if (first == int.MaxValue)
 				return (RecyclerView.NoPosition, RecyclerView.NoPosition);
 
 			return (first, last);
-		}
-
-		int GetDataIndexFromView(AView view)
-		{
-			// ItemView is now MaskableFrameLayout wrapping ItemContentView (see CarouselViewAdapter2).
-			Items.ItemContentView cell = view as Items.ItemContentView;
-			if (cell is null && view is global::Android.Views.ViewGroup vg && vg.ChildCount > 0)
-				cell = vg.GetChildAt(0) as Items.ItemContentView;
-
-			if (cell is not null && ItemsViewAdapter is not null)
-			{
-				var bindingContext = (cell.View as VisualElement)?.BindingContext;
-				return ItemsViewAdapter.GetPositionForItem(bindingContext);
-			}
-
-			return -1;
 		}
 	}
 }

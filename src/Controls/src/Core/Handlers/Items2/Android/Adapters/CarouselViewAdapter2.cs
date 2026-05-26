@@ -39,6 +39,24 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 			_isHorizontal = isHorizontal;
 		}
 
+		/// <summary>
+		/// Override the base <see cref="Items.CarouselViewAdapter{TItemsView,TItemsViewSource}.ItemCount"/>
+		/// to ignore <see cref="CarouselView.Loop"/>.
+		///
+		/// The base adapter returns <c>CarouselViewLoopManager.LoopScale</c> (≈16384) when
+		/// <c>Loop=true</c>, which works with <c>LinearLayoutManager</c> + MAUI's
+		/// <c>SnapManager</c>. Material's <see cref="CarouselLayoutManager"/> was not designed
+		/// for that scale: every measure pass that triggers <c>MeasureInvalidated</c> →
+		/// <c>RequestLayout</c> re-enters layout from a different anchor in the 16384-item
+		/// virtual range, never converges, and inflates view holders without ever recycling.
+		/// That produces the "stuck on splash" / endless GC symptom on Android.
+		///
+		/// CarouselLayoutManager has no native looping support, so for <c>Handler2</c> we
+		/// expose the real item count. Callers should keep <see cref="CarouselView.Loop"/>
+		/// set to <c>false</c>.
+		/// </summary>
+		public override int ItemCount => ItemsSource?.Count ?? 0;
+
 		// -----------------------------------------------------------------------
 		// Track template per view-type so OnCreateViewHolder can look it up
 		// -----------------------------------------------------------------------
@@ -55,10 +73,9 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 			{
 				if (ItemsView.ItemTemplate is DataTemplateSelector selector)
 				{
-					int posInList = NormalizePosition(position);
-					if (posInList >= 0 && ItemsSource != null)
+					if (ItemsSource is not null && position >= 0 && position < ItemsSource.Count)
 					{
-						var item = ItemsSource.GetItem(posInList);
+						var item = ItemsSource.GetItem(position);
 						var template = selector.SelectTemplate(item, ItemsView);
 						if (template is not null)
 							_templatesByViewType.TryAdd(viewType, template);
@@ -97,9 +114,9 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 			// WRAP_CONTENT on the carousel axis so SizedItemContentView can push the
 			// desired pixel size up through measurement. A fixed pixel value sampled
 			// here from GetItemWidth/Height would be 0 before the RecyclerView is laid
-			// out — Math.Max(1, 0) then yields 1px items, which combined with
-			// CarouselView.Loop (LoopScale ≈ 16384 items) causes an infinite measure /
-			// GC loop and a stuck UI.
+			// out — Math.Max(1, 0) then yields 1px items, which combined with looping
+			// (LoopScale ≈ 16384 items) causes an infinite measure / GC loop and a
+			// stuck UI.
 			bool horizontal = _isHorizontal?.Invoke() ?? true;
 			var maskable = new MaskableFrameLayout(context)
 			{
@@ -134,9 +151,11 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 		{
 			if (holder is MaskableCarouselItemViewHolder maskableHolder)
 			{
-				int posInList = NormalizePosition(position);
-				if (posInList >= 0)
-					maskableHolder.Bind(ItemsSource.GetItem(posInList), CarouselView);
+				if (CarouselView is null || ItemsSource is null || position < 0 || position >= ItemsSource.Count)
+					return;
+
+				var item = ItemsSource.GetItem(position);
+				maskableHolder.Bind(item, CarouselView);
 				return;
 			}
 
@@ -155,20 +174,15 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 		}
 
 		// -----------------------------------------------------------------------
-		// Helpers
+		// Lifecycle — invalidate the template cache when the adapter is disposed
 		// -----------------------------------------------------------------------
 
-		// Replicates CarouselViewAdapter.GetPositionInList (private) for loop support.
-		int NormalizePosition(int position)
+		protected override void Dispose(bool disposing)
 		{
-			if (CarouselView is null || ItemsSource is null)
-				return -1;
+			if (disposing)
+				_templatesByViewType.Clear();
 
-			bool hasItems = ItemsSource.Count > 0;
-			if (!hasItems)
-				return -1;
-
-			return (CarouselView.Loop && hasItems) ? position % ItemsSource.Count : position;
+			base.Dispose(disposing);
 		}
 	}
 }
