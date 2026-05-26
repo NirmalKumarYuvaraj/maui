@@ -33,7 +33,14 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 		public void Bind(object itemBindingContext, ItemsView itemsView)
 		{
-			var template = _template.SelectDataTemplate(itemBindingContext, itemsView);
+			// _template can be null in selector scenarios where GetItemViewType hasn't yet
+			// populated the adapter's view-type cache. Fall back to the current ItemTemplate
+			// and resolve via SelectDataTemplate (which handles both selectors and plain templates).
+			var rootTemplate = _template ?? itemsView?.ItemTemplate;
+			if (rootTemplate is null)
+				return;
+
+			var template = rootTemplate.SelectDataTemplate(itemBindingContext, itemsView);
 			bool templateChanging = template != _selectedTemplate;
 
 			if (templateChanging)

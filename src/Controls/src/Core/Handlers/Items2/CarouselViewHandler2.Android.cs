@@ -22,11 +22,17 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 		protected override Items.ItemsViewAdapter<CarouselView, Items.IItemsViewSource> CreateAdapter()
 		{
 			// CarouselViewAdapter2 wraps each item in MaskableFrameLayout, which is required
-			// by CarouselLayoutManager. SizedItemContentView is not used here because
-			// CarouselLayoutManager controls item sizing via its strategy.
-			return new CarouselViewAdapter2(VirtualView, context =>
-				new Items.ItemContentView(context));
+			// by CarouselLayoutManager. Items must be sized through SizedItemContentView
+			// (driven by GetItemWidth/GetItemHeight) so the Material carousel strategy gets
+			// a non-zero measured first child to build its KeylineState from.
+			return new CarouselViewAdapter2(
+				VirtualView,
+				context => new Items.SizedItemContentView(Context, GetItemWidth, GetItemHeight),
+				IsHorizontal);
 		}
+
+		bool IsHorizontal() =>
+			VirtualView?.ItemsLayout is not LinearItemsLayout { Orientation: ItemsLayoutOrientation.Vertical };
 
 		protected override RecyclerView CreatePlatformView() =>
 			new MauiCarouselRecyclerView2(Context, GetItemsLayout, CreateAdapter);
