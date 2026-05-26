@@ -40,7 +40,13 @@ internal partial class CarouselViewHandler2 : Items.ItemsViewHandler<CarouselVie
 		VirtualView?.ItemsLayout is LinearItemsLayout { Orientation: ItemsLayoutOrientation.Horizontal } == true;
 
 	protected override RecyclerView CreatePlatformView()
-		=> new MauiCarouselRecyclerView2(Context, GetItemsLayout, CreateAdapter);
+	{
+		var carouselView = new MauiCarouselRecyclerView2(Context, GetItemsLayout, CreateAdapter);
+		carouselView.SetClipChildren(false);
+		carouselView.SetClipToPadding(false);
+		return carouselView;
+	}
+
 
 	// -----------------------------------------------------------------------
 	// Property mappers
@@ -85,28 +91,7 @@ internal partial class CarouselViewHandler2 : Items.ItemsViewHandler<CarouselVie
 
 	public static void MapPeekAreaInsets(CarouselViewHandler2 handler, CarouselView carouselView)
 	{
-		// CarouselLayoutManager manages item sizing via its strategy; applying PeekAreaInsets
-		// as RecyclerView padding with clipToPadding=false achieves the peek effect.
-		//
-		// NOTE: With the default FullScreenCarouselStrategy items are sized to the full
-		// content area, so peek insets reduce that area but do not reveal neighboring items.
-		// A peek-capable Material strategy (MultiBrowse / Uncontained) would be required
-		// for true peeking; that is intentionally not the default here because those
-		// strategies require items to be smaller than the viewport, which conflicts with
-		// SizedItemContentView's full-viewport sizing.
-		var ctx = handler.Context;
-		if (ctx is null)
-		{
-			return;
-		}
 
-		int leftPx = (int)ctx.ToPixels(carouselView.PeekAreaInsets.Left);
-		int topPx = (int)ctx.ToPixels(carouselView.PeekAreaInsets.Top);
-		int rightPx = (int)ctx.ToPixels(carouselView.PeekAreaInsets.Right);
-		int bottomPx = (int)ctx.ToPixels(carouselView.PeekAreaInsets.Bottom);
-
-		handler.PlatformView.SetPadding(leftPx, topPx, rightPx, bottomPx);
-		handler.PlatformView.SetClipToPadding(false);
 	}
 
 	public static void MapPosition(CarouselViewHandler2 handler, CarouselView carouselView)
