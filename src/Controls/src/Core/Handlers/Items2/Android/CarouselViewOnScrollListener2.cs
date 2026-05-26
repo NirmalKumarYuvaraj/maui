@@ -37,9 +37,6 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 			_carouselView.IsScrolling = state != RecyclerView.ScrollStateIdle;
 
-			// Update visual states (Current/Previous/Next) once the carousel settles.
-			if (state == RecyclerView.ScrollStateIdle && recyclerView is MauiCarouselRecyclerView2 rv2)
-				rv2.UpdateCarouselVisualStatesInternal();
 		}
 
 		protected override (int First, int Center, int Last) GetVisibleItemsIndex(RecyclerView recyclerView)

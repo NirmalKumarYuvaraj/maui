@@ -17,7 +17,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 	/// <see cref="MauiCarouselRecyclerView2"/> for details.
 	/// </para>
 	/// </summary>
-	public partial class CarouselViewHandler2 : Items.ItemsViewHandler<CarouselView>
+	internal partial class CarouselViewHandler2 : Items.ItemsViewHandler<CarouselView>
 	{
 		double _widthConstraint;
 		double _heightConstraint;
