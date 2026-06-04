@@ -3,3 +3,13 @@ override Microsoft.Maui.Controls.Shapes.Shape.OnPropertyChanged(string? property
 ~override Microsoft.Maui.Controls.RadioButton.OnPropertyChanged(string propertyName = null) -> void
 override Microsoft.Maui.Controls.GraphicsView.OnBindingContextChanged() -> void
 override Microsoft.Maui.Controls.TitleBar.OnBindingContextChanged() -> void
+Microsoft.Maui.Controls.AnimationSequence
+Microsoft.Maui.Controls.AnimationSequence.AnimationSequence() -> void
+Microsoft.Maui.Controls.AnimationSequence.TotalDuration.get -> uint
+Microsoft.Maui.Controls.AnimationSequence.Then(Microsoft.Maui.Controls.Animation! animation, uint duration) -> Microsoft.Maui.Controls.AnimationSequence!
+Microsoft.Maui.Controls.AnimationSequence.Then(System.Action<double>! callback, uint duration, Microsoft.Maui.Controls.Easing? easing = null) -> Microsoft.Maui.Controls.AnimationSequence!
+Microsoft.Maui.Controls.AnimationSequence.WithParallel(Microsoft.Maui.Controls.Animation! animation, uint duration) -> Microsoft.Maui.Controls.AnimationSequence!
+Microsoft.Maui.Controls.AnimationSequence.WithParallel(System.Action<double>! callback, uint duration, Microsoft.Maui.Controls.Easing? easing = null) -> Microsoft.Maui.Controls.AnimationSequence!
+Microsoft.Maui.Controls.AnimationSequence.Delay(uint duration) -> Microsoft.Maui.Controls.AnimationSequence!
+Microsoft.Maui.Controls.AnimationSequence.Build() -> Microsoft.Maui.Controls.Animation!
+Microsoft.Maui.Controls.AnimationSequence.Commit(Microsoft.Maui.Controls.IAnimatable! owner, string! name, uint rate = 16, Microsoft.Maui.Controls.Easing? easing = null, System.Action<double, bool>? finished = null, System.Func<bool>? repeat = null) -> void
