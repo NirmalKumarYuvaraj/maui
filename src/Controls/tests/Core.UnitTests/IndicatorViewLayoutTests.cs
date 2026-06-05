@@ -43,6 +43,20 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 			Assert.False(await weakIndicator.WaitForCollect(), "IndicatorView should be collected after ItemsSource is cleared");
 		}
 
+		[Fact]
+		public void IndicatorView_CountUpdatesViaProxy_WhenSharedCollectionChanges()
+		{
+			var items = new ObservableCollection<string> { "a", "b" };
+			var indicatorView = new IndicatorView { ItemsSource = items };
+			Assert.Equal(2, indicatorView.Count);
+
+			items.Add("c");
+			Assert.Equal(3, indicatorView.Count);
+
+			items.RemoveAt(0);
+			Assert.Equal(2, indicatorView.Count);
+		}
+
 		// Recursive method ensures the objects created inside are not held on the current stack frame,
 		// allowing the GC to collect them after return (mirrors the pattern in BindingUnitTests).
 		static void CreateLinkedViews(int depth, ObservableCollection<string> sharedItems, out WeakReference weakCarousel, out WeakReference weakIndicator)

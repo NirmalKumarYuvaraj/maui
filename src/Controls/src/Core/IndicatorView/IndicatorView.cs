@@ -25,7 +25,7 @@ namespace Microsoft.Maui.Controls
 		const int DefaultPadding = 4;
 
 		readonly WeakNotifyCollectionChangedProxy _collectionChangedProxy = new();
-		NotifyCollectionChangedEventHandler _collectionChangedDelegate;
+		readonly NotifyCollectionChangedEventHandler _collectionChangedDelegate;
 
 		/// <summary>Bindable property for <see cref="IndicatorsShape"/>.</summary>
 		public static readonly BindableProperty IndicatorsShapeProperty = BindableProperty.Create(nameof(IndicatorsShape), typeof(IndicatorShape), typeof(IndicatorView), Controls.IndicatorShape.Circle);
@@ -70,6 +70,8 @@ namespace Microsoft.Maui.Controls
 		{
 			_collectionChangedDelegate = OnCollectionChanged;
 		}
+
+		~IndicatorView() => _collectionChangedProxy.Unsubscribe();
 
 		/// <summary>
 		/// Gets or sets the shape of the indicators.
