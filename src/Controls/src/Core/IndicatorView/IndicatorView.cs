@@ -24,6 +24,9 @@ namespace Microsoft.Maui.Controls
 	{
 		const int DefaultPadding = 4;
 
+		readonly WeakNotifyCollectionChangedProxy _collectionChangedProxy = new();
+		NotifyCollectionChangedEventHandler _collectionChangedDelegate;
+
 		/// <summary>Bindable property for <see cref="IndicatorsShape"/>.</summary>
 		public static readonly BindableProperty IndicatorsShapeProperty = BindableProperty.Create(nameof(IndicatorsShape), typeof(IndicatorShape), typeof(IndicatorView), Controls.IndicatorShape.Circle);
 
@@ -63,7 +66,10 @@ namespace Microsoft.Maui.Controls
 		/// <summary>
 		/// Initializes a new instance of the <see cref="IndicatorView"/> class.
 		/// </summary>
-		public IndicatorView() { }
+		public IndicatorView()
+		{
+			_collectionChangedDelegate = OnCollectionChanged;
+		}
 
 		/// <summary>
 		/// Gets or sets the shape of the indicators.
@@ -237,11 +243,11 @@ namespace Microsoft.Maui.Controls
 
 		void ResetItemsSource(IEnumerable oldItemsSource)
 		{
-			if (oldItemsSource is INotifyCollectionChanged oldCollection)
-				oldCollection.CollectionChanged -= OnCollectionChanged;
+			if (oldItemsSource is INotifyCollectionChanged)
+				_collectionChangedProxy.Unsubscribe();
 
 			if (ItemsSource is INotifyCollectionChanged collection)
-				collection.CollectionChanged += OnCollectionChanged;
+				_collectionChangedProxy.Subscribe(collection, _collectionChangedDelegate);
 
 			OnCollectionChanged(ItemsSource, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
 
