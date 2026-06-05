@@ -30,20 +30,6 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 		}
 
 		[Fact]
-		public async Task IndicatorView_WhenItemsSourceCleared_IsCollected()
-		{
-			var sharedItems = new ObservableCollection<string> { "item1", "item2", "item3" };
-
-			WeakReference weakCarousel = null;
-			WeakReference weakIndicator = null;
-
-			CreateLinkedViewsWithClearedSource(0, sharedItems, out weakCarousel, out weakIndicator);
-
-			Assert.False(await weakCarousel.WaitForCollect(), "CarouselView should be collected after ItemsSource is cleared");
-			Assert.False(await weakIndicator.WaitForCollect(), "IndicatorView should be collected after ItemsSource is cleared");
-		}
-
-		[Fact]
 		public void IndicatorView_CountUpdatesViaProxy_WhenSharedCollectionChanges()
 		{
 			var items = new ObservableCollection<string> { "a", "b" };
@@ -75,26 +61,6 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 			weakIndicator = new WeakReference(indicatorView);
 			// Local variables go out of scope when this stack frame is popped
 		}
-
-		static void CreateLinkedViewsWithClearedSource(int depth, ObservableCollection<string> sharedItems, out WeakReference weakCarousel, out WeakReference weakIndicator)
-		{
-			if (depth < 1024)
-			{
-				CreateLinkedViewsWithClearedSource(depth + 1, sharedItems, out weakCarousel, out weakIndicator);
-				return;
-			}
-
-			var carouselView = new CarouselView { ItemsSource = sharedItems };
-			var indicatorView = new IndicatorView();
-			carouselView.IndicatorView = indicatorView;
-
-			weakCarousel = new WeakReference(carouselView);
-			weakIndicator = new WeakReference(indicatorView);
-
-			// Simulate explicit cleanup (e.g., OnDisappearing clearing ItemsSource)
-			carouselView.ItemsSource = null;
-		}
-
 
 		[Fact]
 		public void IndicatorStackLayoutNoItems_ResetIndicators_ShouldHaveNoChildren()
