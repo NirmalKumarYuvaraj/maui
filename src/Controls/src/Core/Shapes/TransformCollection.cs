@@ -7,6 +7,12 @@ namespace Microsoft.Maui.Controls.Shapes
 	/// </summary>
 	public sealed class TransformCollection : ObservableCollection<Transform>
 	{
+		/// <inheritdoc/>
+		protected override void ClearItems()
+		{
+			for (int i = Count - 1; i >= 0; i--)
+				RemoveAt(i);
+		}
 
 	}
 }
