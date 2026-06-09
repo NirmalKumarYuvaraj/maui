@@ -7,6 +7,11 @@ namespace Microsoft.Maui.Controls.Shapes
 	/// </summary>
 	public sealed class PathFigureCollection : ObservableCollection<PathFigure>
 	{
+		// Override to remove items one-by-one so that CollectionChanged fires per-item Remove events
+		// (with OldItems populated) rather than a single Reset event (which has OldItems == null).
+		// This lets PathGeometry unsubscribe its PropertyChanged/InvalidatePathSegmentRequested
+		// handlers on cleared figures — preventing memory leaks when a figure is shared/externally
+		// rooted. See https://github.com/dotnet/maui/issues/35809.
 		/// <inheritdoc/>
 		protected override void ClearItems()
 		{

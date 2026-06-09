@@ -9,12 +9,12 @@ namespace Microsoft.Maui.Controls.Core.UnitTests.Shapes;
 public class PathGeometryTests : BaseTestFixture
 {
 	/// <summary>
-	/// Verifies clearing a collection with only local figures does not keep the owning geometry alive.
+	/// Control case: clearing a collection that holds only locally-rooted figures should release the geometry.
 	/// </summary>
 	[Fact]
 	public void FiguresClear_LocalFigure_DoesNotLeak()
 	{
-		var geometryReference = CreateClearedLocalFigurePathGeometryReference();
+		AllocateClearedLocalFigurePathGeometry(out var geometryReference);
 
 		ForceGC();
 
@@ -22,17 +22,16 @@ public class PathGeometryTests : BaseTestFixture
 	}
 
 	/// <summary>
-	/// Verifies clearing a geometry detaches an externally rooted path figure so the geometry can be collected.
+	/// Regression test for https://github.com/dotnet/maui/issues/35809.
+	/// Clearing the figures collection must detach an externally-rooted figure so the owning
+	/// PathGeometry can be collected.
 	/// </summary>
 	[Fact]
 	public void FiguresClear_SharedFigure_DoesNotLeakPathGeometry()
 	{
-		var sharedFigure = new PathFigure
-		{
-			StartPoint = new Point(10, 20)
-		};
+		var sharedFigure = new PathFigure { StartPoint = new Point(10, 20) };
 
-		var geometryReference = CreateClearedSharedFigurePathGeometryReference(sharedFigure);
+		AllocateClearedSharedFigurePathGeometry(sharedFigure, out var geometryReference);
 
 		ForceGC();
 
@@ -40,17 +39,15 @@ public class PathGeometryTests : BaseTestFixture
 	}
 
 	/// <summary>
-	/// Verifies clearing a geometry detaches an externally rooted path figure so the owning path can be collected.
+	/// Extends the #35809 regression: the leak chain goes Figure → Geometry → Path → BindingContext.
+	/// After Clear() the entire chain must be collectible.
 	/// </summary>
 	[Fact]
 	public void FiguresClear_SharedFigure_DoesNotLeakPath()
 	{
-		var sharedFigure = new PathFigure
-		{
-			StartPoint = new Point(10, 20)
-		};
+		var sharedFigure = new PathFigure { StartPoint = new Point(10, 20) };
 
-		var pathReference = CreateClearedSharedFigurePathReference(sharedFigure);
+		AllocateClearedSharedFigurePath(sharedFigure, out var pathReference);
 
 		ForceGC();
 
@@ -58,17 +55,15 @@ public class PathGeometryTests : BaseTestFixture
 	}
 
 	/// <summary>
-	/// Verifies clearing a figure detaches an externally rooted path segment so the figure can be collected.
+	/// Analogous to the #35809 PathFigureCollection bug — applied to PathSegmentCollection.
+	/// PathFigure.Segments.Clear() must detach a shared segment so the PathFigure can be collected.
 	/// </summary>
 	[Fact]
 	public void SegmentsClear_SharedSegment_DoesNotLeakPathFigure()
 	{
-		var sharedSegment = new LineSegment
-		{
-			Point = new Point(30, 40)
-		};
+		var sharedSegment = new LineSegment { Point = new Point(30, 40) };
 
-		var figureReference = CreateClearedSharedSegmentPathFigureReference(sharedSegment);
+		AllocateClearedSharedSegmentPathFigure(sharedSegment, out var figureReference);
 
 		ForceGC();
 
@@ -76,17 +71,46 @@ public class PathGeometryTests : BaseTestFixture
 	}
 
 	/// <summary>
-	/// Verifies clearing a shared figure releases the owner just like removing the same figure explicitly.
+	/// Analogous to the #35809 PathFigureCollection bug — applied to GeometryCollection.
+	/// GeometryGroup.Children.Clear() must detach a shared geometry so the GeometryGroup can be collected.
+	/// </summary>
+	[Fact]
+	public void ChildrenClear_SharedGeometry_DoesNotLeakGeometryGroup()
+	{
+		var sharedGeometry = new RectangleGeometry { Rect = new Rect(0, 0, 10, 10) };
+
+		AllocateClearedSharedGeometryGroup(sharedGeometry, out var groupReference);
+
+		ForceGC();
+
+		Assert.Null(groupReference.Target);
+	}
+
+	/// <summary>
+	/// Analogous to the #35809 PathFigureCollection bug — applied to TransformCollection.
+	/// TransformGroup.Children.Clear() must detach a shared transform so the TransformGroup can be collected.
+	/// </summary>
+	[Fact]
+	public void ChildrenClear_SharedTransform_DoesNotLeakTransformGroup()
+	{
+		var sharedTransform = new RotateTransform { Angle = 45 };
+
+		AllocateClearedSharedTransformGroup(sharedTransform, out var groupReference);
+
+		ForceGC();
+
+		Assert.Null(groupReference.Target);
+	}
+
+	/// <summary>
+	/// Regression guard: Clear() and RemoveAt(0) must both release the owner when a shared figure is present.
 	/// </summary>
 	[Fact]
 	public void FiguresClear_EquivalentToRemoveAt_BothRelease()
 	{
-		var sharedFigure = new PathFigure
-		{
-			StartPoint = new Point(50, 60)
-		};
+		var sharedFigure = new PathFigure { StartPoint = new Point(50, 60) };
 
-		var (clearReference, removeAtReference) = CreateClearAndRemoveAtReferences(sharedFigure);
+		AllocateClearedAndRemoveAtPathGeometries(sharedFigure, out var clearReference, out var removeAtReference);
 
 		ForceGC();
 
@@ -94,53 +118,32 @@ public class PathGeometryTests : BaseTestFixture
 		Assert.Null(removeAtReference.Target);
 	}
 
-	static WeakReference CreateClearedLocalFigurePathGeometryReference() =>
-		CreateClearedLocalFigurePathGeometryReference(0);
+	// Allocator helpers — keep all locals in a separate stack frame from the caller so the JIT
+	// releases them when the helper returns. Standard pattern used by other MAUI memory-leak unit
+	// tests (see BindingUnitTests.HackAroundMonoSucking).
 
-	static WeakReference CreateClearedLocalFigurePathGeometryReference(int depth)
+	static void AllocateClearedLocalFigurePathGeometry(out WeakReference geometryReference)
 	{
-		if (depth < 1024)
-			return CreateClearedLocalFigurePathGeometryReference(depth + 1);
-
 		var geometry = new PathGeometry();
-		geometry.Figures.Add(new PathFigure
-		{
-			StartPoint = new Point(1, 2)
-		});
+		geometry.Figures.Add(new PathFigure { StartPoint = new Point(1, 2) });
 
-		var geometryReference = new WeakReference(geometry);
+		geometryReference = new WeakReference(geometry);
 
 		geometry.Figures.Clear();
-
-		return geometryReference;
 	}
 
-	static WeakReference CreateClearedSharedFigurePathGeometryReference(PathFigure sharedFigure) =>
-		CreateClearedSharedFigurePathGeometryReference(sharedFigure, 0);
-
-	static WeakReference CreateClearedSharedFigurePathGeometryReference(PathFigure sharedFigure, int depth)
+	static void AllocateClearedSharedFigurePathGeometry(PathFigure sharedFigure, out WeakReference geometryReference)
 	{
-		if (depth < 1024)
-			return CreateClearedSharedFigurePathGeometryReference(sharedFigure, depth + 1);
-
 		var geometry = new PathGeometry();
 		geometry.Figures.Add(sharedFigure);
 
-		var geometryReference = new WeakReference(geometry);
+		geometryReference = new WeakReference(geometry);
 
 		geometry.Figures.Clear();
-
-		return geometryReference;
 	}
 
-	static WeakReference CreateClearedSharedFigurePathReference(PathFigure sharedFigure) =>
-		CreateClearedSharedFigurePathReference(sharedFigure, 0);
-
-	static WeakReference CreateClearedSharedFigurePathReference(PathFigure sharedFigure, int depth)
+	static void AllocateClearedSharedFigurePath(PathFigure sharedFigure, out WeakReference pathReference)
 	{
-		if (depth < 1024)
-			return CreateClearedSharedFigurePathReference(sharedFigure, depth + 1);
-
 		var geometry = new PathGeometry();
 		geometry.Figures.Add(sharedFigure);
 
@@ -150,55 +153,57 @@ public class PathGeometryTests : BaseTestFixture
 			Data = geometry
 		};
 
-		var pathReference = new WeakReference(path);
+		pathReference = new WeakReference(path);
 
 		geometry.Figures.Clear();
-
-		return pathReference;
 	}
 
-	static WeakReference CreateClearedSharedSegmentPathFigureReference(LineSegment sharedSegment) =>
-		CreateClearedSharedSegmentPathFigureReference(sharedSegment, 0);
-
-	static WeakReference CreateClearedSharedSegmentPathFigureReference(LineSegment sharedSegment, int depth)
+	static void AllocateClearedSharedSegmentPathFigure(LineSegment sharedSegment, out WeakReference figureReference)
 	{
-		if (depth < 1024)
-			return CreateClearedSharedSegmentPathFigureReference(sharedSegment, depth + 1);
-
-		var figure = new PathFigure
-		{
-			StartPoint = new Point(3, 4)
-		};
+		var figure = new PathFigure { StartPoint = new Point(3, 4) };
 		figure.Segments.Add(sharedSegment);
 
-		var figureReference = new WeakReference(figure);
+		figureReference = new WeakReference(figure);
 
 		figure.Segments.Clear();
-
-		return figureReference;
 	}
 
-	static (WeakReference clearReference, WeakReference removeAtReference) CreateClearAndRemoveAtReferences(PathFigure sharedFigure) =>
-		CreateClearAndRemoveAtReferences(sharedFigure, 0);
-
-	static (WeakReference clearReference, WeakReference removeAtReference) CreateClearAndRemoveAtReferences(PathFigure sharedFigure, int depth)
+	static void AllocateClearedSharedGeometryGroup(Geometry sharedGeometry, out WeakReference groupReference)
 	{
-		if (depth < 1024)
-			return CreateClearAndRemoveAtReferences(sharedFigure, depth + 1);
+		var group = new GeometryGroup();
+		group.Children.Add(sharedGeometry);
 
+		groupReference = new WeakReference(group);
+
+		group.Children.Clear();
+	}
+
+	static void AllocateClearedSharedTransformGroup(Transform sharedTransform, out WeakReference groupReference)
+	{
+		var group = new TransformGroup();
+		group.Children.Add(sharedTransform);
+
+		groupReference = new WeakReference(group);
+
+		group.Children.Clear();
+	}
+
+	static void AllocateClearedAndRemoveAtPathGeometries(
+		PathFigure sharedFigure,
+		out WeakReference clearReference,
+		out WeakReference removeAtReference)
+	{
 		var clearGeometry = new PathGeometry();
 		clearGeometry.Figures.Add(sharedFigure);
 
 		var removeAtGeometry = new PathGeometry();
 		removeAtGeometry.Figures.Add(sharedFigure);
 
-		var clearReference = new WeakReference(clearGeometry);
-		var removeAtReference = new WeakReference(removeAtGeometry);
+		clearReference = new WeakReference(clearGeometry);
+		removeAtReference = new WeakReference(removeAtGeometry);
 
 		clearGeometry.Figures.Clear();
 		removeAtGeometry.Figures.RemoveAt(0);
-
-		return (clearReference, removeAtReference);
 	}
 
 	static void ForceGC()

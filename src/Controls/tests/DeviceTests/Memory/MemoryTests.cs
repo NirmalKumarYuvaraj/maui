@@ -462,6 +462,37 @@ public class MemoryTests : ControlsHandlerTestBase
 		await AssertionExtensions.WaitForGC(viewReference, handlerReference);
 	}
 
+	[Fact("PathGeometry Figures.Clear with shared figure does not leak")]
+	public async Task PathGeometryFiguresClear_SharedFigure_DoesNotLeak()
+	{
+		SetupBuilder();
+
+		// sharedFigure is rooted at the outer scope, simulating an externally-rooted figure.
+		// Before the fix for https://github.com/dotnet/maui/issues/35809, Figures.Clear() did
+		// not unsubscribe sharedFigure, which kept the PathGeometry and Path alive via the
+		// PropertyChanged → InvalidatePathGeometryRequested delegate chain.
+		var sharedFigure = new PathFigure();
+		WeakReference pathRef = null;
+		WeakReference geometryRef = null;
+
+		await InvokeOnMainThreadAsync(() =>
+		{
+			var geometry = new PathGeometry();
+			geometry.Figures.Add(sharedFigure);
+			var layout = new Grid();
+			var path = new Path { Data = geometry };
+			layout.Add(path);
+			_ = CreateHandler<LayoutHandler>(layout);
+
+			pathRef = new WeakReference(path);
+			geometryRef = new WeakReference(geometry);
+
+			geometry.Figures.Clear();
+		});
+
+		await AssertionExtensions.WaitForGC(pathRef, geometryRef);
+	}
+
 	[Theory("Cells Do Not Leak")]
 #pragma warning disable CS0618 // Type or member is obsolete
 	[InlineData(typeof(TextCell))]
