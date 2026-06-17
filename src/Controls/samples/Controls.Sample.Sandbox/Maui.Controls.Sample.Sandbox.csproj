@@ -16,6 +16,8 @@
     <!-- NOTE: By default the UseMaterial3 flag value is false. If you change the UseMaterial3 flag, you MUST delete the artifacts folder 
        and rebuild the entire codebase using: dotnet build ./Microsoft.Maui.BuildTasks.slnf -->
     <UseMaterial3>false</UseMaterial3>
+    <!-- Use Mono runtime instead of CoreCLR on net11.0 due to CoreCLR issues that block deployment. -->
+    <UseMonoRuntime>true</UseMonoRuntime>
   </PropertyGroup>
 
   <PropertyGroup>
