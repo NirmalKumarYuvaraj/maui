@@ -3,6 +3,7 @@ using Android.Content.Res;
 using Android.Graphics;
 using AndroidX.AppCompat.Widget;
 using AndroidX.Core.Widget;
+using Google.Android.Material.CheckBox;
 using Microsoft.Maui.Graphics;
 using AColor = Android.Graphics.Color;
 
@@ -15,6 +16,12 @@ namespace Microsoft.Maui.Platform
 		// - Theme switching at runtime (dark mode, Material2/3 toggle)
 		// - Thread safety (no shared mutable state)
 		static readonly ConditionalWeakTable<AppCompatCheckBox, ColorStateList> _defaultButtonTintCache = new();
+
+		// Android MaterialCheckBox checked-state integer constants.
+		// These correspond to MaterialCheckBox.STATE_UNCHECKED / STATE_CHECKED / STATE_INDETERMINATE.
+		const int AndroidStateUnchecked = 0;
+		const int AndroidStateChecked = 1;
+		const int AndroidStateIndeterminate = 2;
 
 		public static void UpdateBackground(this AppCompatCheckBox platformCheckBox, ICheckBox check)
 		{
@@ -29,6 +36,29 @@ namespace Microsoft.Maui.Platform
 		public static void UpdateIsChecked(this AppCompatCheckBox platformCheckBox, ICheckBox check)
 		{
 			platformCheckBox.Checked = check.IsChecked;
+		}
+
+		/// <summary>
+		/// Updates the platform checkbox to reflect <see cref="ICheckBox.CheckState"/>,
+		/// including the indeterminate state when supported by <see cref="MaterialCheckBox"/>.
+		/// </summary>
+		public static void UpdateCheckState(this AppCompatCheckBox platformCheckBox, ICheckBox check)
+		{
+			if (platformCheckBox is MaterialCheckBox materialCheckBox)
+			{
+				int nativeState = check.CheckState switch
+				{
+					CheckState.Checked => AndroidStateChecked,
+					CheckState.Indeterminate => AndroidStateIndeterminate,
+					_ => AndroidStateUnchecked,
+				};
+				materialCheckBox.SetCheckedState(nativeState);
+			}
+			else
+			{
+				// Fallback: indeterminate is treated as unchecked on non-Material checkboxes.
+				platformCheckBox.Checked = check.CheckState == CheckState.Checked;
+			}
 		}
 
 		public static void UpdateForeground(this AppCompatCheckBox platformCheckBox, ICheckBox check)

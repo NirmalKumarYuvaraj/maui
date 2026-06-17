@@ -1,4 +1,5 @@
 #nullable enable
+static Microsoft.Maui.Platform.CheckBoxExtensions.UpdateCheckState(this AndroidX.AppCompat.Widget.AppCompatCheckBox! platformCheckBox, Microsoft.Maui.ICheckBox! check) -> void
 *REMOVED*override Microsoft.Maui.Graphics.MauiDrawable.Dispose(bool disposing) -> void
 *REMOVED*override Microsoft.Maui.Graphics.MauiDrawable.OnBoundsChange(Android.Graphics.Rect! bounds) -> void
 *REMOVED*override Microsoft.Maui.Graphics.MauiDrawable.OnDraw(Android.Graphics.Drawables.Shapes.Shape? shape, Android.Graphics.Canvas? canvas, Android.Graphics.Paint? paint) -> void

@@ -1,4 +1,15 @@
-#nullable enable
+﻿#nullable enable
+Microsoft.Maui.CheckState
+Microsoft.Maui.CheckState.Checked = 2 -> Microsoft.Maui.CheckState
+Microsoft.Maui.CheckState.Indeterminate = 1 -> Microsoft.Maui.CheckState
+Microsoft.Maui.CheckState.Unchecked = 0 -> Microsoft.Maui.CheckState
+Microsoft.Maui.ICheckBox.CheckState.get -> Microsoft.Maui.CheckState
+Microsoft.Maui.ICheckBox.CheckState.set -> void
+Microsoft.Maui.ICheckBox.IsThreeState.get -> bool
+Microsoft.Maui.Platform.MauiCheckBox.CheckState.get -> Microsoft.Maui.CheckState
+Microsoft.Maui.Platform.MauiCheckBox.CheckState.set -> void
+Microsoft.Maui.Platform.MauiCheckBox.IsThreeState.get -> bool
+Microsoft.Maui.Platform.MauiCheckBox.IsThreeState.set -> void
 override Microsoft.Maui.Handlers.LabelHandler.GetDesiredSize(double widthConstraint, double heightConstraint) -> Microsoft.Maui.Graphics.Size
 override Microsoft.Maui.Handlers.ShapeViewHandler.GetDesiredSize(double widthConstraint, double heightConstraint) -> Microsoft.Maui.Graphics.Size
 override Microsoft.Maui.Handlers.StepperHandler.GetDesiredSize(double widthConstraint, double heightConstraint) -> Microsoft.Maui.Graphics.Size
@@ -6,8 +17,12 @@ override Microsoft.Maui.Platform.MauiTextView.TextAlignment.get -> UIKit.UITextA
 override Microsoft.Maui.Platform.MauiTextView.TextAlignment.set -> void
 override Microsoft.Maui.Platform.MauiView.DidUpdateFocus(UIKit.UIFocusUpdateContext! context, UIKit.UIFocusAnimationCoordinator! coordinator) -> void
 static Microsoft.Maui.GridLength.implicit operator Microsoft.Maui.GridLength(string! value) -> Microsoft.Maui.GridLength
+static Microsoft.Maui.Handlers.CheckBoxHandler.MapCheckState(Microsoft.Maui.Handlers.ICheckBoxHandler! handler, Microsoft.Maui.ICheckBox! check) -> void
+static Microsoft.Maui.Handlers.CheckBoxHandler.MapIsThreeState(Microsoft.Maui.Handlers.ICheckBoxHandler! handler, Microsoft.Maui.ICheckBox! check) -> void
 static Microsoft.Maui.Handlers.DatePickerHandler.MapFlowDirection(Microsoft.Maui.Handlers.IDatePickerHandler! handler, Microsoft.Maui.IDatePicker! datePicker) -> void
 static Microsoft.Maui.Handlers.EditorHandler.MapBackground(Microsoft.Maui.Handlers.IEditorHandler! handler, Microsoft.Maui.IEditor! editor) -> void
 static Microsoft.Maui.Handlers.EntryHandler.MapBackground(Microsoft.Maui.Handlers.IEntryHandler! handler, Microsoft.Maui.IEntry! entry) -> void
 static Microsoft.Maui.Handlers.RadioButtonHandler.MapBackground(Microsoft.Maui.Handlers.IRadioButtonHandler! handler, Microsoft.Maui.IRadioButton! radioButton) -> void
+static Microsoft.Maui.Platform.CheckBoxExtensions.UpdateCheckState(this Microsoft.Maui.Platform.MauiCheckBox! platformCheckBox, Microsoft.Maui.ICheckBox! check) -> void
+static Microsoft.Maui.Platform.CheckBoxExtensions.UpdateIsThreeState(this Microsoft.Maui.Platform.MauiCheckBox! platformCheckBox, Microsoft.Maui.ICheckBox! check) -> void
 static Microsoft.Maui.SafeAreaEdges.Container.get -> Microsoft.Maui.SafeAreaEdges

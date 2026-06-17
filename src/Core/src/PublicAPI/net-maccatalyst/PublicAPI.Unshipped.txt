@@ -1,4 +1,10 @@
 #nullable enable
+Microsoft.Maui.Platform.MauiCheckBox.CheckState.get -> Microsoft.Maui.CheckState
+Microsoft.Maui.Platform.MauiCheckBox.CheckState.set -> void
+Microsoft.Maui.Platform.MauiCheckBox.IsThreeState.get -> bool
+Microsoft.Maui.Platform.MauiCheckBox.IsThreeState.set -> void
+static Microsoft.Maui.Platform.CheckBoxExtensions.UpdateCheckState(this Microsoft.Maui.Platform.MauiCheckBox! platformCheckBox, Microsoft.Maui.ICheckBox! check) -> void
+static Microsoft.Maui.Platform.CheckBoxExtensions.UpdateIsThreeState(this Microsoft.Maui.Platform.MauiCheckBox! platformCheckBox, Microsoft.Maui.ICheckBox! check) -> void
 override Microsoft.Maui.Handlers.LabelHandler.GetDesiredSize(double widthConstraint, double heightConstraint) -> Microsoft.Maui.Graphics.Size
 override Microsoft.Maui.Handlers.ShapeViewHandler.GetDesiredSize(double widthConstraint, double heightConstraint) -> Microsoft.Maui.Graphics.Size
 override Microsoft.Maui.Handlers.StepperHandler.GetDesiredSize(double widthConstraint, double heightConstraint) -> Microsoft.Maui.Graphics.Size

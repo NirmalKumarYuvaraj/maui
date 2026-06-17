@@ -15,13 +15,16 @@ namespace Microsoft.Maui.Platform
 
 		static UIImage? Checked;
 		static UIImage? Unchecked;
+		static UIImage? Indeterminate;
 		UIImage? CheckedDisabledAndTinted;
 		UIImage? UncheckedDisabledAndTinted;
+		UIImage? IndeterminateDisabledAndTinted;
 
 		UIAccessibilityTrait _accessibilityTraits;
 
 		Color? _tintColor;
-		bool _isChecked;
+		CheckState _checkState;
+		bool _isThreeState;
 		bool _isEnabled;
 		bool _disposed;
 
@@ -50,21 +53,60 @@ namespace Microsoft.Maui.Platform
 
 		void OnTouchUpInside(object? sender, EventArgs e)
 		{
-			IsChecked = !IsChecked;
+			if (_isThreeState)
+			{
+				// Cycle: Unchecked → Checked → Indeterminate → Unchecked
+				CheckState = _checkState switch
+				{
+					CheckState.Unchecked => CheckState.Checked,
+					CheckState.Checked => CheckState.Indeterminate,
+					_ => CheckState.Unchecked,
+				};
+			}
+			else
+			{
+				IsChecked = !IsChecked;
+			}
+
 			_weakEventManager.HandleEvent(this, e, nameof(CheckedChanged));
 		}
 
 		internal float MinimumViewSize { get; set; }
 
-		public bool IsChecked
+		/// <summary>Gets or sets the three-state check state of the checkbox.</summary>
+		public CheckState CheckState
 		{
-			get => _isChecked;
+			get => _checkState;
 			set
 			{
-				if (value == _isChecked)
+				if (value == _checkState)
 					return;
 
-				_isChecked = value;
+				_checkState = value;
+				InvalidateCachedImages();
+				UpdateDisplay();
+			}
+		}
+
+		/// <summary>Gets or sets whether the checkbox supports three states (unchecked/indeterminate/checked).</summary>
+		public bool IsThreeState
+		{
+			get => _isThreeState;
+			set => _isThreeState = value;
+		}
+
+		/// <summary>Gets or sets whether the checkbox is checked. Setting this updates <see cref="CheckState"/>.</summary>
+		public bool IsChecked
+		{
+			get => _checkState == CheckState.Checked;
+			set
+			{
+				var newState = value ? CheckState.Checked : CheckState.Unchecked;
+				if (newState == _checkState)
+					return;
+
+				_checkState = newState;
+				InvalidateCachedImages();
 				UpdateDisplay();
 			}
 		}
@@ -91,8 +133,7 @@ namespace Microsoft.Maui.Platform
 				if (_tintColor == value)
 					return;
 
-				CheckedDisabledAndTinted = null;
-				UncheckedDisabledAndTinted = null;
+				InvalidateCachedImages();
 				_tintColor = value;
 				CheckBoxTintUIColor = CheckBoxTintColor?.ToPlatform();
 			}
@@ -144,20 +185,37 @@ namespace Microsoft.Maui.Platform
 			// and I don't know how to make it not tint them gray
 			if (!Enabled && CheckBoxTintColor != null)
 			{
-				if (IsChecked)
+				return _checkState switch
 				{
-					return CheckedDisabledAndTinted ??=
-						CreateCheckBox(CreateCheckMark()).ImageWithRenderingMode(UIImageRenderingMode.AlwaysOriginal);
-				}
-
-				return UncheckedDisabledAndTinted ??=
-					CreateCheckBox(null).ImageWithRenderingMode(UIImageRenderingMode.AlwaysOriginal);
+					CheckState.Checked => CheckedDisabledAndTinted ??=
+						CreateCheckBox(CreateCheckMark()).ImageWithRenderingMode(UIImageRenderingMode.AlwaysOriginal),
+					CheckState.Indeterminate => IndeterminateDisabledAndTinted ??=
+						CreateCheckBox(CreateIndeterminateMark()).ImageWithRenderingMode(UIImageRenderingMode.AlwaysOriginal),
+					_ => UncheckedDisabledAndTinted ??=
+						CreateCheckBox(null).ImageWithRenderingMode(UIImageRenderingMode.AlwaysOriginal),
+				};
 			}
 
 			Checked ??= CreateCheckBox(CreateCheckMark()).ImageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate);
 			Unchecked ??= CreateCheckBox(null).ImageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate);
+			Indeterminate ??= CreateCheckBox(CreateIndeterminateMark()).ImageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate);
 
-			return IsChecked ? Checked : Unchecked;
+			return _checkState switch
+			{
+				CheckState.Checked => Checked,
+				CheckState.Indeterminate => Indeterminate,
+				_ => Unchecked,
+			};
+		}
+
+		void InvalidateCachedImages()
+		{
+			Checked = null;
+			Unchecked = null;
+			Indeterminate = null;
+			CheckedDisabledAndTinted = null;
+			UncheckedDisabledAndTinted = null;
+			IndeterminateDisabledAndTinted = null;
 		}
 
 		static UIBezierPath CreateBoxPath(CGRect backgroundRect) => UIBezierPath.FromOval(backgroundRect);
@@ -173,6 +231,13 @@ namespace Microsoft.Maui.Platform
 			path.MoveTo(new CGPoint(0.72f, 0.22f));
 			path.AddLineTo(new CGPoint(0.33f, 0.6f));
 			path.AddLineTo(new CGPoint(0.15f, 0.42f));
+		}
+
+		/// <summary>Draws a horizontal dash mark for the indeterminate state.</summary>
+		static void DrawIndeterminateMark(UIBezierPath path)
+		{
+			path.MoveTo(new CGPoint(0.2f, 0.5f));
+			path.AddLineTo(new CGPoint(0.8f, 0.5f));
 		}
 
 		UIImage CreateCheckBox(UIImage? check)
@@ -242,6 +307,38 @@ namespace Microsoft.Maui.Platform
 			context.RestoreState();
 		}
 
+		/// <summary>Creates the horizontal-dash image used for the indeterminate state.</summary>
+		static UIImage CreateIndeterminateMark()
+		{
+			using var renderer = new UIGraphicsImageRenderer(new CGSize(DefaultSize, DefaultSize));
+			var image = renderer.CreateImage((UIGraphicsImageRendererContext ctx) =>
+			{
+				var context = ctx.CGContext;
+				RenderIndeterminateMark(context);
+			});
+			return image;
+		}
+
+		static void RenderIndeterminateMark(CGContext context)
+		{
+			context.SaveState();
+
+			var vPadding = LineWidth / 2;
+			var hPadding = LineWidth / 2;
+			var diameter = DefaultSize - LineWidth;
+
+			var dashPath = CreateCheckPath();
+			dashPath.LineWidth = (nfloat)0.12;
+
+			context.TranslateCTM(hPadding + (nfloat)(0.05 * diameter), vPadding + (nfloat)(0.1 * diameter));
+			context.ScaleCTM(diameter, diameter);
+			DrawIndeterminateMark(dashPath);
+			UIColor.White.SetStroke();
+			dashPath.Stroke();
+
+			context.RestoreState();
+		}
+
 		public override CGSize SizeThatFits(CGSize size)
 		{
 			var result = base.SizeThatFits(size);
@@ -304,7 +401,12 @@ namespace Microsoft.Maui.Platform
 
 		public override string? AccessibilityValue
 		{
-			get => (IsChecked) ? "1" : "0";
+			get => _checkState switch
+			{
+				CheckState.Checked => "1",
+				CheckState.Indeterminate => "2",
+				_ => "0",
+			};
 			set { }
 		}
 

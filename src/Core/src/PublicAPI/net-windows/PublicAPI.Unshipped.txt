@@ -1,4 +1,6 @@
 #nullable enable
+static Microsoft.Maui.Platform.CheckBoxExtensions.UpdateCheckState(this Microsoft.UI.Xaml.Controls.CheckBox! platformCheckBox, Microsoft.Maui.ICheckBox! check) -> void
+static Microsoft.Maui.Platform.CheckBoxExtensions.UpdateIsThreeState(this Microsoft.UI.Xaml.Controls.CheckBox! platformCheckBox, Microsoft.Maui.ICheckBox! check) -> void
 override Microsoft.Maui.Platform.ContentPanel.OnCreateAutomationPeer() -> Microsoft.UI.Xaml.Automation.Peers.AutomationPeer!
 override Microsoft.Maui.Platform.MauiPasswordTextBox.OnCreateAutomationPeer() -> Microsoft.UI.Xaml.Automation.Peers.AutomationPeer!
 static Microsoft.Maui.GridLength.implicit operator Microsoft.Maui.GridLength(string! value) -> Microsoft.Maui.GridLength

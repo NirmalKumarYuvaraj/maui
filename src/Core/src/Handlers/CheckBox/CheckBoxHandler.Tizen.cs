@@ -27,7 +27,17 @@ namespace Microsoft.Maui.Handlers
 
 		public static partial void MapIsChecked(ICheckBoxHandler handler, ICheckBox check)
 		{
-			handler.PlatformView?.UpdateIsChecked(check);
+			handler.PlatformView?.UpdateCheckState(check);
+		}
+
+		public static partial void MapCheckState(ICheckBoxHandler handler, ICheckBox check)
+		{
+			handler.PlatformView?.UpdateCheckState(check);
+		}
+
+		public static partial void MapIsThreeState(ICheckBoxHandler handler, ICheckBox check)
+		{
+			// Tizen does not natively support three-state checkboxes; indeterminate is treated as unchecked.
 		}
 
 		public static partial void MapForeground(ICheckBoxHandler handler, ICheckBox check)

@@ -1,2 +1,10 @@
 #nullable enable
+Microsoft.Maui.CheckState
+Microsoft.Maui.CheckState.Checked = 2 -> Microsoft.Maui.CheckState
+Microsoft.Maui.CheckState.Indeterminate = 1 -> Microsoft.Maui.CheckState
+Microsoft.Maui.CheckState.Unchecked = 0 -> Microsoft.Maui.CheckState
+Microsoft.Maui.ICheckBox.CheckState.get -> Microsoft.Maui.CheckState
+Microsoft.Maui.ICheckBox.CheckState.set -> void
+Microsoft.Maui.ICheckBox.IsThreeState.get -> bool
+static Microsoft.Maui.Platform.CheckBoxExtensions.UpdateCheckState(this Tizen.UIExtensions.NUI.GraphicsView.CheckBox! platformCheck, Microsoft.Maui.ICheckBox! check) -> void
 static Microsoft.Maui.GridLength.implicit operator Microsoft.Maui.GridLength(string! value) -> Microsoft.Maui.GridLength

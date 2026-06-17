@@ -11,6 +11,29 @@ namespace Microsoft.Maui.Platform
 			platformCheckBox.IsChecked = check.IsChecked;
 		}
 
+		/// <summary>
+		/// Updates the platform checkbox to reflect <see cref="ICheckBox.CheckState"/>,
+		/// using WinUI's native nullable <c>IsChecked</c> (<see langword="null"/> = indeterminate).
+		/// </summary>
+		public static void UpdateCheckState(this CheckBox platformCheckBox, ICheckBox check)
+		{
+			platformCheckBox.IsChecked = check.CheckState switch
+			{
+				CheckState.Checked => true,
+				CheckState.Indeterminate => null,
+				_ => false,
+			};
+		}
+
+		/// <summary>
+		/// Enables or disables WinUI's native three-state cycling behaviour
+		/// (<see cref="CheckBox.IsThreeState"/>).
+		/// </summary>
+		public static void UpdateIsThreeState(this CheckBox platformCheckBox, ICheckBox check)
+		{
+			platformCheckBox.IsThreeState = check.IsThreeState;
+		}
+
 		public static void UpdateForeground(this CheckBox platformCheckBox, ICheckBox check)
 		{
 			var tintBrush = check.Foreground?.ToPlatform();

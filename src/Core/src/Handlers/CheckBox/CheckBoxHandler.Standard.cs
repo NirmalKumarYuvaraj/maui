@@ -8,6 +8,10 @@ namespace Microsoft.Maui.Handlers
 
 		public static partial void MapIsChecked(ICheckBoxHandler handler, ICheckBox check) { }
 
+		public static partial void MapCheckState(ICheckBoxHandler handler, ICheckBox check) { }
+
+		public static partial void MapIsThreeState(ICheckBoxHandler handler, ICheckBox check) { }
+
 		public static partial void MapForeground(ICheckBoxHandler handler, ICheckBox check) { }
 	}
 }

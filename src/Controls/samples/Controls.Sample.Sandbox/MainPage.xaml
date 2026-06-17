@@ -1,3 +1,129 @@
 ﻿<ContentPage x:Class="Maui.Controls.Sample.MainPage"
-             xmlns:local="clr-namespace:Maui.Controls.Sample">
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:Maui.Controls.Sample"
+             Title="Tristate CheckBox Demo">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="16">
+
+            <!-- Title -->
+            <Label Text="Tristate CheckBox Demo"
+                   FontSize="22"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"/>
+
+            <!-- ── Section 1: Two-state (default, backward-compat) ── -->
+            <Label Text="Two-State (default, IsThreeState=False)"
+                   FontAttributes="Bold"
+                   FontSize="15"
+                   Margin="0,8,0,0"/>
+
+            <HorizontalStackLayout Spacing="12">
+                <CheckBox x:Name="TwoStateCheckBox"
+                          CheckedChanged="OnTwoStateCheckedChanged"/>
+                <Label x:Name="TwoStateLabel"
+                       Text="Unchecked"
+                       VerticalOptions="Center"/>
+            </HorizontalStackLayout>
+
+            <!-- ── Section 2: Three-state tap cycling ────────────── -->
+            <Label Text="Three-State (IsThreeState=True — tap to cycle)"
+                   FontAttributes="Bold"
+                   FontSize="15"
+                   Margin="0,8,0,0"/>
+
+            <Label Text="Cycle order: Unchecked → Checked → Indeterminate → Unchecked"
+                   FontSize="12"
+                   TextColor="Gray"/>
+
+            <HorizontalStackLayout Spacing="12">
+                <CheckBox x:Name="ThreeStateCheckBox"
+                          IsThreeState="True"
+                          CheckStateChanged="OnThreeStateChanged"/>
+                <Label x:Name="ThreeStateLabel"
+                       Text="Unchecked"
+                       VerticalOptions="Center"/>
+            </HorizontalStackLayout>
+
+            <!-- ── Section 3: Programmatic control ───────────────── -->
+            <Label Text="Programmatic CheckState Control"
+                   FontAttributes="Bold"
+                   FontSize="15"
+                   Margin="0,8,0,0"/>
+
+            <HorizontalStackLayout Spacing="8">
+                <Button Text="Unchecked"     Clicked="OnSetUnchecked"/>
+                <Button Text="Indeterminate" Clicked="OnSetIndeterminate"/>
+                <Button Text="Checked"       Clicked="OnSetChecked"/>
+            </HorizontalStackLayout>
+
+            <HorizontalStackLayout Spacing="12">
+                <CheckBox x:Name="ProgrammaticCheckBox"
+                          IsThreeState="True"
+                          CheckStateChanged="OnProgrammaticStateChanged"/>
+                <Label x:Name="ProgrammaticLabel"
+                       Text="Unchecked"
+                       VerticalOptions="Center"/>
+            </HorizontalStackLayout>
+
+            <!-- ── Section 4: Colored three-state ────────────────── -->
+            <Label Text="Colored Three-State CheckBoxes"
+                   FontAttributes="Bold"
+                   FontSize="15"
+                   Margin="0,8,0,0"/>
+
+            <HorizontalStackLayout Spacing="24">
+                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                    <CheckBox IsThreeState="True" Color="CornflowerBlue" CheckState="Unchecked"/>
+                    <Label Text="Unchecked" FontSize="11" HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                    <CheckBox IsThreeState="True" Color="Tomato" CheckState="Indeterminate"/>
+                    <Label Text="Indeterminate" FontSize="11" HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                    <CheckBox IsThreeState="True" Color="MediumSeaGreen" CheckState="Checked"/>
+                    <Label Text="Checked" FontSize="11" HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+            </HorizontalStackLayout>
+
+            <!-- ── Section 5: Disabled states ────────────────────── -->
+            <Label Text="Disabled States"
+                   FontAttributes="Bold"
+                   FontSize="15"
+                   Margin="0,8,0,0"/>
+
+            <HorizontalStackLayout Spacing="24">
+                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                    <CheckBox IsEnabled="False" CheckState="Unchecked"/>
+                    <Label Text="Unchecked" FontSize="11" HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                    <CheckBox IsEnabled="False" CheckState="Indeterminate" IsThreeState="True"/>
+                    <Label Text="Indeterminate" FontSize="11" HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+                <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                    <CheckBox IsEnabled="False" CheckState="Checked"/>
+                    <Label Text="Checked" FontSize="11" HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+            </HorizontalStackLayout>
+
+            <!-- ── Event log ──────────────────────────────────────── -->
+            <Label Text="Event Log"
+                   FontAttributes="Bold"
+                   FontSize="15"
+                   Margin="0,8,0,0"/>
+
+            <Button Text="Clear Log" Clicked="OnClearLog" HorizontalOptions="Start"/>
+
+            <Border Stroke="LightGray" StrokeThickness="1" Padding="8">
+                <Label x:Name="EventLog"
+                       Text="(no events yet)"
+                       FontSize="12"
+                       LineBreakMode="WordWrap"/>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>

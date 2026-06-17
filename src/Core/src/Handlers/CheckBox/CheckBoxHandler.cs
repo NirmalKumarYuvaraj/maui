@@ -25,6 +25,8 @@ namespace Microsoft.Maui.Handlers
 			[nameof(ICheckBox.Background)] = MapBackground,
 #endif
 			[nameof(ICheckBox.IsChecked)] = MapIsChecked,
+			[nameof(ICheckBox.CheckState)] = MapCheckState,
+			[nameof(ICheckBox.IsThreeState)] = MapIsThreeState,
 			[nameof(ICheckBox.Foreground)] = MapForeground,
 		};
 
@@ -66,6 +68,20 @@ namespace Microsoft.Maui.Handlers
 		/// <param name="handler">The associated handler.</param>
 		/// <param name="check">The associated <see cref="ICheckBox"/> instance.</param>
 		public static partial void MapIsChecked(ICheckBoxHandler handler, ICheckBox check);
+
+		/// <summary>
+		/// Maps the abstract <see cref="ICheckBox.CheckState"/> property to the platform-specific implementations.
+		/// </summary>
+		/// <param name="handler">The associated handler.</param>
+		/// <param name="check">The associated <see cref="ICheckBox"/> instance.</param>
+		public static partial void MapCheckState(ICheckBoxHandler handler, ICheckBox check);
+
+		/// <summary>
+		/// Maps the abstract <see cref="ICheckBox.IsThreeState"/> property to the platform-specific implementations.
+		/// </summary>
+		/// <param name="handler">The associated handler.</param>
+		/// <param name="check">The associated <see cref="ICheckBox"/> instance.</param>
+		public static partial void MapIsThreeState(ICheckBoxHandler handler, ICheckBox check);
 
 		/// <summary>
 		/// Maps the abstract <see cref="ICheckBox.Foreground"/> property to the platform-specific implementations.

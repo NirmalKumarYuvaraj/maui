@@ -51,6 +51,7 @@ namespace Microsoft.Maui.Handlers
 
 			platformView.Checked += OnChecked;
 			platformView.Unchecked += OnChecked;
+			platformView.Indeterminate += OnChecked;
 		}
 
 		protected override void DisconnectHandler(CheckBox platformView)
@@ -59,11 +60,22 @@ namespace Microsoft.Maui.Handlers
 
 			platformView.Checked -= OnChecked;
 			platformView.Unchecked -= OnChecked;
+			platformView.Indeterminate -= OnChecked;
 		}
 
 		public static partial void MapIsChecked(ICheckBoxHandler handler, ICheckBox check)
 		{
-			handler.PlatformView?.UpdateIsChecked(check);
+			handler.PlatformView?.UpdateCheckState(check);
+		}
+
+		public static partial void MapCheckState(ICheckBoxHandler handler, ICheckBox check)
+		{
+			handler.PlatformView?.UpdateCheckState(check);
+		}
+
+		public static partial void MapIsThreeState(ICheckBoxHandler handler, ICheckBox check)
+		{
+			handler.PlatformView?.UpdateIsThreeState(check);
 		}
 
 		public static partial void MapForeground(ICheckBoxHandler handler, ICheckBox check)
@@ -74,7 +86,14 @@ namespace Microsoft.Maui.Handlers
 		void OnChecked(object sender, RoutedEventArgs e)
 		{
 			if (sender is CheckBox platformView && VirtualView != null)
-				VirtualView.IsChecked = platformView.IsChecked == true;
+			{
+				VirtualView.CheckState = platformView.IsChecked switch
+				{
+					true => CheckState.Checked,
+					false => CheckState.Unchecked,
+					null => CheckState.Indeterminate,
+				};
+			}
 		}
 
 		internal override bool PreventGestureBubbling => true;

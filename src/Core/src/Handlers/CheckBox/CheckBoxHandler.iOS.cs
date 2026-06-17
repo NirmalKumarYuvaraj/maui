@@ -31,7 +31,17 @@ namespace Microsoft.Maui.Handlers
 
 		public static partial void MapIsChecked(ICheckBoxHandler handler, ICheckBox check)
 		{
-			handler.PlatformView?.UpdateIsChecked(check);
+			handler.PlatformView?.UpdateCheckState(check);
+		}
+
+		public static partial void MapCheckState(ICheckBoxHandler handler, ICheckBox check)
+		{
+			handler.PlatformView?.UpdateCheckState(check);
+		}
+
+		public static partial void MapIsThreeState(ICheckBoxHandler handler, ICheckBox check)
+		{
+			handler.PlatformView?.UpdateIsThreeState(check);
 		}
 
 		public static partial void MapForeground(ICheckBoxHandler handler, ICheckBox check)
@@ -78,7 +88,7 @@ namespace Microsoft.Maui.Handlers
 		{
 			if (sender is MauiCheckBox platformView && VirtualView != null)
 			{
-				VirtualView.IsChecked = platformView.IsChecked;
+				VirtualView.CheckState = platformView.CheckState;
 			}
 		}
 	}
