@@ -292,13 +292,19 @@ namespace Microsoft.Maui.Platform
 		{
 			context.SaveState();
 
-			var vPadding = LineWidth / 2;
 			var hPadding = LineWidth / 2;
 			var diameter = DefaultSize - LineWidth;
 
+			// Center the check mark bounding box (normalized x=[0.15,0.72], y=[0.22,0.60])
+			// within the circle. Bounding box center: (0.435, 0.41).
+			// Circle center in canvas: hPadding + diameter/2 = 9.
+			var circleCenter = hPadding + diameter / 2f;
+			var tx = circleCenter - 0.435f * diameter;
+			var ty = circleCenter - 0.41f * diameter;
+
 			var checkPath = CreateCheckPath();
 
-			context.TranslateCTM(hPadding + (nfloat)(0.05 * diameter), vPadding + (nfloat)(0.1 * diameter));
+			context.TranslateCTM((nfloat)tx, (nfloat)ty);
 			context.ScaleCTM(diameter, diameter);
 			DrawCheckMark(checkPath);
 			UIColor.White.SetStroke();
@@ -330,7 +336,7 @@ namespace Microsoft.Maui.Platform
 			var dashPath = CreateCheckPath();
 			dashPath.LineWidth = (nfloat)0.12;
 
-			context.TranslateCTM(hPadding + (nfloat)(0.05 * diameter), vPadding + (nfloat)(0.1 * diameter));
+			context.TranslateCTM(hPadding, vPadding);
 			context.ScaleCTM(diameter, diameter);
 			DrawIndeterminateMark(dashPath);
 			UIColor.White.SetStroke();
