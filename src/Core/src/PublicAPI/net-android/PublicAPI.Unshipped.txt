@@ -1,8 +1,8 @@
-#nullable enable
-static Microsoft.Maui.Platform.CheckBoxExtensions.UpdateCheckState(this AndroidX.AppCompat.Widget.AppCompatCheckBox! platformCheckBox, Microsoft.Maui.ICheckBox! check) -> void
-*REMOVED*override Microsoft.Maui.Graphics.MauiDrawable.Dispose(bool disposing) -> void
-*REMOVED*override Microsoft.Maui.Graphics.MauiDrawable.OnBoundsChange(Android.Graphics.Rect! bounds) -> void
-*REMOVED*override Microsoft.Maui.Graphics.MauiDrawable.OnDraw(Android.Graphics.Drawables.Shapes.Shape? shape, Android.Graphics.Canvas? canvas, Android.Graphics.Paint? paint) -> void
+﻿#nullable enable
+Microsoft.Maui.CheckState
+Microsoft.Maui.CheckState.Checked = 2 -> Microsoft.Maui.CheckState
+Microsoft.Maui.CheckState.Indeterminate = 1 -> Microsoft.Maui.CheckState
+Microsoft.Maui.CheckState.Unchecked = 0 -> Microsoft.Maui.CheckState
 Microsoft.Maui.Handlers.ActivityIndicatorHandler2
 Microsoft.Maui.Handlers.ActivityIndicatorHandler2.ActivityIndicatorHandler2() -> void
 Microsoft.Maui.Handlers.DatePickerHandler2
@@ -11,6 +11,8 @@ Microsoft.Maui.Handlers.EditorHandler2
 Microsoft.Maui.Handlers.EditorHandler2.EditorHandler2() -> void
 Microsoft.Maui.Handlers.EntryHandler2
 Microsoft.Maui.Handlers.EntryHandler2.EntryHandler2() -> void
+*REMOVED*Microsoft.Maui.Handlers.ICheckBoxHandler.PlatformView.get -> AndroidX.AppCompat.Widget.AppCompatCheckBox!
+Microsoft.Maui.Handlers.ICheckBoxHandler.PlatformView.get -> Google.Android.Material.CheckBox.MaterialCheckBox!
 Microsoft.Maui.Handlers.ImageHandler2
 Microsoft.Maui.Handlers.ImageHandler2.ImageHandler2() -> void
 Microsoft.Maui.Handlers.LabelHandler2
@@ -43,6 +45,9 @@ Microsoft.Maui.Handlers.SwitchHandler2
 Microsoft.Maui.Handlers.SwitchHandler2.SwitchHandler2() -> void
 Microsoft.Maui.Handlers.TimePickerHandler2
 Microsoft.Maui.Handlers.TimePickerHandler2.TimePickerHandler2() -> void
+Microsoft.Maui.ICheckBox.CheckState.get -> Microsoft.Maui.CheckState
+Microsoft.Maui.ICheckBox.CheckState.set -> void
+Microsoft.Maui.ICheckBox.IsThreeState.get -> bool
 Microsoft.Maui.Platform.MaterialActivityIndicator
 Microsoft.Maui.Platform.MaterialActivityIndicator.MaterialActivityIndicator(Android.Content.Context! context) -> void
 Microsoft.Maui.Platform.MaterialActivityIndicator.MaterialActivityIndicator(Android.Content.Context! context, Android.Util.IAttributeSet? attrs) -> void
@@ -96,8 +101,17 @@ Microsoft.Maui.Platform.MauiMaterialTimePicker.ShowPicker.set -> void
 Microsoft.Maui.PlatformDrawable
 Microsoft.Maui.PlatformDrawable.PlatformDrawable(Android.Content.Context? context) -> void
 Microsoft.Maui.PlatformDrawable.PlatformDrawable(nint javaReference, Android.Runtime.JniHandleOwnership transfer) -> void
+*REMOVED*override Microsoft.Maui.Graphics.MauiDrawable.Dispose(bool disposing) -> void
+*REMOVED*override Microsoft.Maui.Graphics.MauiDrawable.OnBoundsChange(Android.Graphics.Rect! bounds) -> void
+*REMOVED*override Microsoft.Maui.Graphics.MauiDrawable.OnDraw(Android.Graphics.Drawables.Shapes.Shape? shape, Android.Graphics.Canvas? canvas, Android.Graphics.Paint? paint) -> void
 override Microsoft.Maui.Handlers.ActivityIndicatorHandler2.CreatePlatformView() -> Microsoft.Maui.Platform.MaterialActivityIndicator!
 override Microsoft.Maui.Handlers.ActivityIndicatorHandler2.PlatformArrange(Microsoft.Maui.Graphics.Rect frame) -> void
+*REMOVED*override Microsoft.Maui.Handlers.CheckBoxHandler.ConnectHandler(AndroidX.AppCompat.Widget.AppCompatCheckBox! platformView) -> void
+override Microsoft.Maui.Handlers.CheckBoxHandler.ConnectHandler(Google.Android.Material.CheckBox.MaterialCheckBox! platformView) -> void
+*REMOVED*override Microsoft.Maui.Handlers.CheckBoxHandler.CreatePlatformView() -> AndroidX.AppCompat.Widget.AppCompatCheckBox!
+override Microsoft.Maui.Handlers.CheckBoxHandler.CreatePlatformView() -> Google.Android.Material.CheckBox.MaterialCheckBox!
+*REMOVED*override Microsoft.Maui.Handlers.CheckBoxHandler.DisconnectHandler(AndroidX.AppCompat.Widget.AppCompatCheckBox! platformView) -> void
+override Microsoft.Maui.Handlers.CheckBoxHandler.DisconnectHandler(Google.Android.Material.CheckBox.MaterialCheckBox! platformView) -> void
 override Microsoft.Maui.Handlers.DatePickerHandler2.ConnectHandler(Microsoft.Maui.Platform.MauiMaterialDatePicker! platformView) -> void
 override Microsoft.Maui.Handlers.DatePickerHandler2.CreatePlatformView() -> Microsoft.Maui.Platform.MauiMaterialDatePicker!
 override Microsoft.Maui.Handlers.DatePickerHandler2.DisconnectHandler(Microsoft.Maui.Platform.MauiMaterialDatePicker! platformView) -> void
@@ -153,6 +167,8 @@ override Microsoft.Maui.PlatformDrawable.JniPeerMembers.get -> Java.Interop.JniP
 override Microsoft.Maui.PlatformDrawable.ThresholdClass.get -> nint
 override Microsoft.Maui.PlatformDrawable.ThresholdType.get -> System.Type!
 static Microsoft.Maui.GridLength.implicit operator Microsoft.Maui.GridLength(string! value) -> Microsoft.Maui.GridLength
+static Microsoft.Maui.Handlers.CheckBoxHandler.MapCheckState(Microsoft.Maui.Handlers.ICheckBoxHandler! handler, Microsoft.Maui.ICheckBox! check) -> void
+static Microsoft.Maui.Handlers.CheckBoxHandler.MapIsThreeState(Microsoft.Maui.Handlers.ICheckBoxHandler! handler, Microsoft.Maui.ICheckBox! check) -> void
 static Microsoft.Maui.Handlers.DatePickerHandler2.CommandMapper -> Microsoft.Maui.CommandMapper<Microsoft.Maui.IDatePicker!, Microsoft.Maui.Handlers.DatePickerHandler2!>!
 static Microsoft.Maui.Handlers.DatePickerHandler2.Mapper -> Microsoft.Maui.PropertyMapper<Microsoft.Maui.IDatePicker!, Microsoft.Maui.Handlers.DatePickerHandler2!>!
 static Microsoft.Maui.Handlers.EditorHandler2.CommandMapper -> Microsoft.Maui.CommandMapper<Microsoft.Maui.IEditor!, Microsoft.Maui.Handlers.EditorHandler2!>!
@@ -256,6 +272,13 @@ static Microsoft.Maui.Handlers.TimePickerHandler2.MapIsOpen(Microsoft.Maui.Handl
 static Microsoft.Maui.Handlers.TimePickerHandler2.MapTextColor(Microsoft.Maui.Handlers.TimePickerHandler2! handler, Microsoft.Maui.ITimePicker! picker) -> void
 static Microsoft.Maui.Handlers.TimePickerHandler2.MapTime(Microsoft.Maui.Handlers.TimePickerHandler2! handler, Microsoft.Maui.ITimePicker! picker) -> void
 static Microsoft.Maui.Handlers.TimePickerHandler2.Mapper -> Microsoft.Maui.PropertyMapper<Microsoft.Maui.ITimePicker!, Microsoft.Maui.Handlers.TimePickerHandler2!>!
+*REMOVED*static Microsoft.Maui.Platform.CheckBoxExtensions.UpdateBackground(this AndroidX.AppCompat.Widget.AppCompatCheckBox! platformCheckBox, Microsoft.Maui.ICheckBox! check) -> void
+static Microsoft.Maui.Platform.CheckBoxExtensions.UpdateBackground(this Google.Android.Material.CheckBox.MaterialCheckBox! platformCheckBox, Microsoft.Maui.ICheckBox! check) -> void
+static Microsoft.Maui.Platform.CheckBoxExtensions.UpdateCheckState(this Google.Android.Material.CheckBox.MaterialCheckBox! platformCheckBox, Microsoft.Maui.ICheckBox! check) -> void
+*REMOVED*static Microsoft.Maui.Platform.CheckBoxExtensions.UpdateForeground(this AndroidX.AppCompat.Widget.AppCompatCheckBox! platformCheckBox, Microsoft.Maui.ICheckBox! check) -> void
+static Microsoft.Maui.Platform.CheckBoxExtensions.UpdateForeground(this Google.Android.Material.CheckBox.MaterialCheckBox! platformCheckBox, Microsoft.Maui.ICheckBox! check) -> void
+*REMOVED*static Microsoft.Maui.Platform.CheckBoxExtensions.UpdateIsChecked(this AndroidX.AppCompat.Widget.AppCompatCheckBox! platformCheckBox, Microsoft.Maui.ICheckBox! check) -> void
+static Microsoft.Maui.Platform.CheckBoxExtensions.UpdateIsChecked(this Google.Android.Material.CheckBox.MaterialCheckBox! platformCheckBox, Microsoft.Maui.ICheckBox! check) -> void
 static Microsoft.Maui.Platform.DatePickerExtensions.UpdateDate(this Microsoft.Maui.Platform.MauiMaterialDatePicker! platformDatePicker, Microsoft.Maui.IDatePicker! datePicker) -> void
 static Microsoft.Maui.Platform.DatePickerExtensions.UpdateFormat(this Microsoft.Maui.Platform.MauiMaterialDatePicker! platformDatePicker, Microsoft.Maui.IDatePicker! datePicker) -> void
 static Microsoft.Maui.Platform.DatePickerExtensions.UpdateTextColor(this Microsoft.Maui.Platform.MauiMaterialDatePicker! platformDatePicker, Microsoft.Maui.IDatePicker! datePicker) -> void

@@ -15,7 +15,7 @@ namespace Microsoft.Maui.Platform
 		// - Per-Activity theming (different Activities can have different themes)
 		// - Theme switching at runtime (dark mode, Material2/3 toggle)
 		// - Thread safety (no shared mutable state)
-		static readonly ConditionalWeakTable<AppCompatCheckBox, ColorStateList> _defaultButtonTintCache = new();
+		static readonly ConditionalWeakTable<MaterialCheckBox, ColorStateList> _defaultButtonTintCache = new();
 
 		// Android MaterialCheckBox checked-state integer constants.
 		// These correspond to MaterialCheckBox.STATE_UNCHECKED / STATE_CHECKED / STATE_INDETERMINATE.
@@ -23,7 +23,7 @@ namespace Microsoft.Maui.Platform
 		const int AndroidStateChecked = 1;
 		const int AndroidStateIndeterminate = 2;
 
-		public static void UpdateBackground(this AppCompatCheckBox platformCheckBox, ICheckBox check)
+		public static void UpdateBackground(this MaterialCheckBox platformCheckBox, ICheckBox check)
 		{
 			var paint = check.Background;
 
@@ -33,7 +33,7 @@ namespace Microsoft.Maui.Platform
 				platformCheckBox.UpdateBackground((IView)check);
 		}
 
-		public static void UpdateIsChecked(this AppCompatCheckBox platformCheckBox, ICheckBox check)
+		public static void UpdateIsChecked(this MaterialCheckBox platformCheckBox, ICheckBox check)
 		{
 			platformCheckBox.Checked = check.IsChecked;
 		}
@@ -42,7 +42,7 @@ namespace Microsoft.Maui.Platform
 		/// Updates the platform checkbox to reflect <see cref="ICheckBox.CheckState"/>,
 		/// including the indeterminate state when supported by <see cref="MaterialCheckBox"/>.
 		/// </summary>
-		public static void UpdateCheckState(this AppCompatCheckBox platformCheckBox, ICheckBox check)
+		public static void UpdateCheckState(this MaterialCheckBox platformCheckBox, ICheckBox check)
 		{
 			if (platformCheckBox is MaterialCheckBox materialCheckBox)
 			{
@@ -52,7 +52,7 @@ namespace Microsoft.Maui.Platform
 					CheckState.Indeterminate => AndroidStateIndeterminate,
 					_ => AndroidStateUnchecked,
 				};
-				materialCheckBox.SetCheckedState(nativeState);
+				materialCheckBox.CheckedState = nativeState;
 			}
 			else
 			{
@@ -61,7 +61,7 @@ namespace Microsoft.Maui.Platform
 			}
 		}
 
-		public static void UpdateForeground(this AppCompatCheckBox platformCheckBox, ICheckBox check)
+		public static void UpdateForeground(this MaterialCheckBox platformCheckBox, ICheckBox check)
 		{
 			var mode = PorterDuff.Mode.SrcIn;
 
@@ -69,7 +69,7 @@ namespace Microsoft.Maui.Platform
 			CompoundButtonCompat.SetButtonTintMode(platformCheckBox, mode);
 		}
 
-		internal static ColorStateList GetColorStateList(this AppCompatCheckBox platformCheckBox, ICheckBox check)
+		internal static ColorStateList GetColorStateList(this MaterialCheckBox platformCheckBox, ICheckBox check)
 		{
 			// Cache the original theme button tint for this checkbox instance before we modify it.
 			// This must happen before SetButtonTintList is called, as that will overwrite ButtonTintList.

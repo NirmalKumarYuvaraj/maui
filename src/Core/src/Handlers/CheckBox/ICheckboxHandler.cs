@@ -2,7 +2,7 @@
 #if __IOS__ || MACCATALYST
 using PlatformView = Microsoft.Maui.Platform.MauiCheckBox;
 #elif __ANDROID__
-using PlatformView = AndroidX.AppCompat.Widget.AppCompatCheckBox;
+using PlatformView = Google.Android.Material.CheckBox.MaterialCheckBox;
 #elif WINDOWS
 using PlatformView = Microsoft.UI.Xaml.Controls.CheckBox;
 #elif TIZEN
