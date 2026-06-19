@@ -103,7 +103,7 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 
 		protected override void UpdateBackground()
 		{
-			Color backgroundColor = Element.BackgroundColor;
+			Color backgroundColor = (Color)Element.GetValue(VisualElement.BackgroundColorProperty);
 			Brush background = Element.Background;
 
 			if (Control != null)

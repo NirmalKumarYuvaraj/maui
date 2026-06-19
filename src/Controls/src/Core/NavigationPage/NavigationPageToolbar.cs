@@ -272,8 +272,8 @@ namespace Microsoft.Maui.Controls
 #if WINDOWS
 			if (Brush.IsNullOrEmpty(BarBackground))
 			{
-				var backgroundColor = navigationPage.CurrentPage.BackgroundColor ??
-					navigationPage.BackgroundColor;
+				var backgroundColor = (Color)navigationPage.CurrentPage.GetValue(VisualElement.BackgroundColorProperty) ??
+					(Color)navigationPage.GetValue(VisualElement.BackgroundColorProperty);
 
 				BarBackground = navigationPage.CurrentPage.Background ??
 					navigationPage.Background;

@@ -334,7 +334,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items
 			if (ItemsView == null)
 				return;
 
-			var backgroundColor = color ?? ItemsView.BackgroundColor;
+			var backgroundColor = color ?? (Color)ItemsView.GetValue(VisualElement.BackgroundColorProperty);
 
 			if (backgroundColor == null)
 				return;

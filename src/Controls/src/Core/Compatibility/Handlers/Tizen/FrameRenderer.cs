@@ -140,8 +140,9 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 			if (Element == null || _disposed)
 				return;
 
-			if (Element.BackgroundColor.IsNotDefault())
-				BackgroundColor = Element.BackgroundColor.ToNUIColor();
+			var elementBackgroundColor = (Color)Element.GetValue(VisualElement.BackgroundColorProperty);
+			if (elementBackgroundColor.IsNotDefault())
+				BackgroundColor = elementBackgroundColor.ToNUIColor();
 			else
 				BackgroundColor = Colors.White.ToNUIColor();
 		}
@@ -152,7 +153,8 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 				return;
 
 			// If BackgroundColor is valid, do not update Background
-			if (Element.BackgroundColor.IsNotDefault())
+			var elementBackgroundColor = (Color)Element.GetValue(VisualElement.BackgroundColorProperty);
+			if (elementBackgroundColor.IsNotDefault())
 				return;
 
 			var color = ((Paint)Element.Background)?.ToColor();

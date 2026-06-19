@@ -801,7 +801,8 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 
 		void UpdateBackgroundColor()
 		{
-			var color = Element.BackgroundColor == null ? Maui.Platform.ColorExtensions.BackgroundColor : Element.BackgroundColor.ToPlatform();
+			var elementBackgroundColor = (Color)Element.GetValue(VisualElement.BackgroundColorProperty);
+			var color = elementBackgroundColor == null ? Maui.Platform.ColorExtensions.BackgroundColor : elementBackgroundColor.ToPlatform();
 			View.BackgroundColor = color;
 		}
 

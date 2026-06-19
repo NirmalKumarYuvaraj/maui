@@ -353,7 +353,7 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 
 		protected virtual void UpdateBackgroundColor()
 		{
-			var color = Shell.BackgroundColor?.ToPlatform();
+			var color = ((Color)Shell.GetValue(VisualElement.BackgroundColorProperty))?.ToPlatform();
 			if (color == null)
 				color = Microsoft.Maui.Platform.ColorExtensions.BackgroundColor;
 

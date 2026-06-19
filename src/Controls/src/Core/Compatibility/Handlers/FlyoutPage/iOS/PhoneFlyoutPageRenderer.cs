@@ -546,10 +546,11 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 						View.UpdateBackground(Element.Background);
 					else
 					{
-						if (Element.BackgroundColor == null)
+						var elementBackgroundColor = (Color)Element.GetValue(VisualElement.BackgroundColorProperty);
+						if (elementBackgroundColor == null)
 							View.BackgroundColor = UIColor.White;
 						else
-							View.BackgroundColor = Element.BackgroundColor.ToPlatform();
+							View.BackgroundColor = elementBackgroundColor.ToPlatform();
 					}
 				}
 			});

@@ -32,7 +32,7 @@ namespace Microsoft.Maui.Controls.Platform
 					if (result == UIKit.UIModalPresentationStyle.FullScreen)
 					{
 						var modalPage = (Page)_modal.VirtualView;
-						Color modalBkgndColor = modalPage.BackgroundColor;
+						Color modalBkgndColor = (Color)modalPage.GetValue(VisualElement.BackgroundColorProperty);
 						Brush modalBackground = modalPage.Background;
 
 						bool shouldUseOverFullScreen = !Brush.IsNullOrEmpty(modalBackground)
@@ -219,7 +219,7 @@ namespace Microsoft.Maui.Controls.Platform
 
 			if (ModalPresentationStyle == UIKit.UIModalPresentationStyle.FullScreen)
 			{
-				Color modalBkgndColor = Page.BackgroundColor;
+				Color modalBkgndColor = (Color)Page.GetValue(VisualElement.BackgroundColorProperty);
 				View!.BackgroundColor = modalBkgndColor?.ToPlatform() ?? Maui.Platform.ColorExtensions.BackgroundColor;
 			}
 			else

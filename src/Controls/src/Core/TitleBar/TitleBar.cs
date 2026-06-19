@@ -445,10 +445,10 @@ namespace Microsoft.Maui.Controls
 #pragma warning restore CS0618 // Type or member is obsolete
 			};
 
-			contentGrid.SetBinding(
-				BackgroundColorProperty,
-				static (TitleBar tb) => tb.BackgroundColor,
-				source: RelativeBindingSource.TemplatedParent);
+	
+#pragma warning disable IL2026 // BackgroundColor is a known BindableProperty with a static name; binding path is trim-safe for this internal template
+		contentGrid.SetBinding(BackgroundColorProperty, new Binding(BackgroundColorProperty.PropertyName, source: RelativeBindingSource.TemplatedParent));
+#pragma warning restore IL2026
 
 			contentGrid.SetBinding(
 				BackgroundProperty,

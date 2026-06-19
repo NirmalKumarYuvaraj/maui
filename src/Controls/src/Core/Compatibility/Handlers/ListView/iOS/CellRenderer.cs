@@ -136,6 +136,7 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 			{
 #pragma warning disable CS0618 // Type or member is obsolete
 				if (cell.GetIsGroupHeader<ItemsView<Cell>, Cell>())
+#pragma warning restore CS0618 // Type or member is obsolete
 				{
 					uiBgColor = Microsoft.Maui.Platform.ColorExtensions.GroupedBackground;
 				}
@@ -144,7 +145,6 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 					if (cell.RealParent is VisualElement element && element.BackgroundColor != null)
 						uiBgColor = element.BackgroundColor.ToPlatform();
 				}
-#pragma warning restore CS0618 // Type or member is obsolete
 			}
 
 			SetBackgroundColor(tableViewCell, cell, uiBgColor);

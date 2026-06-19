@@ -46,7 +46,7 @@ namespace Microsoft.Maui.Controls.Handlers
 
 		public static void MapFlyoutBackground(ShellHandler handler, Shell view)
 		{
-			handler.PlatformView.UpdateBackgroundColor(view.BackgroundColor);
+			handler.PlatformView.UpdateBackgroundColor((Color)view.GetValue(VisualElement.BackgroundColorProperty));
 		}
 
 		public static void MapCurrentItem(ShellHandler handler, Shell view)

@@ -148,7 +148,7 @@ namespace Microsoft.Maui.Controls
 		/// <summary>
 		/// Gets or sets a color that describes the border stroke color of the button. This is a bindable property.
 		/// </summary>
-		/// <remarks>This property has no effect if <see cref="IBorderElement.BorderWidth" /> is set to 0. On Android this property will not have an effect unless <see cref="VisualElement.BackgroundColor" /> is set to a non-default color.</remarks>
+		/// <remarks>This property has no effect if <see cref="IBorderElement.BorderWidth" /> is set to 0. On Android this property will not have an effect unless <see cref="VisualElement.Background" /> is set to a non-default value.</remarks>
 		public Color BorderColor
 		{
 			get { return (Color)GetValue(BorderElement.BorderColorProperty); }

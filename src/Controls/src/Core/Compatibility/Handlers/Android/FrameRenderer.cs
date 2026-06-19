@@ -247,7 +247,7 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 			if (_disposed || Element == null || _backgroundDrawable == null)
 				return;
 
-			Color bgColor = Element.BackgroundColor;
+			Color bgColor = (Color)Element.GetValue(VisualElement.BackgroundColorProperty);
 			_backgroundDrawable.SetColor(bgColor?.ToPlatform() ?? AColor.White);
 		}
 

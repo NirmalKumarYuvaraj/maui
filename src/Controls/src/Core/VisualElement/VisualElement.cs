@@ -282,8 +282,10 @@ namespace Microsoft.Maui.Controls
 		/// <summary>Bindable property for <see cref="Opacity"/>.</summary>
 		public static readonly BindableProperty OpacityProperty = BindableProperty.Create(nameof(Opacity), typeof(double), typeof(VisualElement), 1d, coerceValue: (bindable, value) => ((double)value).Clamp(0, 1));
 
-		/// <summary>Bindable property for <see cref="BackgroundColor"/>.</summary>
+		/// <summary>Bindable property for the obsolete <c>BackgroundColor</c> property. Use <see cref="Background"/> instead.</summary>
+#pragma warning disable CS0618 // BackgroundColorProperty references the obsolete CLR property name intentionally for XAML backward compatibility
 		public static readonly BindableProperty BackgroundColorProperty = BindableProperty.Create(nameof(BackgroundColor), typeof(Color), typeof(VisualElement), null);
+#pragma warning restore CS0618
 
 		/// <summary>Bindable property for <see cref="Background"/>.</summary>
 		public static readonly BindableProperty BackgroundProperty = BindableProperty.Create(nameof(Background), typeof(Brush), typeof(VisualElement), Brush.Default,
@@ -555,7 +557,8 @@ namespace Microsoft.Maui.Controls
 		/// <summary>
 		/// Gets or sets the <see cref="Color"/> which will fill the background of an element. This is a bindable property.
 		/// </summary>
-		/// <remarks>For background gradients and such, use <see cref="Background"/>.</remarks>
+		/// <remarks>This property is obsolete. Use <see cref="Background"/> instead, which supports gradients, images, and solid colors.</remarks>
+		[Obsolete("Use Background instead.")]
 		public Color BackgroundColor
 		{
 			get { return (Color)GetValue(BackgroundColorProperty); }
@@ -2023,8 +2026,9 @@ namespace Microsoft.Maui.Controls
 			{
 				if (!Brush.IsNullOrEmpty(Background))
 					return Background;
-				if (BackgroundColor.IsNotDefault())
-					return new SolidColorBrush(BackgroundColor);
+				var backgroundColor = (Color)GetValue(BackgroundColorProperty);
+				if (backgroundColor.IsNotDefault())
+					return new SolidColorBrush(backgroundColor);
 
 				return null;
 			}

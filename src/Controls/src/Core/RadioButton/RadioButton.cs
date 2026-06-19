@@ -526,7 +526,10 @@ namespace Microsoft.Maui.Controls
 			border.SetBinding(Border.StrokeProperty, static (RadioButton rb) => rb.BorderColor, source: RelativeBindingSource.TemplatedParent);
 			border.SetBinding(Border.StrokeShapeProperty, static (RadioButton rb) => rb.CornerRadius, source: RelativeBindingSource.TemplatedParent, converter: new CornerRadiusToShape());
 			border.SetBinding(Border.StrokeThicknessProperty, static (RadioButton rb) => rb.BorderWidth, source: RelativeBindingSource.TemplatedParent);
-			border.SetBinding(Border.BackgroundColorProperty, static (RadioButton rb) => rb.BackgroundColor, BindingMode.OneWay, source: RelativeBindingSource.TemplatedParent);
+	
+#pragma warning disable IL2026 // BackgroundColor is a known BindableProperty with a static name; binding path is trim-safe for this internal template
+		border.SetBinding(Border.BackgroundColorProperty, new Binding(BackgroundColorProperty.PropertyName, BindingMode.OneWay, source: RelativeBindingSource.TemplatedParent));
+#pragma warning restore IL2026
 			border.SetBinding(Border.BackgroundProperty, static (RadioButton rb) => rb.Background, BindingMode.OneWay, source: RelativeBindingSource.TemplatedParent);
 
 			var grid = new Grid

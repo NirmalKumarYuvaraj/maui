@@ -110,14 +110,15 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 			_actualView.Layer.CornerRadius = cornerRadius;
 			_actualView.Layer.MasksToBounds = cornerRadius > 0;
 
-			if (element.BackgroundColor == null)
+			var elementBackgroundColor = (Color)element.GetValue(VisualElement.BackgroundColorProperty);
+			if (elementBackgroundColor == null)
 				_actualView.Layer.BackgroundColor = Microsoft.Maui.Platform.ColorExtensions.BackgroundColor.CGColor;
 			else
 			{
 				// BackgroundColor gets set on the base class too which messes with
 				// the corner radius, shadow, etc. so override that behaviour here
 				BackgroundColor = UIColor.Clear;
-				_actualView.Layer.BackgroundColor = element.BackgroundColor.ToCGColor();
+				_actualView.Layer.BackgroundColor = elementBackgroundColor.ToCGColor();
 			}
 
 			_actualView.Layer.RemoveBackgroundLayer();

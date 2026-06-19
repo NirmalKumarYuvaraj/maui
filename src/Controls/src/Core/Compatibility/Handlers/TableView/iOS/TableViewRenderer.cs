@@ -149,7 +149,8 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 
 		void UpdateBackgroundView()
 		{
-			Control.BackgroundView = Element.BackgroundColor == null ? _originalBackgroundView : null;
+			var elementBackgroundColor = (Color)Element.GetValue(VisualElement.BackgroundColorProperty);
+			Control.BackgroundView = elementBackgroundColor == null ? _originalBackgroundView : null;
 			Control.BackgroundView.UpdateBackground(Element.Background);
 		}
 
