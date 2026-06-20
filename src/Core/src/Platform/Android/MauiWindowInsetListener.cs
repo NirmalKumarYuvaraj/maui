@@ -315,10 +315,10 @@ namespace Microsoft.Maui.Platform
 
 		public bool HasTrackedView => _trackedViews.Count > 0;
 
-        public bool IsViewTracked(AView view)
-        {
-            return _trackedViews.Contains(view);
-        }
+		public bool IsViewTracked(AView view)
+		{
+			return _trackedViews.Contains(view);
+		}
 		public void ResetView(AView view)
 		{
 			if (view is IHandleWindowInsets customHandler)
@@ -392,7 +392,6 @@ namespace Microsoft.Maui.Platform
 
 		public override void OnPrepare(WindowInsetsAnimationCompat? animation)
 		{
-			base.OnPrepare(animation);
 			if (IsImeAnimation(animation))
 			{
 				IsImeAnimating = true;
@@ -411,44 +410,32 @@ namespace Microsoft.Maui.Platform
 
 		public override WindowInsetsCompat? OnProgress(WindowInsetsCompat? insets, IList<WindowInsetsAnimationCompat>? runningAnimations)
 		{
-			if (insets is null || runningAnimations is null)
+			if (runningAnimations?.Count > 0 && _pendingView is not null)
 			{
-				return insets;
+				ApplyWindowInsets(_pendingView, insets);
 			}
 
-			// Process any IME animations
-			foreach (var animation in runningAnimations)
-			{
-				if (IsImeAnimation(animation))
-				{
-					var imeInsets = insets.GetInsets(WindowInsetsCompat.Type.Ime());
-					// IME height available as: imeInsets?.Bottom ?? 0
-					break; // Only need to process one IME animation
-				}
-			}
 			return insets;
+		}
+
+		static void ApplyWindowInsets(View view, WindowInsetsCompat? insets)
+		{
+			if (insets is not null)
+			{
+				var systemBars = insets.GetInsets(WindowInsetsCompat.Type.SystemBars());
+				var ime = insets.GetInsets(WindowInsetsCompat.Type.Ime());
+				var bottom = Math.Max(systemBars?.Bottom ?? 0, ime?.Bottom ?? 0);
+				view?.SetPadding(systemBars?.Left ?? 0, 0, systemBars?.Right ?? 0, bottom);
+			}
 		}
 
 		public override void OnEnd(WindowInsetsAnimationCompat? animation)
 		{
-			base.OnEnd(animation);
-
-			if (IsImeAnimation(animation))
+			if (!IsImeAnimation(animation))
 			{
-				if (_pendingView is AView view)
-				{
-					_pendingView = null;
-					view.Post(() =>
-					{
-						IsImeAnimating = false;
-						ViewCompat.RequestApplyInsets(view);
-					});
-				}
-				else
-				{
-					IsImeAnimating = false;
-				}
+				return;
 			}
+			IsImeAnimating = false;
 		}
 
 		/// <summary>
@@ -472,7 +459,7 @@ internal static class MauiWindowInsetListenerExtensions
 	/// </summary>
 	/// <param name="view">The Android view to set the listener on</param>
 	/// <param name="context">The Android context to get the listener from</param>
-	public static bool TrySetMauiWindowInsetListener(this View view, Context context)
+	public static bool SetMauiWindowInsetListenerForChildView(this View view, Context context)
 	{
 		// Check if this view is contained within a registered view first
 		if (MauiWindowInsetListener.FindListenerForView(view) is MauiWindowInsetListener localListener)
@@ -491,8 +478,7 @@ internal static class MauiWindowInsetListenerExtensions
 	/// This should be called when a view is being detached to ensure proper cleanup.
 	/// </summary>
 	/// <param name="view">The Android view to remove the listener from</param>
-	/// <param name="context">The Android context to get the listener from</param>
-	public static void RemoveMauiWindowInsetListener(this View view, Context context)
+	public static void RemoveMauiWindowInsetListenerForChildView(this View view)
 	{
 		// Clear the listeners first
 		ViewCompat.SetOnApplyWindowInsetsListener(view, null);
@@ -501,5 +487,24 @@ internal static class MauiWindowInsetListenerExtensions
 		// Reset view state - prefer local listener if available, otherwise use global
 		var listener = MauiWindowInsetListener.FindListenerForView(view);
 		listener?.ResetView(view);
+	}
+
+	public static void SetMauiWindowInsetListenerForRootView(AView view, MauiWindowInsetListener? listener = null)
+	{
+		listener ??= new MauiWindowInsetListener();
+		ViewCompat.SetOnApplyWindowInsetsListener(view, listener);
+		ViewCompat.SetWindowInsetsAnimationCallback(view, listener);
+
+		// TODO: Consider registering the root view in the listener's registry if needed for child view tracking.
+	}
+
+	public static void RemoveMauiWindowInsetListenerForRootView(AView view)
+	{
+		// Remove the listener from the view
+		ViewCompat.SetOnApplyWindowInsetsListener(view, null);
+		ViewCompat.SetWindowInsetsAnimationCallback(view, null);
+
+
+		// TODO: Reset any tracked views within this view
 	}
 }

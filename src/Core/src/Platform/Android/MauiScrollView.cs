@@ -61,14 +61,14 @@ namespace Microsoft.Maui.Platform
 		public override void OnAttachedToWindow()
 		{
 			base.OnAttachedToWindow();
-			_isInsetListenerSet = MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(this, _context);
+			_isInsetListenerSet = MauiWindowInsetListenerExtensions.SetMauiWindowInsetListenerForChildView(this, _context);
 		}
 
 		protected override void OnDetachedFromWindow()
 		{
 			base.OnDetachedFromWindow();
 			if (_isInsetListenerSet)
-				MauiWindowInsetListenerExtensions.RemoveMauiWindowInsetListener(this, _context);
+				MauiWindowInsetListenerExtensions.RemoveMauiWindowInsetListenerForChildView(this);
 
 			_isInsetListenerSet = false;
 			_didSafeAreaEdgeConfigurationChange = true;
