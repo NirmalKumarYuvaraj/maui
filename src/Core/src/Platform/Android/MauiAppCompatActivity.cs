@@ -28,12 +28,18 @@ namespace Microsoft.Maui
 				: Resource.Style.Maui_MainTheme_NoActionBar);
 
 			base.OnCreate(savedInstanceState);
-			//WindowCompat.SetDecorFitsSystemWindows(Window, false);
-			EdgeToEdge.Enable(this);
-			if (OperatingSystem.IsAndroidVersionAtLeast(29) && !OperatingSystem.IsAndroidVersionAtLeast(34))
-			{
-				Window?.NavigationBarContrastEnforced = false;
-			}
+
+			// Pass transparent SystemBarStyles into EdgeToEdge so the navigation bar is fully
+			// transparent on every API level. The default SystemBarStyle.auto() draws a
+			// translucent contrast scrim behind the 3-button navigation bar on API 29+, which
+			// previously forced us to clear Window.NavigationBarContrastEnforced manually for a
+			// subset of versions. Dark/Light selects the system bar icon color so it stays
+			// legible over the app content, and EdgeToEdge.Enable() also clears the status bar
+			// contrast enforcement internally.
+			// https://developer.android.com/develop/ui/views/layout/edge-to-edge
+			var systemBarStyle = GetEdgeToEdgeSystemBarStyle();
+			// without the systemBarStyle parameter, EdgeToEdge.Enable() will use SystemBarStyle.auto() which draws a translucent contrast scrim behind the navigation bar on API 29+.
+			EdgeToEdge.Enable(this, systemBarStyle, systemBarStyle);
 
 			if (IPlatformApplication.Current?.Application is not null)
 			{
@@ -51,6 +57,22 @@ namespace Microsoft.Maui
 				// Priority 0 = PRIORITY_DEFAULT: callback invoked only when no higher-priority callback handles the event
 				OnBackInvokedDispatcher?.RegisterOnBackInvokedCallback(0, _predictiveBackCallback);
 			}
+		}
+
+		// Builds a transparent SystemBarStyle for edge-to-edge, choosing Dark (light icons)
+		// or Light (dark icons) based on the current UI night mode so the system bar icons
+		// stay legible over the app content. Transparent scrims keep the bars fully
+		// transparent and disable navigation bar contrast enforcement on API 29+.
+		SystemBarStyle GetEdgeToEdgeSystemBarStyle()
+		{
+			var transparent = global::Android.Graphics.Color.Transparent.ToArgb();
+			var configuration = Resources?.Configuration;
+			var isDarkMode = configuration is not null &&
+				(configuration.UiMode & global::Android.Content.Res.UiMode.NightMask) == global::Android.Content.Res.UiMode.NightYes;
+
+			return isDarkMode
+				? SystemBarStyle.Dark(transparent)
+				: SystemBarStyle.Light(transparent, transparent);
 		}
 
 		protected override void OnDestroy()

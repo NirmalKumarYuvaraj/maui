@@ -41,3 +41,31 @@ public class ModalPage : ContentPage
 		};
 	}
 }
+
+public class CustomTabbedPage : TabbedPage
+{
+	public CustomTabbedPage()
+	{
+		Microsoft.Maui.Controls.PlatformConfiguration.AndroidSpecific.TabbedPage.SetToolbarPlacement(this, Microsoft.Maui.Controls.PlatformConfiguration.AndroidSpecific.ToolbarPlacement.Bottom);
+		for (int i = 1; i < 5; i++)
+		{
+			var navPage = new NavigationPage { Title = $"Tab {i}", };
+			var contentPage = new ContentPage
+			{
+				Title = $"Tab {i}",
+				Content = new Label
+				{
+					Text = $"This is tab {i}.",
+					VerticalOptions = LayoutOptions.Center,
+					HorizontalOptions = LayoutOptions.Center
+				},
+			};
+			if (i == 2 || i == 3)
+			{
+				NavigationPage.SetHasNavigationBar(contentPage, false);
+			}
+			navPage.PushAsync(contentPage);
+			Children.Add(navPage);
+		}
+	}
+}

@@ -378,9 +378,16 @@ namespace Microsoft.Maui.Controls.Platform
 				}
 
 				WindowCompat.EnableEdgeToEdge(dialog.Window);
-				if (OperatingSystem.IsAndroidVersionAtLeast(29) && !OperatingSystem.IsAndroidVersionAtLeast(34))
+
+				// Match the modal dialog's system-bar icon appearance (light/dark icons) to the app
+				// theme, mirroring the activity. WindowCompat.EnableEdgeToEdge() only makes the bars
+				// transparent and disables contrast enforcement; unlike the AndroidX Activity
+				// EdgeToEdge.Enable() overload it never sets AppearanceLightStatusBars/
+				// AppearanceLightNavigationBars, so without this the dialog window keeps the default
+				// (light/white) icons regardless of theme - unreadable on a light background.
+				if (Context?.GetActivity() is { } activity)
 				{
-					dialog.Window.NavigationBarContrastEnforced = false;
+					dialog.Window.ConfigureTranslucentSystemBars(activity);
 				}
 
 				int width = ViewGroup.LayoutParams.MatchParent;
