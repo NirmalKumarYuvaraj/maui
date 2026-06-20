@@ -14,11 +14,11 @@ public partial class App : Application
 
 		if (!useShell)
 		{
-			return new Window(new NavigationPage(new MainPage()));
+			return new Window(new MainPage());
 		}
 		else
 		{
-			return new Window(new SandboxShell());
+			return new Window(new NavigationPage(new MainPage()));
 		}
 	}
 }

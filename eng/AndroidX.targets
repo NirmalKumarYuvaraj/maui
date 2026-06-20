@@ -5,14 +5,31 @@
     <!-- must be kept in sync with the binding library version to it here: -->
     <PackageReference Update="Xamarin.Android.Glide" Version="4.16.0.14" />
     <PackageReference Update="Xamarin.AndroidX.Activity" Version="1.10.1.3" />
+    <PackageReference Update="Xamarin.AndroidX.Core" Version="1.19.0" />
     <PackageReference Update="Xamarin.AndroidX.Browser" Version="1.8.0.11" />
     <PackageReference Update="Xamarin.AndroidX.DynamicAnimation" Version="1.1.0.3" />
-    <PackageReference Update="Xamarin.AndroidX.Lifecycle.LiveData" Version="2.9.2.1" />
+    <PackageReference Update="Xamarin.AndroidX.Lifecycle.LiveData" Version="2.10.0.2" />
+    <PackageReference Update="Xamarin.AndroidX.Lifecycle.Common" Version="2.10.0.2" />
+    <PackageReference Update="Xamarin.AndroidX.Lifecycle.Runtime" Version="2.10.0.2" />
+    <PackageReference Update="Xamarin.AndroidX.Lifecycle.Process" Version="2.10.0.2" />
     <PackageReference Update="Xamarin.AndroidX.Navigation.Common" Version="2.9.2.1" />
     <PackageReference Update="Xamarin.AndroidX.Navigation.Fragment" Version="2.9.2.1" />
     <PackageReference Update="Xamarin.AndroidX.Navigation.Runtime" Version="2.9.2.1" />
     <PackageReference Update="Xamarin.AndroidX.Navigation.UI" Version="2.9.2.1" />
     <PackageReference Update="Xamarin.AndroidX.Security.SecurityCrypto" Version="1.1.0.4-alpha07" />
+  </ItemGroup>
+  <!-- Pin transitive packages (pulled in by Navigation 2.9.x) to versions compatible with Lifecycle 2.10.x.
+       These must use Include (not Update) because they are never directly referenced by any project. -->
+  <ItemGroup Condition="$(TargetFramework.Contains('-android'))">
+    <PackageReference Include="Xamarin.AndroidX.Core.Core.Ktx" Version="1.19.0" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.Process" Version="2.10.0.2" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.ViewModelSavedState" Version="2.10.0.2" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.Runtime.Ktx" Version="2.10.0.2" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.ViewModel.Ktx" Version="2.10.0.2" />
+    <PackageReference Include="Xamarin.AndroidX.Collection.Ktx" Version="1.6.0" />
+    <PackageReference Include="Xamarin.AndroidX.SavedState.SavedState.Ktx" Version="1.4.0.2" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Update="Xamarin.AndroidX.SwipeRefreshLayout" Version="1.1.0.29" />
     <PackageReference Update="Xamarin.AndroidX.Transition" Version="1.6.0.1" />
     <PackageReference Update="Xamarin.AndroidX.Window.WindowJava" Version="1.4.0.1" />

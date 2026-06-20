@@ -261,20 +261,13 @@ namespace Microsoft.Maui.Controls.Platform
 					dialog.Window.SetSoftInputMode(attributes.SoftInputMode);
 				}
 
-				// Configure translucent system bars for modal pages on Android API 30+
-				if (OperatingSystem.IsAndroidVersionAtLeast(30) && Context?.GetActivity() is global::Android.App.Activity activity)
+				if (mainActivityWindow is not null)
 				{
-					dialog.Window.ConfigureTranslucentSystemBars(activity);
-				}
-				else if (mainActivityWindow is not null)
-				{
-					// Fallback for API < 30: Apply legacy translucent behavior
-					var navigationBarColor = mainActivityWindow.NavigationBarColor;
-					var statusBarColor = mainActivityWindow.StatusBarColor;
-#pragma warning disable CA1422
-					dialog.Window.SetNavigationBarColor(new AColor(navigationBarColor));
-					dialog.Window.SetStatusBarColor(new AColor(statusBarColor));
-#pragma warning restore CA1422
+					if (OperatingSystem.IsAndroidVersionAtLeast(34))
+					{
+						dialog.Window.SetNavigationBarColor(new AColor(global::Android.Graphics.Color.Transparent));
+						dialog.Window.SetStatusBarColor(new AColor(global::Android.Graphics.Color.Transparent));
+					}
 				}
 
 
@@ -382,6 +375,12 @@ namespace Microsoft.Maui.Controls.Platform
 					// SAFETY: Fire event even on early return to prevent deadlock
 					FirePresentationCompleted();
 					return;
+				}
+
+				WindowCompat.EnableEdgeToEdge(dialog.Window);
+				if (OperatingSystem.IsAndroidVersionAtLeast(29) && !OperatingSystem.IsAndroidVersionAtLeast(34))
+				{
+					dialog.Window.NavigationBarContrastEnforced = false;
 				}
 
 				int width = ViewGroup.LayoutParams.MatchParent;

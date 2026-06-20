@@ -28,7 +28,12 @@ namespace Microsoft.Maui
 				: Resource.Style.Maui_MainTheme_NoActionBar);
 
 			base.OnCreate(savedInstanceState);
-			WindowCompat.SetDecorFitsSystemWindows(Window, false);
+			//WindowCompat.SetDecorFitsSystemWindows(Window, false);
+			EdgeToEdge.Enable(this);
+			if (OperatingSystem.IsAndroidVersionAtLeast(29) && !OperatingSystem.IsAndroidVersionAtLeast(34))
+			{
+				Window?.NavigationBarContrastEnforced = false;
+			}
 
 			if (IPlatformApplication.Current?.Application is not null)
 			{

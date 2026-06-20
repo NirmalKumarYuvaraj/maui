@@ -22,7 +22,7 @@ namespace Microsoft.Maui.Handlers
 			if (OperatingSystem.IsAndroidVersionAtLeast(30))
 			{
 				//Edge to Edge enabled for Android API 30+
-				PlatformView.Window.ConfigureTranslucentSystemBars(PlatformView);
+				//PlatformView.Window.ConfigureTranslucentSystemBars(PlatformView);
 			}
 			UpdateVirtualViewFrame(platformView);
 		}
