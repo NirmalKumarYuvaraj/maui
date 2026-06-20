@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Android.Content;
 using Android.Views;
 using AndroidX.Core.Graphics;
@@ -12,12 +13,6 @@ using AView = Android.Views.View;
 
 namespace Microsoft.Maui.Platform
 {
-	/// <summary>
-	/// Registry entry for tracking view instances and their associated listeners.
-	/// Uses WeakReference to avoid memory leaks when views are disposed.
-	/// </summary>
-	internal record ViewEntry(WeakReference<object> View, MauiWindowInsetListener Listener);
-
 	/// <summary>
 	/// Manages window insets and safe area handling for Android views.
 	/// This class can be used as a global listener (one per activity) or as local listeners
@@ -36,8 +31,11 @@ namespace Microsoft.Maui.Platform
 		// Static tracking for views that have local inset listeners.
 		// This registry allows child views to find their appropriate listener without
 		// relying on a global activity-level listener.
-		// Thread Safety: All access must be on UI thread (enforced by Android's threading model).
-		static readonly List<ViewEntry> _registeredViews = new();
+		// ConditionalWeakTable keys on reference identity, holds weak references to the views
+		// (so it never leaks or pins them), and provides O(1) lookups — replacing the previous
+		// linear-scan list and its manual dead-reference cleanup.
+		// Thread Safety: ConditionalWeakTable is thread-safe for concurrent reads and writes.
+		static readonly ConditionalWeakTable<AView, MauiWindowInsetListener> _registeredViews = new();
 
 		/// <summary>
 		/// Registers a view to use this local listener instead of the global one.
@@ -47,23 +45,16 @@ namespace Microsoft.Maui.Platform
 		/// <param name="view">The view to register</param>
 		internal void RegisterView(AView view)
 		{
-			// Clean up dead references and check for existing registration
-			for (int i = _registeredViews.Count - 1; i >= 0; i--)
+			// ConditionalWeakTable handles weak references and dead-entry cleanup automatically,
+			// providing an O(1) lookup instead of a linear scan over a list.
+			if (_registeredViews.TryGetValue(view, out _))
 			{
-				var entry = _registeredViews[i];
-				if (!entry.View.TryGetTarget(out var existingView))
-				{
-					_registeredViews.RemoveAt(i);
-				}
-				else if (existingView == view)
-				{
-					// Already registered, no need to add again
-					return;
-				}
+				// Already registered, no need to add again
+				return;
 			}
 
 			// Add this view to the registry
-			_registeredViews.Add(new ViewEntry(new WeakReference<object>(view), this));
+			_registeredViews.AddOrUpdate(view, this);
 		}
 
 		/// <summary>
@@ -73,14 +64,10 @@ namespace Microsoft.Maui.Platform
 		/// <param name="view">The view to unregister</param>
 		internal static MauiWindowInsetListener? UnregisterView(AView view)
 		{
-			for (int i = _registeredViews.Count - 1; i >= 0; i--)
+			if (_registeredViews.TryGetValue(view, out var listener))
 			{
-				if (_registeredViews[i].View.TryGetTarget(out var registeredView) && registeredView == view)
-				{
-					var listener = _registeredViews[i].Listener;
-					_registeredViews.RemoveAt(i);
-					return listener;
-				}
+				_registeredViews.Remove(view);
+				return listener;
 			}
 			return null;
 		}
@@ -111,19 +98,10 @@ namespace Microsoft.Maui.Platform
 
 				if (parent is AView parentView)
 				{
-					// Check if this parent view is registered
-					// Clean up dead references while searching
-					for (int i = _registeredViews.Count - 1; i >= 0; i--)
+					// O(1) lookup against the ConditionalWeakTable instead of scanning the whole registry.
+					if (_registeredViews.TryGetValue(parentView, out var listener))
 					{
-						var entry = _registeredViews[i];
-						if (!entry.View.TryGetTarget(out var registeredView))
-						{
-							_registeredViews.RemoveAt(i);
-						}
-						else if (ReferenceEquals(registeredView, parentView))
-						{
-							return entry.Listener;
-						}
+						return listener;
 					}
 				}
 
@@ -315,10 +293,10 @@ namespace Microsoft.Maui.Platform
 
 		public bool HasTrackedView => _trackedViews.Count > 0;
 
-        public bool IsViewTracked(AView view)
-        {
-            return _trackedViews.Contains(view);
-        }
+		public bool IsViewTracked(AView view)
+		{
+			return _trackedViews.Contains(view);
+		}
 		public void ResetView(AView view)
 		{
 			if (view is IHandleWindowInsets customHandler)
