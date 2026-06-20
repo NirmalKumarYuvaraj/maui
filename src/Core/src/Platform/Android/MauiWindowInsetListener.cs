@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Android.Content;
 using Android.Views;
+using AndroidX.CoordinatorLayout.Widget;
 using AndroidX.Core.Graphics;
 using AndroidX.Core.View;
 using AndroidX.Core.Widget;
@@ -28,161 +29,7 @@ namespace Microsoft.Maui.Platform
 	/// </summary>
 	internal class MauiWindowInsetListener : WindowInsetsAnimationCompat.Callback, IOnApplyWindowInsetsListener
 	{
-		readonly HashSet<AView> _trackedViews = [];
 		bool IsImeAnimating { get; set; }
-
-		AView? _pendingView;
-
-		// Static tracking for views that have local inset listeners.
-		// This registry allows child views to find their appropriate listener without
-		// relying on a global activity-level listener.
-		// Thread Safety: All access must be on UI thread (enforced by Android's threading model).
-		static readonly List<ViewEntry> _registeredViews = new();
-
-		/// <summary>
-		/// Registers a view to use this local listener instead of the global one.
-		/// This enables per-view inset management for better isolation in complex scenarios.
-		/// Must be called on UI thread.
-		/// </summary>
-		/// <param name="view">The view to register</param>
-		internal void RegisterView(AView view)
-		{
-			// Clean up dead references and check for existing registration
-			for (int i = _registeredViews.Count - 1; i >= 0; i--)
-			{
-				var entry = _registeredViews[i];
-				if (!entry.View.TryGetTarget(out var existingView))
-				{
-					_registeredViews.RemoveAt(i);
-				}
-				else if (existingView == view)
-				{
-					// Already registered, no need to add again
-					return;
-				}
-			}
-
-			// Add this view to the registry
-			_registeredViews.Add(new ViewEntry(new WeakReference<object>(view), this));
-		}
-
-		/// <summary>
-		/// Unregisters a view from using this local listener.
-		/// Must be called on UI thread.
-		/// </summary>
-		/// <param name="view">The view to unregister</param>
-		internal static MauiWindowInsetListener? UnregisterView(AView view)
-		{
-			for (int i = _registeredViews.Count - 1; i >= 0; i--)
-			{
-				if (_registeredViews[i].View.TryGetTarget(out var registeredView) && registeredView == view)
-				{
-					var listener = _registeredViews[i].Listener;
-					_registeredViews.RemoveAt(i);
-					return listener;
-				}
-			}
-			return null;
-		}
-
-		/// <summary>
-		/// Finds the appropriate MauiWindowInsetListener for a given view by walking
-		/// up the view hierarchy until a registered view is found.
-		/// Must be called on UI thread.
-		/// </summary>
-		/// <param name="view">The view to find a listener for</param>
-		/// <returns>The local listener if view is in a registered view hierarchy, null otherwise</returns>
-		internal static MauiWindowInsetListener? FindListenerForView(AView view)
-		{
-			// Walk up the view hierarchy looking for a registered view
-			var parent = view.Parent;
-			while (parent is not null)
-			{
-				// Skip setting listener on views inside nested scroll containers or AppBarLayout (except MaterialToolbar)
-				// We want the layout listener logic to get applied to the MaterialToolbar itself
-				// But we don't want any layout listeners to get applied to the children of MaterialToolbar (like the TitleView)
-				// CollectionView/CarouselView items are not excluded to enable per-item SafeAreaEdges control.
-				// Performance overhead is negligible due to early pass-through for items without insets.
-				if (view is not MaterialToolbar &&
-					(parent is AppBarLayout || parent is MauiScrollView))
-				{
-					return null;
-				}
-
-				if (parent is AView parentView)
-				{
-					// Check if this parent view is registered
-					// Clean up dead references while searching
-					for (int i = _registeredViews.Count - 1; i >= 0; i--)
-					{
-						var entry = _registeredViews[i];
-						if (!entry.View.TryGetTarget(out var registeredView))
-						{
-							_registeredViews.RemoveAt(i);
-						}
-						else if (ReferenceEquals(registeredView, parentView))
-						{
-							return entry.Listener;
-						}
-					}
-				}
-
-				parent = parent.Parent;
-			}
-
-			return null;
-		}
-
-		/// <summary>
-		/// Sets up a view to use this listener for inset handling.
-		/// This method registers the view and attaches the listener.
-		/// Must be called on UI thread.
-		/// </summary>
-		/// <param name="view">The view to set up</param>
-		/// <returns>The same view for method chaining</returns>
-		internal static AView SetupViewWithLocalListener(AView view, MauiWindowInsetListener? listener = null)
-		{
-			listener ??= new MauiWindowInsetListener();
-			ViewCompat.SetOnApplyWindowInsetsListener(view, listener);
-			ViewCompat.SetWindowInsetsAnimationCallback(view, listener);
-
-			listener.RegisterView(view);
-
-			return view;
-		}
-
-		/// <summary>
-		/// Registers a parent view so its children can find an inset listener, without attaching
-		/// the listener to the parent itself. This is useful when you want child views to handle
-		/// insets but don't want the parent view to consume them.
-		/// Must be called on UI thread.
-		/// </summary>
-		/// <param name="parentView">The parent view to register</param>
-		/// <param name="listener">Optional listener to use. If null, a new one is created.</param>
-		/// <returns>The listener that was registered</returns>
-		internal static MauiWindowInsetListener RegisterParentForChildViews(AView parentView, MauiWindowInsetListener? listener = null)
-		{
-			listener ??= new MauiWindowInsetListener();
-			listener.RegisterView(parentView);
-			return listener;
-		}
-
-		/// <summary>
-		/// Removes the local listener from a view and properly cleans up.
-		/// This resets all tracked views and unregisters the view.
-		/// Must be called on UI thread.
-		/// </summary>
-		/// <param name="view">The view to clean up</param>
-		internal static void RemoveViewWithLocalListener(AView view)
-		{
-			// Remove the listener from the view
-			ViewCompat.SetOnApplyWindowInsetsListener(view, null);
-			ViewCompat.SetWindowInsetsAnimationCallback(view, null);
-
-			// Reset any tracked views within this view
-			UnregisterView(view)?.ResetAppliedSafeAreas(view);
-		}
-
 		public MauiWindowInsetListener() : base(DispatchModeStop)
 		{
 		}
@@ -191,20 +38,12 @@ namespace Microsoft.Maui.Platform
 		{
 			if (insets is null || !insets.HasInsets || v is null || IsImeAnimating)
 			{
-				if (IsImeAnimating)
-				{
-					_pendingView = v;
-				}
-
 				return insets;
 			}
 
-			_pendingView = null;
-
-			// Handle custom inset views first
 			if (v is IHandleWindowInsets customHandler)
 			{
-				return customHandler.HandleWindowInsets(v, insets);
+				return customHandler.HandleWindowInsets(insets);
 			}
 
 			// Apply default window insets for standard views
@@ -215,13 +54,6 @@ namespace Microsoft.Maui.Platform
 		{
 			var systemBars = insets.GetInsets(WindowInsetsCompat.Type.SystemBars());
 			var displayCutout = insets.GetInsets(WindowInsetsCompat.Type.DisplayCutout());
-
-			// Handle MaterialToolbar special case early
-			if (v is MaterialToolbar)
-			{
-				v.SetPadding(displayCutout?.Left ?? 0, 0, displayCutout?.Right ?? 0, 0);
-				return WindowInsetsCompat.Consumed;
-			}
 
 			// Find AppBarLayout - check direct child first, then first two children
 			var appBarLayout = v.FindViewById<AppBarLayout>(Resource.Id.navigationlayout_appbar);
@@ -303,91 +135,9 @@ namespace Microsoft.Maui.Platform
 				displayCutout?.Bottom ?? 0) ?? Insets.None;
 
 			return new WindowInsetsCompat.Builder(insets)
-				?.SetInsets(WindowInsetsCompat.Type.SystemBars(), newSystemBars)
-				?.SetInsets(WindowInsetsCompat.Type.DisplayCutout(), newDisplayCutout)
-				?.Build() ?? insets;
-		}
-
-		public void TrackView(AView view)
-		{
-			_trackedViews.Add(view);
-		}
-
-		public bool HasTrackedView => _trackedViews.Count > 0;
-
-		public bool IsViewTracked(AView view)
-		{
-			return _trackedViews.Contains(view);
-		}
-		public void ResetView(AView view)
-		{
-			if (view is IHandleWindowInsets customHandler)
-			{
-				customHandler.ResetWindowInsets(view);
-			}
-
-			_trackedViews.Remove(view);
-		}
-
-		public void ResetAllViews()
-		{
-			// Create a copy to avoid modification during enumeration
-			var viewsToReset = _trackedViews.ToArray();
-			foreach (var view in viewsToReset)
-			{
-				ResetView(view);
-			}
-		}
-
-		/// <summary>
-		/// Resets all tracked descendant views of the specified parent view to their original padding.
-		/// This should be called before applying new insets when SafeArea settings change.
-		/// </summary>
-		/// <param name="view">The parent view whose descendants should be reset</param>
-		public void ResetAppliedSafeAreas(AView view)
-		{
-			ResetView(view);
-
-			// Find all tracked views that are descendants of the parent view and reset them
-			foreach (var trackedView in _trackedViews.ToArray()) // Use ToArray to avoid modification during enumeration
-			{
-				if (IsDescendantOf(trackedView, view))
-				{
-					ResetView(trackedView);
-				}
-			}
-		}
-
-		/// <summary>
-		/// Checks if a view is a descendant of a parent view
-		/// </summary>
-		static bool IsDescendantOf(AView? child, AView parent)
-		{
-			if (child is null)
-			{
-				return false;
-			}
-
-			var currentParent = child.Parent;
-			while (currentParent is not null)
-			{
-				if (currentParent == parent)
-				{
-					return true;
-				}
-
-				currentParent = currentParent.Parent;
-			}
-			return false;
-		}
-
-		protected override void Dispose(bool disposing)
-		{
-			if (disposing)
-			{
-				ResetAllViews();
-			}
-			base.Dispose(disposing);
+			?.SetInsets(WindowInsetsCompat.Type.SystemBars(), newSystemBars)
+			?.SetInsets(WindowInsetsCompat.Type.DisplayCutout(), newDisplayCutout)
+			?.Build() ?? insets;
 		}
 
 		public override void OnPrepare(WindowInsetsAnimationCompat? animation)
@@ -410,9 +160,9 @@ namespace Microsoft.Maui.Platform
 
 		public override WindowInsetsCompat? OnProgress(WindowInsetsCompat? insets, IList<WindowInsetsAnimationCompat>? runningAnimations)
 		{
-			if (runningAnimations?.Count > 0 && _pendingView is not null)
+			if (runningAnimations?.Count > 0)
 			{
-				ApplyWindowInsets(_pendingView, insets);
+				//ApplyWindowInsets(_pendingView, insets);
 			}
 
 			return insets;
@@ -454,23 +204,17 @@ namespace Microsoft.Maui.Platform
 internal static class MauiWindowInsetListenerExtensions
 {
 	/// <summary>
-	/// Sets the appropriate MauiWindowInsetListener on the specified view.
-	/// This prioritizes local view listeners over global ones.
+	/// Sets a MauiWindowInsetListener for the specified view, allowing it to handle window insets and safe area adjustments.
+	/// If no listener is provided, a new instance will be created and attached to the view.
+	/// This is typically used for child views that need to handle their own insets behavior.
 	/// </summary>
-	/// <param name="view">The Android view to set the listener on</param>
-	/// <param name="context">The Android context to get the listener from</param>
-	public static bool SetMauiWindowInsetListenerForChildView(this View view, Context context)
+	/// <param name="view"></param>
+	/// <param name="listener"></param>
+	public static void SetMauiWindowInsetListener(this View view, MauiWindowInsetListener? listener = null)
 	{
-		// Check if this view is contained within a registered view first
-		if (MauiWindowInsetListener.FindListenerForView(view) is MauiWindowInsetListener localListener)
-		{
-			ViewCompat.SetOnApplyWindowInsetsListener(view, localListener);
-			ViewCompat.SetWindowInsetsAnimationCallback(view, localListener);
-			return true;
-		}
-
-		// If no listener available, this is likely a configuration issue but not critical
-		return false;
+		listener ??= new MauiWindowInsetListener();
+		ViewCompat.SetOnApplyWindowInsetsListener(view, listener);
+		ViewCompat.SetWindowInsetsAnimationCallback(view, listener);
 	}
 
 	/// <summary>
@@ -478,33 +222,10 @@ internal static class MauiWindowInsetListenerExtensions
 	/// This should be called when a view is being detached to ensure proper cleanup.
 	/// </summary>
 	/// <param name="view">The Android view to remove the listener from</param>
-	public static void RemoveMauiWindowInsetListenerForChildView(this View view)
+	public static void RemoveMauiWindowInsetListener(this View view)
 	{
 		// Clear the listeners first
 		ViewCompat.SetOnApplyWindowInsetsListener(view, null);
 		ViewCompat.SetWindowInsetsAnimationCallback(view, null);
-
-		// Reset view state - prefer local listener if available, otherwise use global
-		var listener = MauiWindowInsetListener.FindListenerForView(view);
-		listener?.ResetView(view);
-	}
-
-	public static void SetMauiWindowInsetListenerForRootView(AView view, MauiWindowInsetListener? listener = null)
-	{
-		listener ??= new MauiWindowInsetListener();
-		ViewCompat.SetOnApplyWindowInsetsListener(view, listener);
-		ViewCompat.SetWindowInsetsAnimationCallback(view, listener);
-
-		// TODO: Consider registering the root view in the listener's registry if needed for child view tracking.
-	}
-
-	public static void RemoveMauiWindowInsetListenerForRootView(AView view)
-	{
-		// Remove the listener from the view
-		ViewCompat.SetOnApplyWindowInsetsListener(view, null);
-		ViewCompat.SetWindowInsetsAnimationCallback(view, null);
-
-
-		// TODO: Reset any tracked views within this view
 	}
 }

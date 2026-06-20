@@ -5,29 +5,34 @@ public partial class MainPage : ContentPage
 	public MainPage()
 	{
 		InitializeComponent();
-		Title = "Sandbox";
-		CollectionView collectionView = new CollectionView
-		{
-			ItemsSource = Enumerable.Range(1, 100).Select(i => $"Item {i}").ToList(),
-			ItemTemplate = new DataTemplate(() =>
-			{
-				Label label = new Label();
-				label.SetBinding(Label.TextProperty, ".");
-				return new StackLayout
-				{
-					Padding = new Thickness(10),
-					Children = { label }
-				};
-			})
-		};
+		// Title = "Sandbox";
+		// CollectionView collectionView = new CollectionView
+		// {
+		// 	ItemsSource = Enumerable.Range(1, 100).Select(i => $"Item {i}").ToList(),
+		// 	ItemTemplate = new DataTemplate(() =>
+		// 	{
+		// 		Label label = new Label();
+		// 		label.SetBinding(Label.TextProperty, ".");
+		// 		return new StackLayout
+		// 		{
+		// 			Padding = new Thickness(10),
+		// 			Children = { label }
+		// 		};
+		// 	})
+		// };
 
-		Grid grid = new Grid();
-		grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Star });
-		grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(75) });
-		grid.Add(collectionView, 0, 0);
-		Entry entry = new Entry { Placeholder = "Type something..." };
-		grid.Add(entry, 0, 1);
-		Content = grid;
+		// Grid grid = new Grid();
+		// grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Star });
+		// grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(75) });
+		// grid.Add(collectionView, 0, 0);
+		// Entry entry = new Entry { Placeholder = "Type something..." };
+		// grid.Add(entry, 0, 1);
+		// Content = grid;
+	}
+
+	void OnButtonClicked(object sender, EventArgs e)
+	{
+		this.SafeAreaEdges = SafeAreaEdges.None;
 	}
 }
 

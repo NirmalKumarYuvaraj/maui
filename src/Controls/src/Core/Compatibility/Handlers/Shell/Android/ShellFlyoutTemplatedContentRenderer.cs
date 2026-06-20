@@ -208,7 +208,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			};
 
 			_shellFlyoutListener = new ShellFlyoutWindowInsetListener(_bgImage);
-			MauiWindowInsetListener.SetupViewWithLocalListener(coordinator, _shellFlyoutListener);
+			MauiWindowInsetListenerExtensions.SetMauiWindowInsetListener(coordinator, _shellFlyoutListener);
 
 			UpdateFlyoutHeaderBehavior();
 			_shellContext.Shell.PropertyChanged += OnShellPropertyChanged;
@@ -731,7 +731,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 			if (_rootView is CoordinatorLayout coordinator)
 			{
-				MauiWindowInsetListener.RemoveViewWithLocalListener(coordinator);
+				MauiWindowInsetListenerExtensions.RemoveMauiWindowInsetListener(coordinator);
 			}
 
 			if (_shellContext?.Shell != null)

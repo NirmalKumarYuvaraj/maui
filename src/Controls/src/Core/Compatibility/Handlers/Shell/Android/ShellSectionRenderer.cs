@@ -105,7 +105,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			var root = PlatformInterop.CreateShellCoordinatorLayout(context);
 			var appbar = PlatformInterop.CreateShellAppBar(context, Resource.Attribute.appBarLayoutStyle, root);
 
-			MauiWindowInsetListener.SetupViewWithLocalListener(root);
+			MauiWindowInsetListenerExtensions.SetMauiWindowInsetListener(root);
 
 			int actionBarHeight = context.GetActionBarHeight();
 
@@ -202,7 +202,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				// Clean up the coordinator layout and local listener first
 				if (_rootView is not null)
 				{
-					MauiWindowInsetListener.RemoveViewWithLocalListener(_rootView);
+					MauiWindowInsetListenerExtensions.RemoveMauiWindowInsetListener(_rootView);
 				}
 
 				UnhookEvents();
@@ -242,11 +242,11 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			Destroy();
 			base.OnDestroy();
 		}
-		
+
 		public override void OnHiddenChanged(bool hidden)
 		{
 			base.OnHiddenChanged(hidden);
-			
+
 			if (!hidden && _shellToolbar?.Handler != null)
 			{
 				_shellToolbar.Handler.UpdateValue(nameof(Toolbar.TitleView));

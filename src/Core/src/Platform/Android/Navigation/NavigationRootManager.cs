@@ -81,13 +81,13 @@ namespace Microsoft.Maui.Platform
 				if (navigationLayout is not null)
 				{
 					_managedCoordinatorLayout = navigationLayout;
-					MauiWindowInsetListener.SetupViewWithLocalListener(navigationLayout);
+					MauiWindowInsetListenerExtensions.SetMauiWindowInsetListener(navigationLayout);
 				}
 
 				_rootView = navigationLayout;
 			}
 
-			if(!OperatingSystem.IsAndroidVersionAtLeast(30))
+			if (!OperatingSystem.IsAndroidVersionAtLeast(30))
 			{
 				// Dispatches insets to all children recursively (for API < 30)
 				// This implements Google's workaround for the API 28-29 bug where
@@ -104,7 +104,7 @@ namespace Microsoft.Maui.Platform
 					ViewGroupCompat.InstallCompatInsetsDispatch(_rootView);
 				}
 			}
-			
+
 			// if the incoming view is a Drawer Layout then the Drawer Layout
 			// will be the root view and internally handle all if its view management
 			// this is mainly used for FlyoutView
@@ -141,7 +141,7 @@ namespace Microsoft.Maui.Platform
 			// Clean up the coordinator layout and local listener first
 			if (_managedCoordinatorLayout is not null)
 			{
-				MauiWindowInsetListener.RemoveViewWithLocalListener(_managedCoordinatorLayout);
+				MauiWindowInsetListenerExtensions.RemoveMauiWindowInsetListener(_managedCoordinatorLayout);
 			}
 
 			ClearPlatformParts();

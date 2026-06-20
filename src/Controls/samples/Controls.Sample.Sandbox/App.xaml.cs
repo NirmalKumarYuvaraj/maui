@@ -14,7 +14,7 @@ public partial class App : Application
 
 		if (!useShell)
 		{
-			return new Window(new CustomTabbedPage());
+			return new Window(new MainPage());
 		}
 		else
 		{

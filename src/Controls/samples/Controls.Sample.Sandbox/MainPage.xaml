@@ -1,5 +1,22 @@
 ﻿<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Maui.Controls.Sample.MainPage"
+             SafeAreaEdges="All"
              xmlns:local="clr-namespace:Maui.Controls.Sample">
+
+    <Border Stroke="Black"
+            StrokeThickness="2"
+            BackgroundColor="LightGray"
+            Padding="10">
+        <StackLayout>
+            <Label Text="Hello, World!"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center"/>
+
+            <Button Text="Click Me"
+                    Clicked="OnButtonClicked"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"/>
+        </StackLayout>
+    </Border>
 </ContentPage>

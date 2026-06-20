@@ -27,7 +27,7 @@ namespace Microsoft.Maui.Controls.Platform
 	{
 		static ColorStateList? _defaultTitleTextColor;
 		static int? _defaultNavigationIconColor;
-		
+
 		// Track which ToolbarItem should currently be associated with each MenuItem ID to prevent race conditions
 		// This prevents stale async icon loading callbacks from updating the wrong toolbar items during navigation
 		static readonly ConcurrentDictionary<int, WeakReference<ToolbarItem>> _menuItemToolbarItemMap = new();
@@ -54,7 +54,6 @@ namespace Microsoft.Maui.Controls.Platform
 			}
 
 			nativeToolbar.LayoutParameters = lp;
-			AndroidX.Core.View.ViewCompat.RequestApplyInsets(nativeToolbar);
 		}
 
 		public static void UpdateTitleIcon(this AToolbar nativeToolbar, Toolbar toolbar)
@@ -139,7 +138,7 @@ namespace Microsoft.Maui.Controls.Platform
 				else
 				{
 					// Reinitialize navigation icon to display flyout (hamburger) menu
-    				// This ensures the icon is shown when back button is not visible
+					// This ensures the icon is shown when back button is not visible
 					nativeToolbar.NavigationIcon = new DrawerArrowDrawable(context!);
 					if (nativeToolbar.NavigationIcon is DrawerArrowDrawable iconDrawable)
 						iconDrawable.Progress = 0;
@@ -276,7 +275,7 @@ namespace Microsoft.Maui.Controls.Platform
 					{
 						// Clean up the mapping for disposed MenuItems
 						_menuItemToolbarItemMap.TryRemove(previousMenuItem.ItemId, out _);
-						
+
 						previousMenuItem.Dispose();
 						previousMenuItems.RemoveAt(j);
 					}
@@ -298,10 +297,10 @@ namespace Microsoft.Maui.Controls.Platform
 			{
 				var menuItemToRemove = previousMenuItems[toolBarItemCount];
 				menu?.RemoveItem(menuItemToRemove.ItemId);
-				
+
 				// Clean up the mapping for disposed MenuItems
 				_menuItemToolbarItemMap.TryRemove(menuItemToRemove.ItemId, out _);
-				
+
 				menuItemToRemove.Dispose();
 				previousMenuItems.RemoveAt(toolBarItemCount);
 			}
@@ -377,7 +376,7 @@ namespace Microsoft.Maui.Controls.Platform
 
 			// Track which ToolbarItem should be associated with this MenuItem to prevent race conditions
 			_menuItemToolbarItemMap[menuitem.ItemId] = new WeakReference<ToolbarItem>(item);
-			
+
 			// NOTE: Custom updateMenuItemIcon callbacks are responsible for their own
 			// race condition handling. The _menuItemToolbarItemMap guard only applies
 			// to the default UpdateMenuItemIcon path.
