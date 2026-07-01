@@ -4,135 +4,182 @@
              xmlns:local="clr-namespace:Maui.Controls.Sample"
              x:Class="Maui.Controls.Sample.GraphicsViewOptionsPage"
              Title="GraphicsViewFeature">
-  <ContentPage.ToolbarItems>
-    <ToolbarItem Text="Apply"
-        Clicked="ApplyButton_Clicked"
-        AutomationId="Apply"/>
-  </ContentPage.ToolbarItems>
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Apply"
+                     Clicked="ApplyButton_Clicked"
+                     AutomationId="Apply"/>
+    </ContentPage.ToolbarItems>
 
-  <Grid Padding="10"
-      ColumnDefinitions="*, *"
-      RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto"
-      ColumnSpacing="15">
-    <!-- Left Column -->
-    <StackLayout Grid.Column="0"
-        Padding="10"
-        Spacing="8">
+    <Grid Padding="10"
+          ColumnDefinitions="*, *"
+          RowDefinitions="0.9*, 0.1*"
+          ColumnSpacing="15">
+        <!-- Left Column -->
+        <StackLayout Grid.Column="0"
+                Grid.Row="0"
+                     Padding="10"
+                     Spacing="8">
 
-      <Label Text="Drawable Type:"
-          FontSize="15"/>
-      <StackLayout Orientation="Vertical">
-        <RadioButton x:Name="DrawableSquare"
-            AutomationId="Square"
-            GroupName="DrawableType"
-            Content="Square"
-            IsChecked="True"
-            CheckedChanged="OnDrawableChanged"/>
-        <RadioButton x:Name="DrawableTriangle"
-            AutomationId="Triangle"
-            GroupName="DrawableType"
-            Content="Triangle"
-            CheckedChanged="OnDrawableChanged"/>
-        <RadioButton x:Name="DrawableEllipse"
-            AutomationId="Ellipse"
-            GroupName="DrawableType"
-            Content="Ellipse"
-            CheckedChanged="OnDrawableChanged"/>
-        <RadioButton x:Name="DrawableLine"
-            AutomationId="Line"
-            GroupName="DrawableType"
-            Content="Line"
-            CheckedChanged="OnDrawableChanged"/>
-        <RadioButton x:Name="DrawableString"
-            AutomationId="String"
-            GroupName="DrawableType"
-            Content="String"
-            CheckedChanged="OnDrawableChanged"/>
-        <RadioButton x:Name="DrawableImage"
-            AutomationId="Image"
-            GroupName="DrawableType"
-            Content="Image"
-            CheckedChanged="OnDrawableChanged"/>
-        <RadioButton x:Name="DrawableTransparentEllipse"
-            AutomationId="TransparentEllipse"
-            GroupName="DrawableType"
-            Content="TransparentEllipse"
-            CheckedChanged="OnDrawableChanged"/>
-      </StackLayout>
+            <Label Text="Drawable Type:"
+                   FontSize="15"/>
+            <StackLayout Orientation="Vertical">
+                <RadioButton x:Name="DrawableLine"
+                             AutomationId="Line"
+                             GroupName="DrawableType"
+                             Content="Line"
+                             IsChecked="True"
+                             CheckedChanged="OnDrawableChanged"/>
 
-      <!-- Is Enabled -->
-      <Label Text="Is Enabled:"
-          FontSize="15"/>
-      <StackLayout Orientation="Horizontal">
-        <RadioButton x:Name="IsEnabledTrueRadio"
-            AutomationId="IsEnabledTrueRadio"
-            GroupName="IsEnabled"
-            Content="True"
-            IsChecked="True"
-            FontSize="14"
-            CheckedChanged="OnIsEnabledCheckedChanged"/>
-        <RadioButton x:Name="IsEnabledFalseRadio"
-            AutomationId="IsEnabledFalseRadio"
-            GroupName="IsEnabled"
-            Content="False"
-            FontSize="14"
-            CheckedChanged="OnIsEnabledCheckedChanged"/>
-      </StackLayout>
+                <RadioButton x:Name="DrawableEllipse"
+                             AutomationId="Ellipse"
+                             GroupName="DrawableType"
+                             Content="Ellipse"
+                             IsChecked="False"
+                             CheckedChanged="OnDrawableChanged"/>
 
-      <!-- Is Visible -->
-      <Label Text="Is Visible:"
-          FontSize="15"/>
-      <StackLayout Orientation="Horizontal">
-        <RadioButton x:Name="IsVisibleTrueRadio"
-            AutomationId="IsVisibleTrueRadio"
-            GroupName="IsVisible"
-            Content="True"
-            IsChecked="True"
-            FontSize="14"
-            CheckedChanged="OnIsVisibleCheckedChanged"/>
-        <RadioButton x:Name="IsVisibleFalseRadio"
-            AutomationId="IsVisibleFalseRadio"
-            GroupName="IsVisible"
-            Content="False"
-            FontSize="14"
-            CheckedChanged="OnIsVisibleCheckedChanged"/>
-      </StackLayout>
+                <RadioButton x:Name="DrawableRectangle"
+                             AutomationId="Rectangle"
+                             GroupName="DrawableType"
+                             Content="Rectangle"
+                             IsChecked="False"
+                             CheckedChanged="OnDrawableChanged"/>
 
-      <!-- Shadow Properties -->
-      <Label Text="Shadow (OffsetX,OffsetY,Radius,Opacity):"
-          FontSize="15"/>
-      <Entry x:Name="ShadowInputEntry"
-          Text=""
-          Keyboard="Text"
-          AutomationId="ShadowInputEntry"
-          TextChanged="OnShadowInputChanged"/>
-    </StackLayout>
+                <RadioButton x:Name="DrawableRoundedRectangle"
+                             AutomationId="RoundedRectangle"
+                             GroupName="DrawableType"
+                             Content="RoundedRectangle"
+                             IsChecked="False"
+                             CheckedChanged="OnDrawableChanged"/>
 
-    <StackLayout Grid.Column="1"
-        Padding="10"
-        Spacing="12">
-      <!-- GraphicsView Height -->
-      <Label Text="GraphicsView Height:"
-          FontSize="15"/>
-      <StackLayout Orientation="Horizontal"
-          Spacing="5">
-        <Entry x:Name="HeightRequestEntry"
-            Text="{Binding HeightRequest}"
-            Keyboard="Numeric"
-            AutomationId="HeightRequestEntry"/>
-      </StackLayout>
+                <RadioButton x:Name="DrawableArc"
+                             AutomationId="Arc"
+                             GroupName="DrawableType"
+                             Content="Arc"
+                             IsChecked="False"
+                             CheckedChanged="OnDrawableChanged"/>
 
-      <!-- GraphicsView Width -->
-      <Label Text="GraphicsView Width:"
-          FontSize="15"/>
-      <StackLayout Orientation="Horizontal"
-          Spacing="5">
-        <Entry x:Name="WidthRequestEntry"
-            Text="{Binding WidthRequest}"
-            Keyboard="Numeric"
-            AutomationId="WidthRequestEntry"/>
-      </StackLayout>
+                <RadioButton x:Name="DrawablePath"
+                             AutomationId="Path"
+                             GroupName="DrawableType"
+                             Content="Path"
+                             IsChecked="False"
+                             CheckedChanged="OnDrawableChanged"/>
+                <RadioButton x:Name="DrawableImage"
+                             AutomationId="Image"
+                             GroupName="DrawableType"
+                             Content="Image"
+                             IsChecked="False"
+                             CheckedChanged="OnDrawableChanged"/>
+                <RadioButton x:Name="DrawableString"
+                             AutomationId="String"
+                             GroupName="DrawableType"
+                             Content="String"
+                             IsChecked="False"
+                             CheckedChanged="OnDrawableChanged"/>
+                <RadioButton x:Name="DrawableAttributedString"
+                             AutomationId="AttributedString"
+                             GroupName="DrawableType"
+                             Content="AttributedString"
+                             IsChecked="False"
+                             CheckedChanged="OnDrawableChanged"/>
+                <RadioButton x:Name="DrawableShadow"
+                             AutomationId="Shadow"
+                             GroupName="DrawableType"
+                             Content="Shadow"
+                             IsChecked="False"
+                             CheckedChanged="OnDrawableChanged"/>
+                <RadioButton x:Name="DrawableClip"
+                             AutomationId="Clip"
+                             GroupName="DrawableType"
+                             Content="Clip"
+                             IsChecked="False"
+                             CheckedChanged="OnDrawableChanged"/>
 
-    </StackLayout>
-  </Grid>
+            </StackLayout>
+
+        </StackLayout>
+
+        <Button Grid.ColumnSpan="2"
+                Grid.Row="7"
+                Text="Go TO Drawable Options"
+                Clicked="NavigateToDrawableOptionsButton_Clicked"
+                AutomationId="NavigateToDrawableOptionsButton"/>
+
+        <StackLayout Grid.Column="1"
+                Grid.Row="0"
+                     Padding="10"
+                     Spacing="12">
+            <!-- GraphicsView Height -->
+            <Label Text="GraphicsView Height:"
+                   FontSize="15"/>
+            <StackLayout Orientation="Horizontal"
+                         Spacing="5">
+                <Entry x:Name="HeightRequestEntry"
+                       Text="{Binding HeightRequest}"
+                       Keyboard="Numeric"
+                       AutomationId="HeightRequestEntry"/>
+            </StackLayout>
+
+            <!-- GraphicsView Width -->
+            <Label Text="GraphicsView Width:"
+                   FontSize="15"/>
+            <StackLayout Orientation="Horizontal"
+                         Spacing="5">
+                <Entry x:Name="WidthRequestEntry"
+                       Text="{Binding WidthRequest}"
+                       Keyboard="Numeric"
+                       AutomationId="WidthRequestEntry"/>
+            </StackLayout>
+
+            <StackLayout>
+                <!-- Is Enabled -->
+                <Label Text="Is Enabled:"
+                       FontSize="15"/>
+                <StackLayout Orientation="Horizontal">
+                    <RadioButton x:Name="IsEnabledTrueRadio"
+                                 AutomationId="IsEnabledTrueRadio"
+                                 GroupName="IsEnabled"
+                                 Content="True"
+                                 IsChecked="True"
+                                 FontSize="14"
+                                 CheckedChanged="OnIsEnabledCheckedChanged"/>
+                    <RadioButton x:Name="IsEnabledFalseRadio"
+                                 AutomationId="IsEnabledFalseRadio"
+                                 GroupName="IsEnabled"
+                                 Content="False"
+                                 FontSize="14"
+                                 CheckedChanged="OnIsEnabledCheckedChanged"/>
+                </StackLayout>
+
+                <!-- Is Visible -->
+                <Label Text="Is Visible:"
+                       FontSize="15"/>
+                <StackLayout Orientation="Horizontal">
+                    <RadioButton x:Name="IsVisibleTrueRadio"
+                                 AutomationId="IsVisibleTrueRadio"
+                                 GroupName="IsVisible"
+                                 Content="True"
+                                 IsChecked="True"
+                                 FontSize="14"
+                                 CheckedChanged="OnIsVisibleCheckedChanged"/>
+                    <RadioButton x:Name="IsVisibleFalseRadio"
+                                 AutomationId="IsVisibleFalseRadio"
+                                 GroupName="IsVisible"
+                                 Content="False"
+                                 FontSize="14"
+                                 CheckedChanged="OnIsVisibleCheckedChanged"/>
+                </StackLayout>
+
+                <!-- Shadow Properties -->
+                <Label Text="Shadow (OffsetX,OffsetY,Radius,Opacity):"
+                       FontSize="15"/>
+                <Entry x:Name="ShadowInputEntry"
+                       Text=""
+                       Keyboard="Text"
+                       AutomationId="ShadowInputEntry"
+                       TextChanged="OnShadowInputChanged"/>
+            </StackLayout>
+
+        </StackLayout>
+    </Grid>
 </ContentPage>
