@@ -31,6 +31,8 @@ namespace Microsoft.Maui.Platform
 		readonly HashSet<AView> _trackedViews = [];
 		bool IsImeAnimating { get; set; }
 
+		AView? _rootView;
+
 		AView? _pendingView;
 
 		// Static tracking for views that have local inset listeners.
@@ -186,6 +188,7 @@ namespace Microsoft.Maui.Platform
 		internal static AView SetupViewWithLocalListener(AView view, MauiWindowInsetListener? listener = null)
 		{
 			listener ??= new MauiWindowInsetListener();
+			listener._rootView = view;
 			ViewCompat.SetOnApplyWindowInsetsListener(view, listener);
 			ViewCompat.SetWindowInsetsAnimationCallback(view, listener);
 
@@ -232,11 +235,14 @@ namespace Microsoft.Maui.Platform
 
 		public virtual WindowInsetsCompat? OnApplyWindowInsets(AView? v, WindowInsetsCompat? insets)
 		{
+			System.Diagnostics.Debug.WriteLine($" MauiWindowInsetListener OnApplyWindowInsets called for view");
 			if (insets is null || !insets.HasInsets || v is null || IsImeAnimating)
 			{
 				if (IsImeAnimating)
 				{
 					_pendingView = v;
+					System.Diagnostics.Debug.WriteLine($" MauiWindowInsetListener OnApplyWindowInsets: IME is animating, deferring insets for view {_pendingView?.Id}");
+
 				}
 
 				return insets;
@@ -247,6 +253,8 @@ namespace Microsoft.Maui.Platform
 			// Handle custom inset views first
 			if (v is IHandleWindowInsets customHandler)
 			{
+				System.Diagnostics.Debug.WriteLine($" MauiWindowInsetListener OnApplyWindowInsets: Handling custom insets for view {v.Id}");
+
 				return customHandler.HandleWindowInsets(v, insets);
 			}
 
@@ -256,6 +264,8 @@ namespace Microsoft.Maui.Platform
 
 		static WindowInsetsCompat? ApplyDefaultWindowInsets(AView v, WindowInsetsCompat insets)
 		{
+			System.Diagnostics.Debug.WriteLine($" MauiWindowInsetListener ApplyDefaultWindowInsets called for view {v.Id} with insets {insets}");
+
 			var systemBars = insets.GetInsets(WindowInsetsCompat.Type.SystemBars());
 			var displayCutout = insets.GetInsets(WindowInsetsCompat.Type.DisplayCutout());
 
@@ -263,6 +273,7 @@ namespace Microsoft.Maui.Platform
 			if (v is MaterialToolbar)
 			{
 				v.SetPadding(displayCutout?.Left ?? 0, 0, displayCutout?.Right ?? 0, 0);
+				System.Diagnostics.Debug.WriteLine($" MauiWindowInsetListener ApplyDefaultWindowInsets: Applied insets to MaterialToolbar {v.Id}");
 				return WindowInsetsCompat.Consumed;
 			}
 
@@ -302,10 +313,13 @@ namespace Microsoft.Maui.Platform
 				{
 					var topInset = Math.Max(systemBars?.Top ?? 0, displayCutout?.Top ?? 0);
 					appBarLayout.SetPadding(systemBars?.Left ?? 0, topInset, systemBars?.Right ?? 0, 0);
+					System.Diagnostics.Debug.WriteLine($" MauiWindowInsetListener ApplyDefaultWindowInsets: Applied insets to AppBarLayout");
 				}
 				else
 				{
 					appBarLayout.SetPadding(0, 0, 0, 0);
+					System.Diagnostics.Debug.WriteLine($" MauiWindowInsetListener ApplyDefaultWindowInsets: Applied 0 insets to AppBarLayout");
+
 				}
 			}
 
@@ -322,11 +336,15 @@ namespace Microsoft.Maui.Platform
 				// excluded: landscape cutout padding on the content area is handled by
 				// SafeAreaExtensions which applies per-view overlap logic.
 				contentView?.SetPadding(0, 0, 0, bottomInset);
+				System.Diagnostics.Debug.WriteLine($" MauiWindowInsetListener ApplyDefaultWindowInsets: Applied insets to contentView for BottomNavigationView");
+
 			}
 			else
 			{
 				// Reset contentView padding when bottom navigation is removed dynamically
 				contentView?.SetPadding(0, 0, 0, 0);
+				System.Diagnostics.Debug.WriteLine($" MauiWindowInsetListener ApplyDefaultWindowInsets: Applied 0 insets to contentView for BottomNavigationView");
+
 			}
 
 			// Consume top inset when AppBar is visible — it already pads itself, so downstream
@@ -351,6 +369,39 @@ namespace Microsoft.Maui.Platform
 				?.Build() ?? insets;
 		}
 
+		void ApplyImeInsets(WindowInsetsCompat? insets)
+		{
+			if (insets is null || _rootView is null)
+			{
+				return;
+			}
+
+			var ime = insets.GetInsets(WindowInsetsCompat.Type.Ime());
+			_rootView?.SetPadding(0, 0, 0, ime?.Bottom ?? 0);
+			System.Diagnostics.Debug.WriteLine($" MauiWindowInsetListener ApplyImeInsets: Applied insets to {_rootView?.Id} for IME");
+
+		}
+
+		// Clears the bottom safe-area padding on the tracked views for the duration of the
+		// keyboard animation. While the keyboard is showing, the root CoordinatorLayout already
+		// carries the IME offset (ApplyImeInsets) and the keyboard covers the navigation bar, so
+		// any bottom safe-area (navigation-bar) padding is redundant and would otherwise leave a
+		// stale gap until the animation ends. The correct resting value — 0 while the keyboard is
+		// shown, the navigation-bar inset once it is hidden — is restored by the RequestApplyInsets
+		// recompute in OnEnd.
+		void ClearBottomInsetOnTrackedViews()
+		{
+			// Setting padding does not structurally modify _trackedViews, so this struct-enumerator
+			// foreach is allocation-free and safe against mutation during iteration.
+			foreach (var view in _trackedViews)
+			{
+				if (view.PaddingBottom != 0)
+				{
+					view.SetPadding(view.PaddingLeft, view.PaddingTop, view.PaddingRight, 0);
+				}
+			}
+		}
+
 		public void TrackView(AView view)
 		{
 			_trackedViews.Add(view);
@@ -358,10 +409,10 @@ namespace Microsoft.Maui.Platform
 
 		public bool HasTrackedView => _trackedViews.Count > 0;
 
-        public bool IsViewTracked(AView view)
-        {
-            return _trackedViews.Contains(view);
-        }
+		public bool IsViewTracked(AView view)
+		{
+			return _trackedViews.Contains(view);
+		}
 		public void ResetView(AView view)
 		{
 			if (view is IHandleWindowInsets customHandler)
@@ -459,16 +510,20 @@ namespace Microsoft.Maui.Platform
 				return insets;
 			}
 
-			// Process any IME animations
-			foreach (var animation in runningAnimations)
+			if (IsImeAnimating)
 			{
-				if (IsImeAnimation(animation))
-				{
-					var imeInsets = insets.GetInsets(WindowInsetsCompat.Type.Ime());
-					// IME height available as: imeInsets?.Bottom ?? 0
-					break; // Only need to process one IME animation
-				}
+				// The keyboard is animating. With DISPATCH_MODE_STOP the framework does not
+				// re-dispatch window insets to the hierarchy while the animation runs, so this
+				// is the only per-frame hook. We do two things in the SAME frame:
+				//  1. Pad the root (CoordinatorLayout) by the animated IME inset so the whole
+				//     content lifts/settles with the keyboard.
+				//  2. Clear the now-redundant bottom safe-area padding on the tracked views so
+				//     it disappears as the keyboard opens instead of lingering until OnEnd. The
+				//     resting value is restored by the RequestApplyInsets recompute in OnEnd.
+				ApplyImeInsets(insets);
+				ClearBottomInsetOnTrackedViews();
 			}
+
 			return insets;
 		}
 
@@ -478,9 +533,14 @@ namespace Microsoft.Maui.Platform
 
 			if (IsImeAnimation(animation))
 			{
-				if (_pendingView is AView view)
+				// Always trigger a fresh inset pass so the bottom padding we cleared during the
+				// animation is recomputed and restored. Prefer a view deferred during the
+				// animation; otherwise fall back to the root the listener is attached to.
+				var viewToRefresh = _pendingView ?? _rootView;
+				_pendingView = null;
+
+				if (viewToRefresh is AView view)
 				{
-					_pendingView = null;
 					view.Post(() =>
 					{
 						IsImeAnimating = false;

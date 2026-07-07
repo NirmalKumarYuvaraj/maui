@@ -20,7 +20,7 @@ namespace Microsoft.Maui.Controls.PlatformConfiguration.AndroidSpecific
 		/// <summary>Bindable property for <see cref="WindowSoftInputModeAdjust"/>.</summary>
 		public static readonly BindableProperty WindowSoftInputModeAdjustProperty =
 			BindableProperty.Create("WindowSoftInputModeAdjust", typeof(WindowSoftInputModeAdjust),
-			typeof(Application), WindowSoftInputModeAdjust.Pan);
+			typeof(Application), WindowSoftInputModeAdjust.Resize);
 
 		/// <summary>Gets a value that controls whether the soft input mode pans or resizes content to accommodate the on-screen keyboard.</summary>
 		/// <param name="element">The element to get the soft input mode for.</param>

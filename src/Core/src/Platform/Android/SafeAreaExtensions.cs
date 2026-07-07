@@ -109,6 +109,7 @@ internal static class SafeAreaExtensions
 				if (left == 0 && right == 0 && top == 0 && bottom == 0)
 				{
 					view.SetPadding(0, 0, 0, 0);
+					System.Diagnostics.Debug.WriteLine($"MauiWindowInsetListener SafeAreaExtensions: Applied 0 insets to view {view.Id}");
 					return windowInsets;
 				}
 
@@ -289,6 +290,7 @@ internal static class SafeAreaExtensions
 
 				// Apply all insets to content view group
 				view.SetPadding((int)left, (int)top, (int)right, (int)bottom);
+				System.Diagnostics.Debug.WriteLine($"MauiWindowInsetListener SafeAreaExtensions: Applied insets to view {crossPlatformLayout} - Left: {left}, Top: {top}, Right: {right}, Bottom: {bottom}");
 				if (left > 0 || right > 0 || top > 0 || bottom > 0)
 				{
 					globalWindowInsetsListener?.TrackView(view);
