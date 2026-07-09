@@ -17,7 +17,16 @@ namespace Microsoft.Maui.Platform
 
 		public static void UpdateBackground(this AutoSuggestBox platformControl, ISearchBar searchBar)
 		{
-			UpdateColors(platformControl, platformControl.Resources, _backgroundColorKeys, searchBar.Background?.ToPlatform());
+			var background = searchBar.Background;
+
+			if (background is ImageSourcePaint sourcePaint)
+			{
+				platformControl.UpdateBackgroundImageForAllStates(sourcePaint.ImageSource, searchBar.Handler, _backgroundColorKeys);
+			}
+			else
+			{
+				UpdateColors(platformControl, platformControl.Resources, _backgroundColorKeys, background?.ToPlatform());
+			}
 		}
 
 		public static void UpdateIsEnabled(this AutoSuggestBox platformControl, ISearchBar searchBar)

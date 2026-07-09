@@ -589,7 +589,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				{
 					NavigationItem.LeftBarButtonItem =
 						new UIBarButtonItem(icon, UIBarButtonItemStyle.Plain, (s, e) => LeftBarButtonItemHandler(ViewController, (IsRootPage || !backButtonVisible))) { Enabled = enabled };
-						
+
 					// For iOS 26+, explicitly set the tint color on the bar button item
 					// because the navigation bar's tint color is not automatically inherited
 					if (OperatingSystem.IsIOSVersionAtLeast(26) || OperatingSystem.IsMacCatalystVersionAtLeast(26))
@@ -1183,9 +1183,9 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				if (result != null)
 				{
 					var newResult = result.ImageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate);
-					searchBar.SetImageForSearchBarIcon(newResult, icon, UIControlState.Normal);
-					searchBar.SetImageForSearchBarIcon(newResult, icon, UIControlState.Highlighted);
-					searchBar.SetImageForSearchBarIcon(newResult, icon, UIControlState.Selected);
+					searchBar.SetImageforSearchBarIcon(newResult, icon, UIControlState.Normal);
+					searchBar.SetImageforSearchBarIcon(newResult, icon, UIControlState.Highlighted);
+					searchBar.SetImageforSearchBarIcon(newResult, icon, UIControlState.Selected);
 				}
 			});
 		}
