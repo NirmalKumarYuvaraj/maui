@@ -377,6 +377,34 @@ namespace Microsoft.Maui.Controls
 
 		Dictionary<BindableProperty, (string, SetterSpecificity)> DynamicResources => _dynamicResources ?? (_dynamicResources = new Dictionary<BindableProperty, (string, SetterSpecificity)>());
 
+		/// <summary>
+		/// Attempts to retrieve the resource key that <paramref name="property"/> is currently bound to via
+		/// <c>DynamicResource</c> on this element.
+		/// </summary>
+		/// <remarks>
+		/// Used when cloning an <see cref="Element"/> that is used as a <see cref="Setter"/> value (e.g. within a
+		/// <see cref="VisualState"/>), so that the clone can re-establish its own live DynamicResource subscription
+		/// instead of inheriting a stale resolved value. See https://github.com/dotnet/maui/issues/28606.
+		/// </remarks>
+		internal bool TryGetDynamicResourceKey(BindableProperty property, out string key)
+		{
+			if (_dynamicResources != null && _dynamicResources.TryGetValue(property, out var entry))
+			{
+				key = entry.Item1;
+				return true;
+			}
+
+			key = null;
+			return false;
+		}
+
+		/// <summary>
+		/// Gets a snapshot of the <see cref="BindableProperty"/> instances currently bound to a <c>DynamicResource</c>
+		/// on this element. See <see cref="TryGetDynamicResourceKey"/>.
+		/// </summary>
+		internal IReadOnlyList<BindableProperty> GetDynamicResourceProperties() =>
+			_dynamicResources == null ? Array.Empty<BindableProperty>() : new List<BindableProperty>(_dynamicResources.Keys);
+
 		/// <inheritdoc/>
 		void IElementDefinition.AddResourcesChangedListener(Action<object, ResourcesChangedEventArgs> onchanged)
 		{

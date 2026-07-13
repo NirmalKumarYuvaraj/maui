@@ -783,5 +783,90 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 			var field = typeof(VisualElement).GetField("_isPointerOver", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
 			field!.SetValue(element, value);
 		}
+
+		[Fact]
+		// https://github.com/dotnet/maui/issues/28606
+		// A single Setter (and its Value) is shared across every target that applies it. When the Value is itself
+		// an Element with a DynamicResource-bound property (a common pattern for theme-aware VisualState.Setters),
+		// the shared instance must be cloned per target -- otherwise DynamicResource resolution and any owner
+		// back-references on the shared instance silently move to whichever target last applied the Setter.
+		public void SharedElementSetterValueIsClonedAndUpdatesLivePerTarget()
+		{
+			Application.Current = new MockApplication
+			{
+				Resources = new ResourceDictionary { { "TrackColor", Colors.Red } }
+			};
+
+			var sharedSettings = new TestElementSettings();
+			sharedSettings.SetDynamicResource(TestElementSettings.TrackColorProperty, "TrackColor");
+
+			var setter = new Setter { Property = TestSettingsHost.SettingsProperty, Value = sharedSettings };
+
+			var host1 = new TestSettingsHost();
+			var host2 = new TestSettingsHost();
+
+			Application.Current.LoadPage(new ContentPage
+			{
+				Content = new StackLayout { Children = { host1, host2 } }
+			});
+
+			setter.Apply(host1, new SetterSpecificity());
+			setter.Apply(host2, new SetterSpecificity());
+
+			// Each target gets its own clone, not the exact same shared Setter.Value instance
+			Assert.NotSame(sharedSettings, host1.Settings);
+			Assert.NotSame(sharedSettings, host2.Settings);
+			Assert.NotSame(host1.Settings, host2.Settings);
+
+			Assert.Equal(Colors.Red, host1.Settings.TrackColor);
+			Assert.Equal(Colors.Red, host2.Settings.TrackColor);
+
+			// A theme/resource change must update BOTH targets' clones independently, not just the last applier
+			((ResourceDictionary)Application.Current.Resources)["TrackColor"] = Colors.Blue;
+
+			Assert.Equal(Colors.Blue, host1.Settings.TrackColor);
+			Assert.Equal(Colors.Blue, host2.Settings.TrackColor);
+
+			// Re-applying to the same target must keep reusing its own clone (no needless churn)
+			var host1SettingsBeforeReapply = host1.Settings;
+			setter.Apply(host1, new SetterSpecificity());
+			Assert.Same(host1SettingsBeforeReapply, host1.Settings);
+		}
+
+		class TestElementSettings : Element
+		{
+			public static readonly BindableProperty TrackColorProperty =
+				BindableProperty.Create(nameof(TrackColor), typeof(Color), typeof(TestElementSettings), Colors.Black);
+
+			public Color TrackColor
+			{
+				get => (Color)GetValue(TrackColorProperty);
+				set => SetValue(TrackColorProperty, value);
+			}
+		}
+
+		class TestSettingsHost : View
+		{
+			public static readonly BindableProperty SettingsProperty =
+				BindableProperty.Create(nameof(Settings), typeof(TestElementSettings), typeof(TestSettingsHost),
+					propertyChanged: OnSettingsPropertyChanged);
+
+			public TestElementSettings Settings
+			{
+				get => (TestElementSettings)GetValue(SettingsProperty);
+				set => SetValue(SettingsProperty, value);
+			}
+
+			static void OnSettingsPropertyChanged(BindableObject bindable, object oldValue, object newValue)
+			{
+				// Mirrors the common app pattern of parenting a Setter-assigned Element to its owner so it
+				// participates in the resource-inheritance/DynamicResource chain (e.g. dotnet/maui#28606's repro).
+				if (oldValue is Element oldSettings)
+					oldSettings.Parent = null;
+
+				if (newValue is Element newSettings)
+					newSettings.Parent = (Element)bindable;
+			}
+		}
 	}
 }
