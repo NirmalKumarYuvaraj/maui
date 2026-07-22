@@ -164,29 +164,7 @@ namespace Microsoft.Maui.Controls.Platform
 
 		public static void UpdateBarBackground(this AToolbar nativeToolbar, Toolbar toolbar)
 		{
-			Brush barBackground = toolbar.BarBackground;
-
-			if (barBackground is SolidColorBrush solidColor)
-			{
-				var tintColor = solidColor.Color;
-				if (tintColor == null)
-				{
-					nativeToolbar.BackgroundTintMode = null;
-				}
-				else
-				{
-					nativeToolbar.BackgroundTintMode = PorterDuff.Mode.Src;
-					nativeToolbar.BackgroundTintList = ColorStateList.ValueOf(tintColor.ToPlatform());
-				}
-			}
-			else
-			{
-				nativeToolbar.UpdateBackground(barBackground);
-
-				if (Brush.IsNullOrEmpty(barBackground))
-					nativeToolbar.BackgroundTintMode = null;
-			}
-
+			// Directly set the background to the AppBar's background
 			nativeToolbar.UpdateBarTextColor(toolbar);
 		}
 

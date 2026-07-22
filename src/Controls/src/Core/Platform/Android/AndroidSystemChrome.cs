@@ -7,6 +7,7 @@ using Android.Content.Res;
 using Android.Graphics.Drawables;
 using AndroidX.Core.View;
 using Google.Android.Material.AppBar;
+using Google.Android.Material.Shape;
 using Microsoft.Maui;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Platform;
@@ -143,6 +144,39 @@ namespace Microsoft.Maui.Controls.Platform
 
 			if (background is SolidColorBrush { Color: not null } solidColorBrush)
 			{
+				if (RuntimeFeature.IsMaterial3Enabled)
+				{
+					if (appBarLayout.Background is MaterialShapeDrawable shapeDrawable)
+					{
+						var tintColor = solidColorBrush.Color;
+						var platformTintColor = tintColor.ToPlatform();
+						shapeDrawable.FillColor = ColorStateList.ValueOf(platformTintColor);
+
+						// Re-set the background so AppBarLayout recaptures originalBackgroundFillColor
+						// with our custom color. Without this, scrolling back to top animates to
+						// the theme default instead of the custom color.
+						appBarLayout.Background = null;
+						appBarLayout.Background = shapeDrawable;
+						var lifOnScrollColor = LightenColor(solidColorBrush.Color, 0.3f);
+						appBarLayout.SetLiftOnScrollColor(ColorStateList.ValueOf(lifOnScrollColor.ToPlatform()));
+						return;
+					}
+					else if (appBarLayout.Background is MaterialShapeDrawable shapeDrawableToReset
+						&& Brush.IsNullOrEmpty(background))
+					{
+						// Reset to the theme default colorSurface
+						var context = appBarLayout.Context;
+						if (context != null)
+						{
+							var defaultColor = ContextExtensions.GetThemeAttrColor(context, Resource.Attribute.colorSurface);
+							shapeDrawableToReset.FillColor = ColorStateList.ValueOf(new AGraphics.Color(defaultColor));
+							appBarLayout.Background = null;
+							appBarLayout.Background = shapeDrawableToReset;
+						}
+						return;
+					}
+				}
+
 				appBarLayout.Background = originalBackground.CreateDrawable() ?? new ColorDrawable(AGraphics.Color.Transparent);
 				ViewCompat.SetBackgroundTintMode(appBarLayout, AGraphics.PorterDuff.Mode.Src);
 				ViewCompat.SetBackgroundTintList(appBarLayout, ColorStateList.ValueOf(solidColorBrush.Color.ToPlatform()));
@@ -297,6 +331,16 @@ namespace Microsoft.Maui.Controls.Platform
 				1);
 		}
 
+		static Color LightenColor(Color color, float factor)
+		{
+			factor = Math.Clamp(factor, 0f, 1f);
+
+			return new Color(
+				color.Red + ((1 - color.Red) * factor),
+				color.Green + ((1 - color.Green) * factor),
+				color.Blue + ((1 - color.Blue) * factor),
+				color.Alpha);
+		}
 		static float GetRadialGradientOffset(Point center, double radius, ChromeEdge edge)
 		{
 			if (radius <= 0)
