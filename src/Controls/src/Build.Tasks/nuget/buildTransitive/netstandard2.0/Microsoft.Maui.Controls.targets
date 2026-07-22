@@ -390,6 +390,10 @@
                                       Condition="'$(EnableMauiIncrementalHotReload)' != ''"
                                       Value="$(EnableMauiIncrementalHotReload)"
                                       Trim="true" />
+      <RuntimeHostConfigurationOption Include="Microsoft.Maui.RuntimeFeature.UseMauiAndroidSystemBarBackgrounds"
+                                      Condition="'$(MauiAndroidSystemBarsUseMauiChrome)' != ''"
+                                      Value="$(MauiAndroidSystemBarsUseMauiChrome)"
+                                      Trim="true" />
     </ItemGroup>
   </Target>
 
