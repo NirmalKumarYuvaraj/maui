@@ -13,6 +13,7 @@ using Microsoft.Maui.Controls.Internals;
 using Microsoft.Maui.Controls.Platform;
 using Microsoft.Maui.Controls.Platform.Compatibility;
 using Microsoft.Maui.Graphics;
+using Microsoft.Maui.Platform;
 using AColor = Android.Graphics.Color;
 using ARect = Android.Graphics.Rect;
 using AToolbar = AndroidX.AppCompat.Widget.Toolbar;
@@ -110,6 +111,34 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 
 			return light;
 		}
+
+		// Material 3 defines these color roles as theme attributes on Theme.Material3.DayNight,
+		// so reading them straight from the Context automatically tracks light/dark and any
+		// app-level M3 theme customization instead of duplicating hardcoded hex values here.
+		internal static Color GetM3BackgroundColor(Context context) =>
+			new AColor(context.GetThemeAttrColor(Resource.Attribute.colorSurface)).ToColor();
+		internal static Color GetM3ForegroundColor(Context context) =>
+			new AColor(context.GetThemeAttrColor(Resource.Attribute.colorPrimary)).ToColor();
+		internal static Color GetM3TitleColor(Context context) =>
+			new AColor(context.GetThemeAttrColor(Resource.Attribute.colorOnSurface)).ToColor();
+		internal static Color GetM3UnselectedColor(Context context) =>
+			new AColor(context.GetThemeAttrColor(Resource.Attribute.colorOnSurfaceVariant)).ToColor();
+		internal static Color GetM3BottomNavBackgroundColor(Context context) =>
+			new AColor(context.GetThemeAttrColor(Resource.Attribute.colorSurface)).ToColor();
+
+		// Context-aware accessors used by the appearance trackers: resolve from the M3 theme
+		// attributes above when Material 3 is enabled, otherwise fall back to the existing
+		// hardcoded M2 defaults (Theme.MaterialComponents.DayNight doesn't define these roles).
+		internal static Color GetBackgroundColor(Context context) =>
+			RuntimeFeature.IsMaterial3Enabled ? GetM3BackgroundColor(context) : DefaultBackgroundColor;
+		internal static Color GetForegroundColor(Context context) =>
+			RuntimeFeature.IsMaterial3Enabled ? GetM3ForegroundColor(context) : DefaultForegroundColor;
+		internal static Color GetTitleColor(Context context) =>
+			RuntimeFeature.IsMaterial3Enabled ? GetM3TitleColor(context) : DefaultTitleColor;
+		internal static Color GetUnselectedColor(Context context) =>
+			RuntimeFeature.IsMaterial3Enabled ? GetM3UnselectedColor(context) : DefaultUnselectedColor;
+		internal static Color GetBottomNavigationViewBackgroundColor(Context context) =>
+			RuntimeFeature.IsMaterial3Enabled ? GetM3BottomNavBackgroundColor(context) : DefaultBottomNavigationViewBackgroundColor;
 
 		IShellFlyoutRenderer _flyoutView;
 		FrameLayout _frameLayout;
