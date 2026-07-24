@@ -44,6 +44,14 @@ namespace Microsoft.Maui.Controls.Platform
 			}
 		}
 
+		// The configured spacing between items. Applied as half-spacing on each side of a container
+		// (so two adjacent containers sum to the exact configured spacing, instead of doubling it),
+		// with the outer edges (before the first row/column and after the last) trimmed to zero so
+		// spacing only appears between items, not around the whole grid.
+		public double HorizontalItemSpacing { get; set; }
+
+		public double VerticalItemSpacing { get; set; }
+
 		public static readonly DependencyProperty EmptyViewVisibilityProperty =
 			DependencyProperty.Register(nameof(EmptyViewVisibility), typeof(Visibility),
 				typeof(FormsGridView), new PropertyMetadata(WVisibility.Collapsed, EmptyViewVisibilityChanged));
@@ -173,6 +181,85 @@ namespace Microsoft.Maui.Controls.Platform
 		{
 			GroupFooterItemTemplateContext.EnsureSelectionDisabled(element, item);
 			base.PrepareContainerForItemOverride(element, item);
+
+			if (element is FrameworkElement container)
+			{
+				ApplyItemMargin(container);
+			}
+		}
+
+		internal void ApplyItemMargin(FrameworkElement container)
+		{
+			if (HorizontalItemSpacing <= 0 && VerticalItemSpacing <= 0)
+			{
+				return;
+			}
+
+			int itemCount = Items.Count;
+
+			if (itemCount <= 0)
+			{
+				return;
+			}
+
+			int index = IndexFromContainer(container);
+
+			if (index < 0)
+			{
+				return;
+			}
+
+			int span = Math.Max(_span, 1);
+			int rowOrColumn = span <= 1 ? index : index / span;
+			int totalRowsOrColumns = span <= 1 ? itemCount : (itemCount + span - 1) / span;
+			int lastRowOrColumn = totalRowsOrColumns - 1;
+
+			double left = HorizontalItemSpacing / 2.0;
+			double top = VerticalItemSpacing / 2.0;
+			double right = left;
+			double bottom = top;
+
+			// Trim the spacing on the outer edges (along the scroll direction) so spacing only
+			// appears between items rather than adding extra space before the first and after the last.
+			if (_orientation == Orientation.Vertical)
+			{
+				if (rowOrColumn == 0)
+				{
+					top = 0;
+				}
+
+				if (rowOrColumn == lastRowOrColumn)
+				{
+					bottom = 0;
+				}
+			}
+			else
+			{
+				if (rowOrColumn == 0)
+				{
+					left = 0;
+				}
+
+				if (rowOrColumn == lastRowOrColumn)
+				{
+					right = 0;
+				}
+			}
+
+			container.Margin = WinUIHelpers.CreateThickness(left, top, right, bottom);
+		}
+
+		internal void RefreshItemMargins()
+		{
+			int itemCount = Items.Count;
+
+			for (int i = 0; i < itemCount; i++)
+			{
+				if (ContainerFromIndex(i) is FrameworkElement container)
+				{
+					ApplyItemMargin(container);
+				}
+			}
 		}
 
 		void UpdateEmptyViewVisibility(WVisibility visibility)

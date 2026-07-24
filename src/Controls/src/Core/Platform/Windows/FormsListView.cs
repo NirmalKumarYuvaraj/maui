@@ -25,6 +25,14 @@ namespace Microsoft.Maui.Controls.Platform
 			ScrollViewer.SetVerticalScrollBarVisibility(this, UwpScrollBarVisibility.Auto);
 		}
 
+		// The configured spacing between items. Applied as half-spacing on each side of a container
+		// (so two adjacent containers sum to the exact configured spacing, instead of doubling it),
+		// with the outer edges (before the first item and after the last) trimmed to zero so spacing
+		// only appears between items, not around the whole list.
+		public double ItemSpacing { get; set; }
+
+		public bool IsHorizontalOrientation { get; set; }
+
 		public static readonly DependencyProperty EmptyViewVisibilityProperty =
 			DependencyProperty.Register(nameof(EmptyViewVisibility), typeof(Visibility),
 				typeof(FormsListView), new PropertyMetadata(WVisibility.Collapsed, EmptyViewVisibilityChanged));
@@ -89,6 +97,66 @@ namespace Microsoft.Maui.Controls.Platform
 		{
 			GroupFooterItemTemplateContext.EnsureSelectionDisabled(element, item);
 			base.PrepareContainerForItemOverride(element, item);
+
+			if (element is FrameworkElement container)
+			{
+				ApplyItemMargin(container);
+			}
+		}
+
+		internal void ApplyItemMargin(FrameworkElement container)
+		{
+			if (ItemSpacing <= 0)
+			{
+				return;
+			}
+
+			int itemCount = Items.Count;
+
+			if (itemCount <= 0)
+			{
+				return;
+			}
+
+			int index = IndexFromContainer(container);
+
+			if (index < 0)
+			{
+				return;
+			}
+
+			double offset = ItemSpacing / 2.0;
+			double leading = offset;
+			double trailing = offset;
+
+			// Trim the spacing on the outer edges so spacing only appears between items rather than
+			// adding extra space before the first item and after the last.
+			if (index == 0)
+			{
+				leading = 0;
+			}
+
+			if (index == itemCount - 1)
+			{
+				trailing = 0;
+			}
+
+			container.Margin = IsHorizontalOrientation
+				? WinUIHelpers.CreateThickness(leading, 0, trailing, 0)
+				: WinUIHelpers.CreateThickness(0, leading, 0, trailing);
+		}
+
+		internal void RefreshItemMargins()
+		{
+			int itemCount = Items.Count;
+
+			for (int i = 0; i < itemCount; i++)
+			{
+				if (ContainerFromIndex(i) is FrameworkElement container)
+				{
+					ApplyItemMargin(container);
+				}
+			}
 		}
 
 		void UpdateEmptyViewVisibility(WVisibility visibility)
