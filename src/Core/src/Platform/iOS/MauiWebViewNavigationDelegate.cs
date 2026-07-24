@@ -47,10 +47,20 @@ namespace Microsoft.Maui.Platform
 
 			// ProcessNavigatedAsync calls UpdateCanGoBackForward
 			if (handler is WebViewHandler webViewHandler)
+			{
 				webViewHandler.ProcessNavigatedAsync(url).FireAndForget();
+				// Evaluate the rendered document height via JS, store it, then invalidate
+				// measure. JS runs after WKWebView layout is complete, so ContentHeight is
+				// guaranteed to be set before the second GetDesiredSize call.
+				webViewHandler.EvaluateContentHeightAndInvalidateAsync().FireAndForget();
+			}
 			else
+			{
 				platformView.UpdateCanGoBackForward(virtualView);
+				virtualView.InvalidateMeasure();
+			}
 		}
+
 
 		[Export("webView:didFailNavigation:withError:")]
 		public virtual void DidFailNavigation(WKWebView webView, WKNavigation navigation, NSError error)

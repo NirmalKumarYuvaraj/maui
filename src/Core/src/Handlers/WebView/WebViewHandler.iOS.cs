@@ -17,6 +17,11 @@ namespace Microsoft.Maui.Handlers
 
 		protected virtual float MinimumSize => 44f;
 
+		// Stores the actual HTML content height obtained from JavaScript evaluation after
+		// page load. More reliable than WKWebView's native SizeThatFits, which always
+		// returns MinimumSize (44) rather than the rendered content height.
+		internal float? ContentHeight;
+
 		WKUIDelegate? _delegate;
 
 		protected override WKWebView CreatePlatformView() =>
@@ -39,6 +44,12 @@ namespace Microsoft.Maui.Handlers
 		public static void MapSource(IWebViewHandler handler, IWebView webView)
 		{
 			IWebViewDelegate? webViewDelegate = handler.PlatformView as IWebViewDelegate;
+
+			// Reset cached content height so the next load starts fresh.
+			if (handler is WebViewHandler webViewHandler)
+			{
+				webViewHandler.ContentHeight = null;
+			}
 
 			handler.PlatformView?.UpdateSource(webView, webViewDelegate);
 		}
@@ -115,33 +126,53 @@ namespace Microsoft.Maui.Handlers
 		{
 			var size = base.GetDesiredSize(widthConstraint, heightConstraint);
 
-			var set = false;
-
 			var width = size.Width;
 			var height = size.Height;
 
 			if (width == 0)
 			{
-				if (widthConstraint <= 0 || double.IsInfinity(widthConstraint))
-				{
-					width = MinimumSize;
-					set = true;
-				}
+				// Use the available width constraint when valid; otherwise fall back to minimum size.
+				width = (widthConstraint > 0 && !double.IsInfinity(widthConstraint))
+					? widthConstraint
+					: MinimumSize;
 			}
 
-			if (height == 0)
+			// ContentHeight is set by JS evaluation after DidFinishNavigation. We prefer it over
+			// the base measurement because WKWebView's SizeThatFits returns MinimumSize (44)
+			// regardless of content — not the actual rendered document height.
+			if (ContentHeight.HasValue && ContentHeight.Value > 0)
 			{
-				if (heightConstraint <= 0 || double.IsInfinity(heightConstraint))
-				{
-					height = MinimumSize;
-					set = true;
-				}
+				height = ContentHeight.Value;
 			}
+			else if (height == 0)
+			{
+				var contentHeight = (float)(PlatformView?.ScrollView?.ContentSize.Height ?? 0);
+				height = contentHeight > 0 ? contentHeight : MinimumSize;
+			}
+			return new Size(width, height);
+		}
 
-			if (set)
-				size = new Size(width, height);
+		internal async Task EvaluateContentHeightAndInvalidateAsync()
+		{
+			try
+			{
+				// document.documentElement.scrollHeight is the most reliable way to get the
+				// full rendered content height from WKWebView after navigation completes.
+				var result = await PlatformView.EvaluateJavaScriptAsync("document.documentElement.scrollHeight");
+				if (result is Foundation.NSNumber n && n.FloatValue > 0)
+				{
+					ContentHeight = n.FloatValue;
+				}
 
-			return size;
+			}
+			catch (Exception ex)
+			{
+
+			}
+			finally
+			{
+				VirtualView?.InvalidateMeasure();
+			}
 		}
 
 		internal async Task ProcessNavigatedAsync(string url)
