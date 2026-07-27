@@ -68,9 +68,10 @@ namespace Microsoft.Maui.Platform
 		/// </summary>
 		bool _safeAreaInvalidated = true;
 
-		// Cached result of whether a parent MauiView is already applying safe area adjustments.
+		// Cached per-edge (0=Left, 1=Top, 2=Right, 3=Bottom) result of whether an ancestor MauiView
+		// is already applying safe area adjustments for that specific edge.
 		// Null means not yet determined. Invalidated when view hierarchy changes.
-		bool? _parentHandlesSafeArea;
+		bool[]? _parentHandledEdges;
 
 		/// <summary>
 		/// Flag indicating whether this scroll view should apply safe area adjustments to its content.
@@ -127,17 +128,37 @@ namespace Microsoft.Maui.Platform
 		}
 
 		/// <summary>
-		/// Checks if any ancestor MauiView is already applying safe area adjustments.
-		/// When a parent already handles safe area, this scroll view should not double-apply insets,
-		/// which would otherwise cause infinite layout cycles (#33595).
+		/// Determines, per edge (0=Left, 1=Top, 2=Right, 3=Bottom), whether an ancestor MauiView is
+		/// already applying safe area adjustments for that specific edge. When an ancestor handles an
+		/// edge, this scroll view must not double-apply insets for that edge — but it can still
+		/// independently handle any OTHER edge that no ancestor handles.
+		/// This prevents double-padding when parent and child handle the same edge (#33595),
+		/// while allowing parent and child to handle DIFFERENT edges without conflict (#34563).
 		/// </summary>
-		bool IsParentHandlingSafeArea()
+		bool[] GetParentHandledEdges()
 		{
-			if (_parentHandlesSafeArea.HasValue)
-				return _parentHandlesSafeArea.Value;
+			if (_parentHandledEdges is not null)
+				return _parentHandledEdges;
 
-			_parentHandlesSafeArea = this.FindParent(x => x is MauiView mv && mv.AppliesSafeAreaAdjustments) is not null;
-			return _parentHandlesSafeArea.Value;
+			var result = new bool[4];
+
+			var parent = this.GetParent();
+			while (parent is not null)
+			{
+				if (parent is MauiView mv && mv.AppliesSafeAreaAdjustments)
+				{
+					for (int edge = 0; edge < 4; edge++)
+					{
+						if (!result[edge] && mv.AppliedSafeArea.GetEdge(edge) != 0)
+							result[edge] = true;
+					}
+				}
+
+				parent = parent.GetParent();
+			}
+
+			_parentHandledEdges = result;
+			return result;
 		}
 
 		/// <summary>
@@ -166,7 +187,7 @@ namespace Microsoft.Maui.Platform
 		{
 			// Note: UIKit invokes LayoutSubviews right after this method
 			base.SafeAreaInsetsDidChange();
-			_parentHandlesSafeArea = null;
+			_parentHandledEdges = null;
 			_safeAreaInvalidated = true;
 		}
 
@@ -175,7 +196,7 @@ namespace Microsoft.Maui.Platform
 		/// </summary>
 		internal void InvalidateSafeArea()
 		{
-			_parentHandlesSafeArea = null;
+			_parentHandledEdges = null;
 			_safeAreaInvalidated = true;
 			SetNeedsLayout();
 		}
@@ -392,8 +413,12 @@ namespace Microsoft.Maui.Platform
 			else
 				_safeArea = SystemAdjustedContentInset.ToSafeAreaInsets();
 
+			// Zero out any edges an ancestor already handles, while still independently applying
+			// any edge no ancestor handles (#34563).
+			_safeArea = _safeArea.Mask(GetParentHandledEdges());
+
 			var oldApplyingSafeAreaAdjustments = _appliesSafeAreaAdjustments;
-			_appliesSafeAreaAdjustments = !IsParentHandlingSafeArea() && RespondsToSafeArea() && !_safeArea.IsEmpty;
+			_appliesSafeAreaAdjustments = RespondsToSafeArea() && !_safeArea.IsEmpty;
 
 			if (_systemAdjustedContentInset != SystemAdjustedContentInset)
 			{
@@ -701,7 +726,7 @@ namespace Microsoft.Maui.Platform
 
 			// Clear cached scroll view descendant status since the view hierarchy may have changed
 			_scrollViewDescendant = null;
-			_parentHandlesSafeArea = null;
+			_parentHandledEdges = null;
 
 			// Mark safe area as invalidated since moving to a new window may change safe area
 			_safeAreaInvalidated = true;

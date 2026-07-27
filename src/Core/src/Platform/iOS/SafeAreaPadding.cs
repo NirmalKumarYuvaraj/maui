@@ -30,6 +30,35 @@ internal readonly record struct SafeAreaPadding(double Left, double Right, doubl
 		new((nfloat)Top, (nfloat)Left, (nfloat)Bottom, (nfloat)Right);
 
 	/// <summary>
+	/// Gets the padding value for the specified edge (0=Left, 1=Top, 2=Right, 3=Bottom).
+	/// </summary>
+	public double GetEdge(int edge) => edge switch
+	{
+		0 => Left,
+		1 => Top,
+		2 => Right,
+		3 => Bottom,
+		_ => 0
+	};
+
+	/// <summary>
+	/// Returns a copy of this padding with the edges indicated by <paramref name="maskedEdges"/> zeroed out.
+	/// Used to remove edges that an ancestor is already handling, without discarding edges the ancestor
+	/// doesn't handle (#34563).
+	/// </summary>
+	public SafeAreaPadding Mask(bool[] maskedEdges)
+	{
+		if (IsEmpty)
+			return this;
+
+		return new SafeAreaPadding(
+			maskedEdges[0] ? 0 : Left,
+			maskedEdges[2] ? 0 : Right,
+			maskedEdges[1] ? 0 : Top,
+			maskedEdges[3] ? 0 : Bottom);
+	}
+
+	/// <summary>
 	/// Compares two SafeAreaPadding values at device-pixel resolution.
 	/// Sub-pixel differences (e.g., 0.001pt from animation noise) that map to the same
 	/// physical pixel are treated as equal, preventing unnecessary layout invalidation cycles.
