@@ -27,6 +27,7 @@ namespace Microsoft.Maui.Platform
 		{
 			var parent = view.Parent;
 			var isInsideRecyclerEmptyView = false;
+			var hasExplicitSafeAreaEdges = HasExplicitSafeAreaEdges(view);
 
 			while (parent is not null)
 			{
@@ -41,7 +42,8 @@ namespace Microsoft.Maui.Platform
 				if (view is not MaterialToolbar &&
 					(parent is AppBarLayout ||
 						parent is MauiScrollView ||
-						(parent is IMauiRecyclerView && !isInsideRecyclerEmptyView && !HasExplicitSafeAreaEdges(view))))
+						(parent is IMauiRecyclerView && !isInsideRecyclerEmptyView)) &&
+					!hasExplicitSafeAreaEdges)
 				{
 					return false;
 				}
@@ -86,13 +88,13 @@ namespace Microsoft.Maui.Platform
 			ViewCompat.SetWindowInsetsAnimationCallback(view, null);
 		}
 
-		public MauiWindowInsetListener() : base(DispatchModeStop)
+		public MauiWindowInsetListener() : base(DispatchModeContinueOnSubtree)
 		{
 		}
 
 		public virtual WindowInsetsCompat? OnApplyWindowInsets(AView? v, WindowInsetsCompat? insets)
 		{
-			if (insets is null || !insets.HasInsets || v is null || IsImeAnimating)
+			if (insets is null || v is null || IsImeAnimating)
 			{
 				if (IsImeAnimating)
 				{

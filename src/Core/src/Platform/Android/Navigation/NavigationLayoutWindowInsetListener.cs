@@ -1,5 +1,6 @@
 using Android.Views;
 using AndroidX.Core.View;
+using AndroidX.Fragment.App;
 using Google.Android.Material.AppBar;
 using AView = Android.Views.View;
 
@@ -23,6 +24,7 @@ internal sealed class NavigationLayoutWindowInsetListener : MauiWindowInsetListe
 	readonly AView? _content;
 	readonly ViewGroup? _bottomTabs;
 	readonly WindowInsetsManager _windowInsetsManager = new();
+	readonly NavigationContentWindowInsetListener? _contentWindowInsetListener;
 
 	internal NavigationLayoutWindowInsetListener(AView navigationLayout)
 	{
@@ -30,6 +32,12 @@ internal sealed class NavigationLayoutWindowInsetListener : MauiWindowInsetListe
 		_appBar = FindAppBar(navigationLayout);
 		_content = navigationLayout.FindViewById(Resource.Id.navigationlayout_content);
 		_bottomTabs = navigationLayout.FindViewById<ViewGroup>(Resource.Id.navigationlayout_bottomtabs);
+
+		if (_content is not null)
+		{
+			_contentWindowInsetListener = new NavigationContentWindowInsetListener(_bottomTabs);
+			ViewCompat.SetOnApplyWindowInsetsListener(_content, _contentWindowInsetListener);
+		}
 	}
 
 	protected override WindowInsetsCompat? ApplyDefaultWindowInsets(AView v, WindowInsetsCompat insets)
@@ -50,13 +58,16 @@ internal sealed class NavigationLayoutWindowInsetListener : MauiWindowInsetListe
 			bottomTabsHaveContent ? NavigationLayoutRegion.BottomTabs : NavigationLayoutRegion.Content);
 	}
 
+	internal static WindowInsetEdges GetContentConsumedEdges(bool bottomTabsHaveContent) =>
+		bottomTabsHaveContent ? WindowInsetEdges.Bottom : WindowInsetEdges.None;
+
 	static WindowInsetsCompat Apply(
 		WindowInsetsManager windowInsetsManager,
 		AppBarLayout? appBar,
 		AView? content,
 		ViewGroup? bottomTabs)
 	{
-		var owners = ResolveOwners(HasContent(appBar), bottomTabs?.MeasuredHeight > 0);
+		var owners = ResolveOwners(HasVisibleContent(appBar), HasVisibleContent(bottomTabs));
 		var appBarOwnsTop = owners.Top == NavigationLayoutRegion.AppBar;
 
 		if (appBar is not null)
@@ -117,26 +128,57 @@ internal sealed class NavigationLayoutWindowInsetListener : MauiWindowInsetListe
 		return null;
 	}
 
-	static bool HasContent(ViewGroup? region)
+	internal static bool HasVisibleContent(ViewGroup? region)
 	{
-		if (region?.MeasuredHeight > 0)
-		{
-			return true;
-		}
-
-		if (region is null)
+		if (region is null || region.Visibility != ViewStates.Visible)
 		{
 			return false;
 		}
 
 		for (int i = 0; i < region.ChildCount; i++)
 		{
-			if (region.GetChildAt(i)?.MeasuredHeight > 0)
+			if (region.GetChildAt(i) is not AView { Visibility: ViewStates.Visible } child)
+			{
+				continue;
+			}
+
+			if (child is FragmentContainerView fragmentContainer)
+			{
+				if (HasVisibleContent(fragmentContainer))
+				{
+					return true;
+				}
+			}
+			else
 			{
 				return true;
 			}
 		}
 
 		return false;
+	}
+
+	sealed class NavigationContentWindowInsetListener : Java.Lang.Object, IOnApplyWindowInsetsListener
+	{
+		readonly ViewGroup? _bottomTabs;
+		readonly WindowInsetsManager _windowInsetsManager = new();
+
+		internal NavigationContentWindowInsetListener(ViewGroup? bottomTabs)
+		{
+			_bottomTabs = bottomTabs;
+		}
+
+		public WindowInsetsCompat? OnApplyWindowInsets(AView? view, WindowInsetsCompat? insets)
+		{
+			var bottomTabsHaveContent = HasVisibleContent(_bottomTabs);
+			if (insets is null || !bottomTabsHaveContent)
+			{
+				return insets;
+			}
+
+			_windowInsetsManager.Update(insets);
+			return _windowInsetsManager.BuildRemaining(
+				GetContentConsumedEdges(bottomTabsHaveContent));
+		}
 	}
 }

@@ -24,6 +24,12 @@ internal static class SafeAreaExtensions
 			return windowInsets;
 		}
 
+		if (!ShouldApplySafeAreaInsets(view, safeAreaView))
+		{
+			MauiWindowInsetListener.ResetViewInsets(view);
+			return windowInsets;
+		}
+
 		var baseSafeArea = windowInsets.ToSafeAreaInsetsPx(context);
 		var keyboardInsets = windowInsets.GetKeyboardInsetsPx(context);
 		var isKeyboardShowing = !keyboardInsets.IsEmpty;
@@ -64,7 +70,7 @@ internal static class SafeAreaExtensions
 					left > 0 ? 0 : systemBars.Left,
 					top > 0 ? 0 : systemBars.Top,
 					right > 0 ? 0 : systemBars.Right,
-					bottom > 0 || isKeyboardShowing ? 0 : systemBars.Bottom));
+					bottom > 0 ? 0 : systemBars.Bottom));
 		}
 
 		if (displayCutout is not null)
@@ -75,7 +81,7 @@ internal static class SafeAreaExtensions
 					left > 0 ? 0 : displayCutout.Left,
 					top > 0 ? 0 : displayCutout.Top,
 					right > 0 ? 0 : displayCutout.Right,
-					bottom > 0 || isKeyboardShowing ? 0 : displayCutout.Bottom));
+					bottom > 0 ? 0 : displayCutout.Bottom));
 		}
 
 		if (ime is not null && isKeyboardShowing)
@@ -90,8 +96,31 @@ internal static class SafeAreaExtensions
 		}
 
 		view.SetPadding((int)left, (int)top, (int)right, (int)bottom);
+		System.Diagnostics.Debug.WriteLine($"SafeAreaInsets - Left: {left}, Top: {top}, Right: {right}, Bottom: {bottom} | view: {crossPlatformLayout}");
 
 		return builder.Build() ?? windowInsets;
+	}
+
+	internal static bool ShouldApplySafeAreaInsets(View view, ISafeAreaView2 safeAreaView)
+	{
+		if (safeAreaView.HasExplicitSafeAreaEdges)
+		{
+			return true;
+		}
+
+		var parent = view.Parent;
+		while (parent is View parentView)
+		{
+			if (parentView is ICrossPlatformLayoutBacking { CrossPlatformLayout: ISafeAreaView2 parentSafeAreaView } &&
+				parentSafeAreaView.HasExplicitSafeAreaEdges)
+			{
+				return false;
+			}
+
+			parent = parentView.Parent;
+		}
+
+		return true;
 	}
 
 	internal static double GetSafeAreaForEdge(SafeAreaRegions safeAreaRegion, double originalSafeArea, int edge, bool isKeyboardShowing, SafeAreaPadding keyBoardInsets)
