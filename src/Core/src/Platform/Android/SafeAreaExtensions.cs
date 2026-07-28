@@ -1,3 +1,4 @@
+using System;
 using Android.Content;
 using Android.Views;
 using AndroidX.Core.View;
@@ -12,12 +13,7 @@ internal static class SafeAreaExtensions
 		Context context,
 		View view)
 	{
-		var safeAreaView = crossPlatformLayout switch
-		{
-			ISafeAreaView2 view2 => view2,
-			IElementHandler { VirtualView: ISafeAreaView2 virtualView2 } => virtualView2,
-			_ => null
-		};
+		var safeAreaView = GetSafeAreaView(crossPlatformLayout);
 
 		if (safeAreaView is null)
 		{
@@ -32,11 +28,16 @@ internal static class SafeAreaExtensions
 
 		var baseSafeArea = windowInsets.ToSafeAreaInsetsPx(context);
 		var keyboardInsets = windowInsets.GetKeyboardInsetsPx(context);
-		var isKeyboardShowing = !keyboardInsets.IsEmpty;
-		var left = GetSafeAreaForEdge(safeAreaView.GetSafeAreaRegionsForEdge(0), baseSafeArea.Left, 0, isKeyboardShowing, keyboardInsets);
-		var top = GetSafeAreaForEdge(safeAreaView.GetSafeAreaRegionsForEdge(1), baseSafeArea.Top, 1, isKeyboardShowing, keyboardInsets);
-		var right = GetSafeAreaForEdge(safeAreaView.GetSafeAreaRegionsForEdge(2), baseSafeArea.Right, 2, isKeyboardShowing, keyboardInsets);
-		var bottom = GetSafeAreaForEdge(safeAreaView.GetSafeAreaRegionsForEdge(3), baseSafeArea.Bottom, 3, isKeyboardShowing, keyboardInsets);
+		var isKeyboardVisible = windowInsets.IsVisible(WindowInsetsCompat.Type.Ime());
+		var shouldApplyKeyboardInsets = isKeyboardVisible && !IsAdjustPan(context);
+		var leftRegion = safeAreaView.GetSafeAreaRegionsForEdge(0);
+		var topRegion = safeAreaView.GetSafeAreaRegionsForEdge(1);
+		var rightRegion = safeAreaView.GetSafeAreaRegionsForEdge(2);
+		var bottomRegion = safeAreaView.GetSafeAreaRegionsForEdge(3);
+		var left = GetSafeAreaForEdge(leftRegion, baseSafeArea.Left, 0, shouldApplyKeyboardInsets, keyboardInsets);
+		var top = GetSafeAreaForEdge(topRegion, baseSafeArea.Top, 1, shouldApplyKeyboardInsets, keyboardInsets);
+		var right = GetSafeAreaForEdge(rightRegion, baseSafeArea.Right, 2, shouldApplyKeyboardInsets, keyboardInsets);
+		var bottom = GetSafeAreaForEdge(bottomRegion, baseSafeArea.Bottom, 3, shouldApplyKeyboardInsets, keyboardInsets);
 
 		// A parent region has already removed any edge it owns from this inset snapshot.
 		// Zero values therefore mean pass-through, not that this view failed an overlap test.
@@ -46,59 +47,105 @@ internal static class SafeAreaExtensions
 			return windowInsets;
 		}
 
-		if (isKeyboardShowing &&
-			context.GetActivity()?.Window is Window window &&
-			window.Attributes is WindowManagerLayoutParams attr)
-		{
-			var adjustMode = attr.SoftInputMode & SoftInput.MaskAdjust;
-			if (adjustMode == SoftInput.AdjustPan)
-			{
-				return WindowInsetsCompat.Consumed;
-			}
-		}
-
-		var builder = new WindowInsetsCompat.Builder(windowInsets);
-		var systemBars = windowInsets.GetInsets(WindowInsetsCompat.Type.SystemBars());
-		var displayCutout = windowInsets.GetInsets(WindowInsetsCompat.Type.DisplayCutout());
-		var ime = windowInsets.GetInsets(WindowInsetsCompat.Type.Ime());
-
-		if (systemBars is not null)
-		{
-			builder.SetInsets(
-				WindowInsetsCompat.Type.SystemBars(),
-				AndroidX.Core.Graphics.Insets.Of(
-					left > 0 ? 0 : systemBars.Left,
-					top > 0 ? 0 : systemBars.Top,
-					right > 0 ? 0 : systemBars.Right,
-					bottom > 0 ? 0 : systemBars.Bottom));
-		}
-
-		if (displayCutout is not null)
-		{
-			builder.SetInsets(
-				WindowInsetsCompat.Type.DisplayCutout(),
-				AndroidX.Core.Graphics.Insets.Of(
-					left > 0 ? 0 : displayCutout.Left,
-					top > 0 ? 0 : displayCutout.Top,
-					right > 0 ? 0 : displayCutout.Right,
-					bottom > 0 ? 0 : displayCutout.Bottom));
-		}
-
-		if (ime is not null && isKeyboardShowing)
-		{
-			builder.SetInsets(
-				WindowInsetsCompat.Type.Ime(),
-				AndroidX.Core.Graphics.Insets.Of(
-					0,
-					0,
-					0,
-					bottom >= keyboardInsets.Bottom ? 0 : ime.Bottom));
-		}
+		var consumedContainerEdges = GetConsumedContainerEdges(
+			leftRegion,
+			topRegion,
+			rightRegion,
+			bottomRegion,
+			baseSafeArea);
+		var consumedImeEdges =
+			shouldApplyKeyboardInsets &&
+			SafeAreaEdges.IsSoftInput(bottomRegion) &&
+			keyboardInsets.Bottom > 0
+				? WindowInsetEdges.Bottom
+				: WindowInsetEdges.None;
+		var consumption = new WindowInsetConsumption(
+			consumedContainerEdges,
+			consumedContainerEdges,
+			consumedImeEdges);
 
 		view.SetPadding((int)left, (int)top, (int)right, (int)bottom);
-		System.Diagnostics.Debug.WriteLine($"SafeAreaInsets - Left: {left}, Top: {top}, Right: {right}, Bottom: {bottom} | view: {crossPlatformLayout}");
 
-		return builder.Build() ?? windowInsets;
+		return WindowInsetsManager.BuildRemaining(windowInsets, consumption);
+	}
+
+	internal static bool CanApplyImeInsets(View view)
+	{
+		if (view is not ICrossPlatformLayoutBacking { CrossPlatformLayout: { } crossPlatformLayout })
+		{
+			return false;
+		}
+
+		var safeAreaView = GetSafeAreaView(crossPlatformLayout);
+		return safeAreaView is not null &&
+			ShouldApplySafeAreaInsets(view, safeAreaView) &&
+			SafeAreaEdges.IsSoftInput(safeAreaView.GetSafeAreaRegionsForEdge(3)) &&
+			!HasImeOwningAncestor(view) &&
+			!IsAdjustPan(view.Context);
+	}
+
+	static bool HasImeOwningAncestor(View view)
+	{
+		var parent = view.Parent;
+		while (parent is View parentView)
+		{
+			if (parentView is ICrossPlatformLayoutBacking { CrossPlatformLayout: { } parentLayout } &&
+				GetSafeAreaView(parentLayout) is ISafeAreaView2 parentSafeAreaView &&
+				parentSafeAreaView.HasExplicitSafeAreaEdges &&
+				SafeAreaEdges.IsSoftInput(parentSafeAreaView.GetSafeAreaRegionsForEdge(3)))
+			{
+				return true;
+			}
+
+			parent = parentView.Parent;
+		}
+
+		return false;
+	}
+
+	static ISafeAreaView2? GetSafeAreaView(ICrossPlatformLayout crossPlatformLayout)
+	{
+		return crossPlatformLayout switch
+		{
+			ISafeAreaView2 view => view,
+			IElementHandler { VirtualView: ISafeAreaView2 virtualView } => virtualView,
+			_ => null
+		};
+	}
+
+	static WindowInsetEdges GetConsumedContainerEdges(
+		SafeAreaRegions leftRegion,
+		SafeAreaRegions topRegion,
+		SafeAreaRegions rightRegion,
+		SafeAreaRegions bottomRegion,
+		SafeAreaPadding containerInsets)
+	{
+		var consumedEdges = WindowInsetEdges.None;
+
+		if (ConsumesContainer(leftRegion) && containerInsets.Left > 0)
+			consumedEdges |= WindowInsetEdges.Left;
+		if (ConsumesContainer(topRegion) && containerInsets.Top > 0)
+			consumedEdges |= WindowInsetEdges.Top;
+		if (ConsumesContainer(rightRegion) && containerInsets.Right > 0)
+			consumedEdges |= WindowInsetEdges.Right;
+		if (ConsumesContainer(bottomRegion) && containerInsets.Bottom > 0)
+			consumedEdges |= WindowInsetEdges.Bottom;
+
+		return consumedEdges;
+	}
+
+	static bool ConsumesContainer(SafeAreaRegions region) =>
+		region != SafeAreaRegions.None && !SafeAreaEdges.IsOnlySoftInput(region);
+
+	static bool IsAdjustPan(Context? context)
+	{
+		if (context?.GetActivity()?.Window is not Window window ||
+			window.Attributes is not WindowManagerLayoutParams attributes)
+		{
+			return false;
+		}
+
+		return (attributes.SoftInputMode & SoftInput.MaskAdjust) == SoftInput.AdjustPan;
 	}
 
 	internal static bool ShouldApplySafeAreaInsets(View view, ISafeAreaView2 safeAreaView)
@@ -131,6 +178,11 @@ internal static class SafeAreaExtensions
 			return 0;
 		}
 
+		if (SafeAreaEdges.IsOnlySoftInput(safeAreaRegion) && edge != 3)
+		{
+			return 0;
+		}
+
 		// Handle SoftInput specifically - only apply keyboard insets for bottom edge when keyboard is showing
 		if (edge == 3)
 		{
@@ -144,7 +196,7 @@ internal static class SafeAreaExtensions
 			{
 				// Return keyboard insets for any region that includes SoftInput
 				if (SafeAreaEdges.IsSoftInput(safeAreaRegion))
-					return keyBoardInsets.Bottom;
+					return Math.Max(originalSafeArea, keyBoardInsets.Bottom);
 			}
 		}
 

@@ -19,9 +19,7 @@ namespace Microsoft.Maui.Platform
 	/// </summary>
 	internal class MauiWindowInsetListener : WindowInsetsAnimationCompat.Callback, IOnApplyWindowInsetsListener
 	{
-		bool IsImeAnimating { get; set; }
-
-		AView? _pendingView;
+		readonly ImeWindowInsetsCoordinator _imeCoordinator = new();
 
 		internal static bool ShouldSetMauiWindowInsetListener(AView view)
 		{
@@ -70,8 +68,10 @@ namespace Microsoft.Maui.Platform
 		internal static AView SetupViewWithLocalListener(AView view, MauiWindowInsetListener? listener = null)
 		{
 			listener ??= new MauiWindowInsetListener();
+			RemoveViewWithLocalListener(view);
 			ViewCompat.SetOnApplyWindowInsetsListener(view, listener);
 			ViewCompat.SetWindowInsetsAnimationCallback(view, listener);
+			view.SetTag(Resource.Id.maui_window_inset_listener, listener);
 
 			return view;
 		}
@@ -83,9 +83,15 @@ namespace Microsoft.Maui.Platform
 		/// <param name="view">The view to clean up</param>
 		internal static void RemoveViewWithLocalListener(AView view)
 		{
+			if (view.GetTag(Resource.Id.maui_window_inset_listener) is MauiWindowInsetListener listener)
+			{
+				listener._imeCoordinator.Reset();
+			}
+
 			// Remove the listener from the view
 			ViewCompat.SetOnApplyWindowInsetsListener(view, null);
 			ViewCompat.SetWindowInsetsAnimationCallback(view, null);
+			view.SetTag(Resource.Id.maui_window_inset_listener, null);
 		}
 
 		public MauiWindowInsetListener() : base(DispatchModeContinueOnSubtree)
@@ -94,17 +100,12 @@ namespace Microsoft.Maui.Platform
 
 		public virtual WindowInsetsCompat? OnApplyWindowInsets(AView? v, WindowInsetsCompat? insets)
 		{
-			if (insets is null || v is null || IsImeAnimating)
+			if (insets is null || v is null)
 			{
-				if (IsImeAnimating)
-				{
-					_pendingView = v;
-				}
-
 				return insets;
 			}
 
-			_pendingView = null;
+			_imeCoordinator.TrackView(v);
 
 			// Handle custom inset views first
 			if (v is IHandleWindowInsets customHandler)
@@ -141,69 +142,24 @@ namespace Microsoft.Maui.Platform
 		public override void OnPrepare(WindowInsetsAnimationCompat? animation)
 		{
 			base.OnPrepare(animation);
-			if (IsImeAnimation(animation))
-			{
-				IsImeAnimating = true;
-			}
+			_imeCoordinator.OnPrepare(animation);
 		}
 
 		public override WindowInsetsAnimationCompat.BoundsCompat? OnStart(WindowInsetsAnimationCompat? animation, WindowInsetsAnimationCompat.BoundsCompat? bounds)
 		{
-			if (IsImeAnimation(animation))
-			{
-				IsImeAnimating = true;
-			}
-
-			return bounds;
+			return _imeCoordinator.OnStart(animation, bounds);
 		}
 
 		public override WindowInsetsCompat? OnProgress(WindowInsetsCompat? insets, IList<WindowInsetsAnimationCompat>? runningAnimations)
 		{
-			if (insets is null || runningAnimations is null)
-			{
-				return insets;
-			}
-
-			// Process any IME animations
-			foreach (var animation in runningAnimations)
-			{
-				if (IsImeAnimation(animation))
-				{
-					var imeInsets = insets.GetInsets(WindowInsetsCompat.Type.Ime());
-					// IME height available as: imeInsets?.Bottom ?? 0
-					break; // Only need to process one IME animation
-				}
-			}
-			return insets;
+			return _imeCoordinator.OnProgress(insets, runningAnimations);
 		}
 
 		public override void OnEnd(WindowInsetsAnimationCompat? animation)
 		{
 			base.OnEnd(animation);
-
-			if (IsImeAnimation(animation))
-			{
-				if (_pendingView is AView view)
-				{
-					_pendingView = null;
-					view.Post(() =>
-					{
-						IsImeAnimating = false;
-						ViewCompat.RequestApplyInsets(view);
-					});
-				}
-				else
-				{
-					IsImeAnimating = false;
-				}
-			}
+			_imeCoordinator.OnEnd(animation);
 		}
-
-		/// <summary>
-		/// Helper method to check if an animation involves the IME
-		/// </summary>
-		static bool IsImeAnimation(WindowInsetsAnimationCompat? animation) =>
-			animation is not null && (animation.TypeMask & WindowInsetsCompat.Type.Ime()) != 0;
 	}
 }
 
@@ -220,9 +176,7 @@ internal static class MauiWindowInsetListenerExtensions
 	{
 		if (MauiWindowInsetListener.ShouldSetMauiWindowInsetListener(view))
 		{
-			var listener = new MauiWindowInsetListener();
-			ViewCompat.SetOnApplyWindowInsetsListener(view, listener);
-			ViewCompat.SetWindowInsetsAnimationCallback(view, listener);
+			MauiWindowInsetListener.SetupViewWithLocalListener(view);
 			return true;
 		}
 
@@ -237,14 +191,11 @@ internal static class MauiWindowInsetListenerExtensions
 	{
 		if (MauiWindowInsetListener.ShouldSetMauiWindowInsetListener(view))
 		{
-			var listener = new MauiWindowInsetListener();
-			ViewCompat.SetOnApplyWindowInsetsListener(view, listener);
-			ViewCompat.SetWindowInsetsAnimationCallback(view, listener);
+			MauiWindowInsetListener.SetupViewWithLocalListener(view);
 			return true;
 		}
 
-		ViewCompat.SetOnApplyWindowInsetsListener(view, null);
-		ViewCompat.SetWindowInsetsAnimationCallback(view, null);
+		MauiWindowInsetListener.RemoveViewWithLocalListener(view);
 		MauiWindowInsetListener.ResetViewInsets(view);
 		return false;
 	}
@@ -256,10 +207,7 @@ internal static class MauiWindowInsetListenerExtensions
 	/// <param name="view">The Android view to remove the listener from</param>
 	public static void RemoveMauiWindowInsetListener(this View view)
 	{
-		// Clear the listeners first
-		ViewCompat.SetOnApplyWindowInsetsListener(view, null);
-		ViewCompat.SetWindowInsetsAnimationCallback(view, null);
-
+		MauiWindowInsetListener.RemoveViewWithLocalListener(view);
 		MauiWindowInsetListener.ResetViewInsets(view);
 	}
 }
