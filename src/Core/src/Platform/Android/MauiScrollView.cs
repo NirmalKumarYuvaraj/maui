@@ -74,7 +74,7 @@ namespace Microsoft.Maui.Platform
 		public override void OnAttachedToWindow()
 		{
 			base.OnAttachedToWindow();
-			_isInsetListenerSet = MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(this, _context);
+			_isInsetListenerSet = MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(this);
 
 			if (RuntimeFeature.IsMaterial3Enabled)
 			{
@@ -101,7 +101,7 @@ namespace Microsoft.Maui.Platform
 
 			base.OnDetachedFromWindow();
 			if (_isInsetListenerSet)
-				MauiWindowInsetListenerExtensions.RemoveMauiWindowInsetListener(this, _context);
+				MauiWindowInsetListenerExtensions.RemoveMauiWindowInsetListener(this);
 
 			_isInsetListenerSet = false;
 			_didSafeAreaEdgeConfigurationChange = true;
@@ -432,7 +432,7 @@ namespace Microsoft.Maui.Platform
 		{
 			base.OnConfigurationChanged(newConfig);
 
-			MauiWindowInsetListener.FindListenerForView(this)?.ResetView(this);
+			MauiWindowInsetListener.ResetViewInsets(this);
 			_didSafeAreaEdgeConfigurationChange = true;
 		}
 
@@ -441,7 +441,7 @@ namespace Microsoft.Maui.Platform
 		/// </summary>
 		internal void MarkSafeAreaEdgeConfigurationChanged()
 		{
-			_isInsetListenerSet = MauiWindowInsetListenerExtensions.RefreshMauiWindowInsetListener(this, _context);
+			_isInsetListenerSet = MauiWindowInsetListenerExtensions.RefreshMauiWindowInsetListener(this);
 			_didSafeAreaEdgeConfigurationChange = true;
 			RequestLayout();
 		}

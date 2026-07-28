@@ -267,23 +267,20 @@ namespace Microsoft.Maui.Handlers
 				return;
 			}
 
-			// Use our static registry approach to find and reset the appropriate listener
-			var listener = MauiWindowInsetListener.FindListenerForView(platformView);
-
 			// Check for specific view group types that handle safe area
 			if (handler.PlatformView is ContentViewGroup cvg)
 			{
-				listener?.ResetAppliedSafeAreas(cvg);
+				MauiWindowInsetListener.ResetViewInsets(cvg);
 				cvg.MarkSafeAreaEdgeConfigurationChanged();
 			}
 			else if (handler.PlatformView is LayoutViewGroup lvg)
 			{
-				listener?.ResetAppliedSafeAreas(lvg);
+				MauiWindowInsetListener.ResetViewInsets(lvg);
 				lvg.MarkSafeAreaEdgeConfigurationChanged();
 			}
 			else if (handler.PlatformView is MauiScrollView msv)
 			{
-				listener?.ResetAppliedSafeAreas(msv);
+				MauiWindowInsetListener.ResetViewInsets(msv);
 				msv.MarkSafeAreaEdgeConfigurationChanged();
 			}
 

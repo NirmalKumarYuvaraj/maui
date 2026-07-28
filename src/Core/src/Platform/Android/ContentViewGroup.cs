@@ -62,7 +62,7 @@ namespace Microsoft.Maui.Platform
 			// ScrollViews handle their own insets
 			if (Parent is not MauiScrollView)
 			{
-				_isInsetListenerSet = MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(this, _context);
+				_isInsetListenerSet = MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(this);
 			}
 		}
 
@@ -70,7 +70,7 @@ namespace Microsoft.Maui.Platform
 		{
 			base.OnDetachedFromWindow();
 			if (_isInsetListenerSet)
-				MauiWindowInsetListenerExtensions.RemoveMauiWindowInsetListener(this, _context);
+				MauiWindowInsetListenerExtensions.RemoveMauiWindowInsetListener(this);
 			_didSafeAreaEdgeConfigurationChange = true;
 			_isInsetListenerSet = false;
 		}
@@ -163,7 +163,7 @@ namespace Microsoft.Maui.Platform
 		{
 			base.OnConfigurationChanged(newConfig);
 
-			MauiWindowInsetListener.FindListenerForView(this)?.ResetView(this);
+			MauiWindowInsetListener.ResetViewInsets(this);
 			_didSafeAreaEdgeConfigurationChange = true;
 		}
 
@@ -173,7 +173,7 @@ namespace Microsoft.Maui.Platform
 		/// </summary>
 		internal void MarkSafeAreaEdgeConfigurationChanged()
 		{
-			_isInsetListenerSet = MauiWindowInsetListenerExtensions.RefreshMauiWindowInsetListener(this, _context);
+			_isInsetListenerSet = MauiWindowInsetListenerExtensions.RefreshMauiWindowInsetListener(this);
 			_didSafeAreaEdgeConfigurationChange = true;
 			// Ensure a layout pass so that OnLayout will trigger InvalidateWindowInsets
 			RequestLayout();

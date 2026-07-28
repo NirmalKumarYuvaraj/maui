@@ -81,7 +81,9 @@ namespace Microsoft.Maui.Platform
 				if (navigationLayout is not null)
 				{
 					_managedCoordinatorLayout = navigationLayout;
-					MauiWindowInsetListener.SetupViewWithLocalListener(navigationLayout);
+					MauiWindowInsetListener.SetupViewWithLocalListener(
+						navigationLayout,
+						new NavigationLayoutWindowInsetListener(navigationLayout));
 				}
 
 				_rootView = navigationLayout;

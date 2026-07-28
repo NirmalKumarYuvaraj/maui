@@ -105,7 +105,9 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			var root = PlatformInterop.CreateShellCoordinatorLayout(context);
 			var appbar = PlatformInterop.CreateShellAppBar(context, Resource.Attribute.appBarLayoutStyle, root);
 
-			MauiWindowInsetListener.SetupViewWithLocalListener(root);
+			MauiWindowInsetListener.SetupViewWithLocalListener(
+				root,
+				new NavigationLayoutWindowInsetListener(root));
 
 			int actionBarHeight = context.GetActionBarHeight();
 

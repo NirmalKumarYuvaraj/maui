@@ -18,6 +18,25 @@ namespace Microsoft.Maui.DeviceTests
 {
 	public partial class NavigationViewHandlerTests
 	{
+		[Theory]
+		[InlineData(false, false, (int)NavigationLayoutRegion.Content, (int)NavigationLayoutRegion.Content)]
+		[InlineData(true, false, (int)NavigationLayoutRegion.AppBar, (int)NavigationLayoutRegion.Content)]
+		[InlineData(false, true, (int)NavigationLayoutRegion.Content, (int)NavigationLayoutRegion.BottomTabs)]
+		[InlineData(true, true, (int)NavigationLayoutRegion.AppBar, (int)NavigationLayoutRegion.BottomTabs)]
+		public void NavigationLayoutResolvesInsetOwners(
+			bool appBarHasContent,
+			bool bottomTabsHaveContent,
+			int expectedTopOwner,
+			int expectedBottomOwner)
+		{
+			var owners = NavigationLayoutWindowInsetListener.ResolveOwners(
+				appBarHasContent,
+				bottomTabsHaveContent);
+
+			Assert.Equal((NavigationLayoutRegion)expectedTopOwner, owners.Top);
+			Assert.Equal((NavigationLayoutRegion)expectedBottomOwner, owners.Bottom);
+		}
+
 		int GetNativeNavigationStackCount(NavigationViewHandler navigationViewHandler)
 		{
 			int i = 0;

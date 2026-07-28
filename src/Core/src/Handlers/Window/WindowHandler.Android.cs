@@ -109,8 +109,8 @@ namespace Microsoft.Maui.Handlers
 			var rootManager = handler.MauiContext.GetNavigationRootManager();
 			rootManager.Connect(window.Content);
 
-			// The NavigationRootManager creates a MauiCoordinatorLayout which automatically
-			// registers its MauiWindowInsetListener in the static registry for child views to use
+			// The NavigationRootManager creates the root layout and attaches its
+			// navigation-specific window inset listener.
 			var rootView = rootManager.RootView;
 
 			return rootView;
