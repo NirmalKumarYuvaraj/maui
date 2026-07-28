@@ -106,15 +106,36 @@ namespace Microsoft.Maui.Platform
 			}
 
 			_imeCoordinator.TrackView(v);
+			MauiWindowInsetDebug.WriteInsets(
+				nameof(MauiWindowInsetListener),
+				nameof(OnApplyWindowInsets),
+				"Received",
+				v,
+				insets);
 
 			// Handle custom inset views first
 			if (v is IHandleWindowInsets customHandler)
 			{
-				return customHandler.HandleWindowInsets(v, insets);
+				var remainingInsets = customHandler.HandleWindowInsets(v, insets);
+				_imeCoordinator.OnInsetsApplied(v);
+				MauiWindowInsetDebug.WriteInsets(
+					nameof(MauiWindowInsetListener),
+					nameof(OnApplyWindowInsets),
+					"ReturnedFromCustomHandler",
+					v,
+					remainingInsets);
+				return remainingInsets;
 			}
 
 			// Apply default window insets for standard views
-			return ApplyDefaultWindowInsets(v, insets);
+			var defaultInsets = ApplyDefaultWindowInsets(v, insets);
+			MauiWindowInsetDebug.WriteInsets(
+				nameof(MauiWindowInsetListener),
+				nameof(OnApplyWindowInsets),
+				"ReturnedFromDefaultHandler",
+				v,
+				defaultInsets);
+			return defaultInsets;
 		}
 
 		protected virtual WindowInsetsCompat? ApplyDefaultWindowInsets(AView v, WindowInsetsCompat insets)
