@@ -269,14 +269,13 @@ namespace Microsoft.Maui.DeviceTests
 			await InvokeOnMainThreadAsync(() =>
 			{
 				var layout = new Grid();
-				var root = CreateRecyclerSafeAreaHierarchy(itemViewType, layout, out var itemView, out _);
+				var root = CreateRecyclerSafeAreaHierarchy(itemViewType, layout, out var itemView);
 
 				try
 				{
 					Assert.False(((ISafeAreaView2)layout).HasExplicitSafeAreaEdges);
 					Assert.False(MauiWindowInsetListener.ShouldSetMauiWindowInsetListener(itemView));
-					Assert.False(MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(itemView, MauiContext.Context));
-					Assert.Null(MauiWindowInsetListener.FindListenerForView(itemView));
+					Assert.False(MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(itemView));
 				}
 				finally
 				{
@@ -297,14 +296,13 @@ namespace Microsoft.Maui.DeviceTests
 				{
 					SafeAreaEdges = SafeAreaEdges.None
 				};
-				var root = CreateRecyclerSafeAreaHierarchy(itemViewType, layout, out var itemView, out var listener);
+				var root = CreateRecyclerSafeAreaHierarchy(itemViewType, layout, out var itemView);
 
 				try
 				{
 					Assert.True(((ISafeAreaView2)layout).HasExplicitSafeAreaEdges);
 					Assert.True(MauiWindowInsetListener.ShouldSetMauiWindowInsetListener(itemView));
-					Assert.True(MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(itemView, MauiContext.Context));
-					Assert.Same(listener, MauiWindowInsetListener.FindListenerForView(itemView));
+					Assert.True(MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(itemView));
 				}
 				finally
 				{
@@ -322,14 +320,13 @@ namespace Microsoft.Maui.DeviceTests
 			await InvokeOnMainThreadAsync(() =>
 			{
 				var layout = new Grid();
-				var root = CreateRecyclerSafeAreaHierarchy(itemViewType, layout, out var itemView, out var listener, wrapInEmptyView: true);
+				var root = CreateRecyclerSafeAreaHierarchy(itemViewType, layout, out var itemView, wrapInEmptyView: true);
 
 				try
 				{
 					Assert.False(((ISafeAreaView2)layout).HasExplicitSafeAreaEdges);
 					Assert.True(MauiWindowInsetListener.ShouldSetMauiWindowInsetListener(itemView));
-					Assert.True(MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(itemView, MauiContext.Context));
-					Assert.Same(listener, MauiWindowInsetListener.FindListenerForView(itemView));
+					Assert.True(MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(itemView));
 				}
 				finally
 				{
@@ -347,16 +344,15 @@ namespace Microsoft.Maui.DeviceTests
 			await InvokeOnMainThreadAsync(() =>
 			{
 				var layout = new Grid();
-				var root = CreateRecyclerSafeAreaHierarchy(itemViewType, layout, out var itemView, out var listener);
+				var root = CreateRecyclerSafeAreaHierarchy(itemViewType, layout, out var itemView);
 
 				try
 				{
-					Assert.False(MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(itemView, MauiContext.Context));
+					Assert.False(MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(itemView));
 
 					layout.SafeAreaEdges = SafeAreaEdges.None;
 
-					Assert.True(MauiWindowInsetListenerExtensions.RefreshMauiWindowInsetListener(itemView, MauiContext.Context));
-					Assert.Same(listener, MauiWindowInsetListener.FindListenerForView(itemView));
+					Assert.True(MauiWindowInsetListenerExtensions.RefreshMauiWindowInsetListener(itemView));
 				}
 				finally
 				{
@@ -377,12 +373,12 @@ namespace Microsoft.Maui.DeviceTests
 				{
 					SafeAreaEdges = SafeAreaEdges.All
 				};
-				var root = CreateRecyclerSafeAreaHierarchy(itemViewType, layout, out var itemView, out _);
+				var root = CreateRecyclerSafeAreaHierarchy(itemViewType, layout, out var itemView);
 
 				try
 				{
 					itemView.SetPadding(1, 2, 3, 4);
-					Assert.True(MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(itemView, MauiContext.Context));
+					Assert.True(MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(itemView));
 
 					var insets = new WindowInsetsCompat.Builder()
 						.SetInsets(WindowInsetsCompat.Type.SystemBars(), AInsets.Of(0, 20, 0, 0))
@@ -393,8 +389,7 @@ namespace Microsoft.Maui.DeviceTests
 					layout.ClearValue(Layout.SafeAreaEdgesProperty);
 
 					Assert.False(((ISafeAreaView2)layout).HasExplicitSafeAreaEdges);
-					Assert.False(MauiWindowInsetListenerExtensions.RefreshMauiWindowInsetListener(itemView, MauiContext.Context));
-					Assert.Null(MauiWindowInsetListener.FindListenerForView(itemView));
+					Assert.False(MauiWindowInsetListenerExtensions.RefreshMauiWindowInsetListener(itemView));
 					Assert.Equal(1, itemView.PaddingLeft);
 					Assert.Equal(2, itemView.PaddingTop);
 					Assert.Equal(3, itemView.PaddingRight);
@@ -438,9 +433,8 @@ namespace Microsoft.Maui.DeviceTests
 
 				Assert.NotNull(itemLayout);
 				var itemPlatformView = Assert.IsType<LayoutViewGroup>(itemLayout.ToPlatform());
-				Assert.NotNull(MauiWindowInsetListener.FindRegisteredListenerForView(itemPlatformView));
 				Assert.False(((ISafeAreaView2)itemLayout).HasExplicitSafeAreaEdges);
-				Assert.Null(MauiWindowInsetListener.FindListenerForView(itemPlatformView));
+				Assert.False(MauiWindowInsetListener.ShouldSetMauiWindowInsetListener(itemPlatformView));
 
 				itemPlatformView.SetPadding(1, 2, 3, 4);
 				var insets = CreateLeftSystemBarInsetOverlapping(itemPlatformView, 20);
@@ -451,7 +445,7 @@ namespace Microsoft.Maui.DeviceTests
 				itemLayout.SafeAreaEdges = SafeAreaEdges.All;
 
 				Assert.True(((ISafeAreaView2)itemLayout).HasExplicitSafeAreaEdges);
-				Assert.NotNull(MauiWindowInsetListener.FindListenerForView(itemPlatformView));
+				Assert.True(MauiWindowInsetListener.ShouldSetMauiWindowInsetListener(itemPlatformView));
 
 				ViewCompat.DispatchApplyWindowInsets(itemPlatformView, insets);
 				Assert.NotEqual(1, itemPlatformView.PaddingLeft);
@@ -459,7 +453,7 @@ namespace Microsoft.Maui.DeviceTests
 				itemLayout.ClearValue(Layout.SafeAreaEdgesProperty);
 
 				Assert.False(((ISafeAreaView2)itemLayout).HasExplicitSafeAreaEdges);
-				Assert.Null(MauiWindowInsetListener.FindListenerForView(itemPlatformView));
+				Assert.False(MauiWindowInsetListener.ShouldSetMauiWindowInsetListener(itemPlatformView));
 				Assert.Equal(1, itemPlatformView.PaddingLeft);
 				Assert.Equal(2, itemPlatformView.PaddingTop);
 				Assert.Equal(3, itemPlatformView.PaddingRight);
@@ -610,7 +604,7 @@ namespace Microsoft.Maui.DeviceTests
 			return cellContent.ToPlatform().GetParentOfType<ItemContentView>().GetBoundingBox();
 		}
 
-		FrameLayout CreateRecyclerSafeAreaHierarchy(System.Type itemViewType, ICrossPlatformLayout layout, out AView itemView, out MauiWindowInsetListener listener, bool wrapInEmptyView = false)
+		FrameLayout CreateRecyclerSafeAreaHierarchy(System.Type itemViewType, ICrossPlatformLayout layout, out AView itemView, bool wrapInEmptyView = false)
 		{
 			var context = MauiContext.Context;
 			var root = new FrameLayout(context);
@@ -629,8 +623,6 @@ namespace Microsoft.Maui.DeviceTests
 			{
 				recyclerView.AddView(itemView);
 			}
-
-			listener = MauiWindowInsetListener.RegisterParentForChildViews(root);
 
 			return root;
 		}
