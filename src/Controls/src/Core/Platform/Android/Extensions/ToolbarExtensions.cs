@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Android.Content;
 using Android.Content.Res;
 using Android.Graphics;
@@ -26,6 +27,8 @@ namespace Microsoft.Maui.Controls.Platform
 {
 	internal static class ToolbarExtensions
 	{
+		static readonly ConditionalWeakTable<AToolbar, ToolbarDefaultColorValues> s_toolbarDefaultColorValues = new();
+		static readonly ConditionalWeakTable<Drawable, DrawableDefaultColorValues> s_drawableDefaultColorValues = new();
 		static ColorStateList? _defaultTitleTextColor;
 		static int? _defaultNavigationIconColor;
 
@@ -35,6 +38,34 @@ namespace Microsoft.Maui.Controls.Platform
 
 		// Track badge drawables per menu item ID for lifecycle management
 		static readonly ConcurrentDictionary<int, BadgeDrawable> _badgeDrawables = new();
+
+		internal static void UpdateShellAppearance(this AToolbar nativeToolbar, Color? foreground, Color? background, Color? title)
+		{
+			var defaults = s_toolbarDefaultColorValues.GetValue(nativeToolbar, static toolbar => new ToolbarDefaultColorValues(toolbar));
+
+			if (title is null)
+			{
+				if (defaults.TitleTextColors is not null)
+					nativeToolbar.SetTitleTextColor(defaults.TitleTextColors);
+			}
+			else
+			{
+				nativeToolbar.SetTitleTextColor(title.ToPlatform().ToArgb());
+			}
+
+			if (background is null)
+			{
+				RestoreBackground(nativeToolbar, defaults);
+			}
+			else
+			{
+				nativeToolbar.BackgroundTintMode = PorterDuff.Mode.Src;
+				nativeToolbar.BackgroundTintList = ColorStateList.ValueOf(background.ToPlatform());
+			}
+
+			UpdateShellIconColor(nativeToolbar.NavigationIcon, foreground);
+			UpdateShellIconColor(nativeToolbar.OverflowIcon, foreground);
+		}
 
 		public static void UpdateIsVisible(this AToolbar nativeToolbar, Toolbar toolbar)
 		{
@@ -168,13 +199,14 @@ namespace Microsoft.Maui.Controls.Platform
 		public static void UpdateBarBackground(this AToolbar nativeToolbar, Toolbar toolbar)
 		{
 			Brush barBackground = toolbar.BarBackground;
+			var defaults = s_toolbarDefaultColorValues.GetValue(nativeToolbar, static value => new ToolbarDefaultColorValues(value));
 
 			if (barBackground is SolidColorBrush solidColor)
 			{
 				var tintColor = solidColor.Color;
 				if (tintColor == null)
 				{
-					nativeToolbar.BackgroundTintMode = null;
+					RestoreBackground(nativeToolbar, defaults);
 				}
 				else
 				{
@@ -184,10 +216,16 @@ namespace Microsoft.Maui.Controls.Platform
 			}
 			else
 			{
-				nativeToolbar.UpdateBackground(barBackground);
-
 				if (Brush.IsNullOrEmpty(barBackground))
+				{
+					RestoreBackground(nativeToolbar, defaults);
+				}
+				else
+				{
+					nativeToolbar.UpdateBackground(barBackground);
 					nativeToolbar.BackgroundTintMode = null;
+					nativeToolbar.BackgroundTintList = null;
+				}
 			}
 		}
 
@@ -200,6 +238,8 @@ namespace Microsoft.Maui.Controls.Platform
 			var platformColor = navIconColor.ToPlatform();
 			if (nativeToolbar.NavigationIcon is Drawable navigationIcon)
 			{
+				s_drawableDefaultColorValues.GetValue(navigationIcon, static value => new DrawableDefaultColorValues(value));
+
 				if (navigationIcon is DrawerArrowDrawable dad)
 				{
 					dad.Color = global::Android.Graphics.Color.White;
@@ -210,6 +250,7 @@ namespace Microsoft.Maui.Controls.Platform
 
 			if (nativeToolbar.OverflowIcon is Drawable overflowIcon)
 			{
+				s_drawableDefaultColorValues.GetValue(overflowIcon, static value => new DrawableDefaultColorValues(value));
 				overflowIcon.SetColorFilter(platformColor, FilterMode.SrcAtop);
 			}
 		}
@@ -239,6 +280,8 @@ namespace Microsoft.Maui.Controls.Platform
 
 			if (nativeToolbar.NavigationIcon is DrawerArrowDrawable icon)
 			{
+				s_drawableDefaultColorValues.GetValue(icon, static value => new DrawableDefaultColorValues(value));
+
 				// IconColor is the explicit source of truth for nav icon tint when set.
 				// Only fall back to BarTextColor for icon tint when IconColor is unset.
 				if (iconColor is null && textColor != null)
@@ -250,6 +293,83 @@ namespace Microsoft.Maui.Controls.Platform
 				{
 					icon.Color = _defaultNavigationIconColor.Value;
 				}
+			}
+		}
+
+		static void UpdateShellIconColor(Drawable? drawable, Color? color)
+		{
+			if (drawable is null)
+				return;
+
+			var defaults = s_drawableDefaultColorValues.GetValue(drawable, static value => new DrawableDefaultColorValues(value));
+			if (color is null)
+			{
+				defaults.Restore(drawable);
+			}
+			else if (drawable is DrawerArrowDrawable drawerArrow)
+			{
+				drawerArrow.Color = color.ToPlatform().ToArgb();
+			}
+			else
+			{
+				drawable.SetColorFilter(color.ToPlatform(), FilterMode.SrcAtop);
+			}
+		}
+
+		static void RestoreBackground(AToolbar nativeToolbar, ToolbarDefaultColorValues defaults)
+		{
+			nativeToolbar.Background = defaults.CreateBackground(nativeToolbar);
+			nativeToolbar.BackgroundTintMode = defaults.BackgroundTintMode;
+			nativeToolbar.BackgroundTintList = defaults.BackgroundTintList;
+		}
+
+		sealed class ToolbarDefaultColorValues
+		{
+			readonly Drawable.ConstantState? _backgroundConstantState;
+			readonly Drawable? _background;
+
+			public ToolbarDefaultColorValues(AToolbar toolbar)
+			{
+				_background = toolbar.Background;
+				_backgroundConstantState = _background?.GetConstantState();
+				BackgroundTintList = toolbar.BackgroundTintList;
+				BackgroundTintMode = toolbar.BackgroundTintMode;
+				var context = toolbar.Context?.GetThemedContext();
+				TitleTextColors = PlatformInterop.GetColorStateListForToolbarStyleableAttribute(context,
+					Resource.Attribute.toolbarStyle, Resource.Styleable.Toolbar_titleTextColor);
+			}
+
+			public ColorStateList? BackgroundTintList { get; }
+
+			public PorterDuff.Mode? BackgroundTintMode { get; }
+
+			public ColorStateList? TitleTextColors { get; }
+
+			public Drawable? CreateBackground(AToolbar toolbar) =>
+				_backgroundConstantState?.NewDrawable(toolbar.Resources)?.Mutate() ?? _background?.Mutate();
+		}
+
+		sealed class DrawableDefaultColorValues
+		{
+			readonly ColorFilter? _colorFilter;
+			readonly int? _drawerArrowColor;
+
+			public DrawableDefaultColorValues(Drawable drawable)
+			{
+				_colorFilter = drawable.ColorFilter;
+				if (drawable is DrawerArrowDrawable drawerArrow)
+					_drawerArrowColor = drawerArrow.Color;
+			}
+
+			public void Restore(Drawable drawable)
+			{
+				if (drawable is DrawerArrowDrawable drawerArrow && _drawerArrowColor.HasValue)
+					drawerArrow.Color = _drawerArrowColor.Value;
+
+				if (_colorFilter is null)
+					drawable.ClearColorFilter();
+				else
+					drawable.SetColorFilter(_colorFilter);
 			}
 		}
 

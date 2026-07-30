@@ -616,17 +616,17 @@ namespace Microsoft.Maui.Controls.Handlers
 
         protected virtual IShellToolbarAppearanceTracker CreateToolbarAppearanceTracker()
         {
-            return new ShellToolbarAppearanceTracker(this);
+            return new ShellHandlerToolbarAppearanceTracker();
         }
 
         protected virtual IShellTabLayoutAppearanceTracker CreateTabLayoutAppearanceTracker(ShellSection shellSection)
         {
-            return new ShellTabLayoutAppearanceTracker(this);
+            return new ShellHandlerTabLayoutAppearanceTracker();
         }
 
         protected virtual IShellBottomNavViewAppearanceTracker CreateBottomNavViewAppearanceTracker(ShellItem shellItem)
         {
-            return new ShellBottomNavViewAppearanceTracker(this, shellItem);
+            return new ShellHandlerBottomNavViewAppearanceTracker();
         }
 
         #region IShellContext Implementation

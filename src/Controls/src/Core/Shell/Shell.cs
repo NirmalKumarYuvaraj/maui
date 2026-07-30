@@ -765,6 +765,15 @@ namespace Microsoft.Maui.Controls
 			if (pivot is ShellContent || pivot is ShellSection || pivot is ContentPage)
 			{
 				appearance = appearance ?? GetAppearanceForPivot(pivot);
+#if ANDROID
+				if (Handler is Handlers.ShellHandler)
+				{
+					Toolbar.BarTextColor = appearance?.TitleColor;
+					Toolbar.BarBackground = appearance?.BackgroundColor;
+					Toolbar.IconColor = appearance?.ForegroundColor;
+					return;
+				}
+#endif
 				Toolbar.BarTextColor = appearance?.TitleColor ?? DefaultTitleColor;
 				Toolbar.BarBackground = appearance?.BackgroundColor ?? DefaultBackgroundColor;
 				Toolbar.IconColor = appearance?.ForegroundColor ?? DefaultForegroundColor;

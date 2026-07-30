@@ -991,10 +991,8 @@ namespace Microsoft.Maui.Controls.Handlers
             // Create Toolbar virtual view with proper context using current item
             _shellToolbar = new Toolbar(VirtualView?.CurrentItem);
 
-            // Apply toolbar changes from Shell
-            ShellToolbarTracker.ApplyToolbarChanges(shell.Toolbar, _shellToolbar);
-
-            // Create the platform toolbar
+            // Create the platform toolbar before applying Shell colors so the native
+            // style-derived defaults are captured by the toolbar mappers.
             _toolbar = (AToolbar)_shellToolbar.ToPlatform(mauiContext);
 
             // Add toolbar to outer AppBarLayout at position 0 (before navigationlayout_toptabs).
@@ -1012,6 +1010,8 @@ namespace Microsoft.Maui.Controls.Handlers
             {
                 _toolbarTracker.SetToolbar(_shellToolbar);
             }
+
+            ShellToolbarTracker.ApplyToolbarChanges(shell.Toolbar, _shellToolbar);
         }
 
         /// <summary>
