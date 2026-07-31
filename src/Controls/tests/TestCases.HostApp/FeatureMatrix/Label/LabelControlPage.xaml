@@ -25,6 +25,7 @@
         MaxLines="{Binding MaxLines}"
         Padding="{Binding Padding}"
         TextColor="{Binding TextColor}"
+        IsEnabled="{Binding IsEnabled}"
         TextDecorations="{Binding TextDecorations}"
         TextTransform="{Binding TextTransform}"
         TextType="{Binding TextType}"

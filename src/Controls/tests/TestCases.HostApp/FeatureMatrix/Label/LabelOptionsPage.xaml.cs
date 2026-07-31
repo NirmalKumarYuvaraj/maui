@@ -131,8 +131,16 @@ public partial class LabelOptionsPage : ContentPage
 			{
 				"Red" => Colors.Red,
 				"Green" => Colors.Green,
-				_ => Colors.Black
+				_ => null
 			};
+		}
+	}
+
+	private void OnIsEnabledChanged(object sender, CheckedChangedEventArgs e)
+	{
+		if (sender is RadioButton rb && rb.IsChecked && bool.TryParse(rb.Value?.ToString(), out bool isEnabled))
+		{
+			_viewModel.IsEnabled = isEnabled;
 		}
 	}
 

@@ -19,6 +19,7 @@ public class Material3ImageFeatureTests : _GalleryUITest
 	public const string SourceTypeStream = "SourceTypeStream";
 	public const string SourceTypeUri = "SourceTypeUri";
 	public const string IsVisibleFalseRadio = "IsVisibleFalseRadio";
+	public const string IsEnabledFalseRadio = "IsEnabledFalseRadio";
 	public const string FlowDirectionRTL = "FlowDirectionRTL";
 	public const string ShadowCheckBox = "ShadowCheckBox";
 	public const string IsAnimationTrue = "IsAnimationTrue";
@@ -350,6 +351,40 @@ public class Material3ImageFeatureTests : _GalleryUITest
 		App.WaitForElement(Apply);
 		App.Tap(Apply);
 		App.WaitForElement("ImageControl");
+		VerifyScreenshot(tolerance: 0.5, retryTimeout: TimeSpan.FromSeconds(2));
+	}
+
+	[Test]
+	[Category(UITestCategories.Material3)]
+	public void VerifyMaterial3ImageDisabledState()
+	{
+		App.WaitForElement(Options);
+		App.Tap(Options);
+		App.WaitForElement(SourceTypeFile);
+		App.Tap(SourceTypeFile);
+		App.WaitForElement(IsEnabledFalseRadio);
+		App.Tap(IsEnabledFalseRadio);
+		App.WaitForElement(Apply);
+		App.Tap(Apply);
+		App.WaitForElement("ImageControl");
+		Assert.That(App.FindElement("ImageIsEnabledState").GetText(), Is.EqualTo("False"));
+		VerifyScreenshot(tolerance: 0.5, retryTimeout: TimeSpan.FromSeconds(2));
+	}
+
+	[Test]
+	[Category(UITestCategories.Material3)]
+	public void VerifyMaterial3ImageAfterControlRecreation()
+	{
+		App.WaitForElement(Options);
+		App.Tap(Options);
+		App.WaitForElement(SourceTypeFile);
+		App.Tap(SourceTypeFile);
+		App.WaitForElement("RecreateImage");
+		App.Tap("RecreateImage");
+		App.WaitForElement(Apply);
+		App.Tap(Apply);
+		App.WaitForElement("ImageControl");
+		Assert.That(App.FindElement("ImageRecreationCount").GetText(), Is.EqualTo("1"));
 		VerifyScreenshot(tolerance: 0.5, retryTimeout: TimeSpan.FromSeconds(2));
 	}
 }

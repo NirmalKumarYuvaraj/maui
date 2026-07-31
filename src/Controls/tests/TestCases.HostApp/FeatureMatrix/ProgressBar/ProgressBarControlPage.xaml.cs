@@ -3,31 +3,12 @@ namespace Maui.Controls.Sample;
 public partial class ProgressBarControlPage : ContentPage
 {
 	private ProgressBarViewModel _viewModel;
-	private ProgressBar progressBar;
 
 	public ProgressBarControlPage()
 	{
 		InitializeComponent();
 		_viewModel = new ProgressBarViewModel();
 		BindingContext = _viewModel;
-	}
-
-	private void ReinitializeProgressBar()
-	{
-		BindingContext = _viewModel = new ProgressBarViewModel();
-		ProgressBarGrid.Children.Clear();
-		progressBar = new ProgressBar
-		{
-			AutomationId = "ProgressBarControl",
-		};
-
-		progressBar.SetBinding(ProgressBar.BackgroundColorProperty, nameof(ProgressBarViewModel.BackgroundColor));
-		progressBar.SetBinding(ProgressBar.FlowDirectionProperty, nameof(ProgressBarViewModel.FlowDirection));
-		progressBar.SetBinding(ProgressBar.IsVisibleProperty, nameof(ProgressBarViewModel.IsVisible));
-		progressBar.SetBinding(ProgressBar.ProgressProperty, nameof(ProgressBarViewModel.Progress));
-		progressBar.SetBinding(ProgressBar.ProgressColorProperty, nameof(ProgressBarViewModel.ProgressColor));
-		progressBar.SetBinding(ProgressBar.ShadowProperty, nameof(ProgressBarViewModel.Shadow));
-		ProgressBarGrid.Children.Add(progressBar);
 	}
 
 	private void OnProgressChanged(object sender, TextChangedEventArgs e)
@@ -87,14 +68,7 @@ public partial class ProgressBarControlPage : ContentPage
 	{
 		if (!string.IsNullOrWhiteSpace(ProgressToEntry.Text))
 		{
-			if (progressBar == null)
-			{
-				progressBarControl.ProgressTo(double.Parse(ProgressToEntry.Text), 1000, Easing.Linear);
-			}
-			else
-			{
-				progressBar.ProgressTo(double.Parse(ProgressToEntry.Text), 1000, Easing.Linear);
-			}
+			progressBarControl.ProgressTo(double.Parse(ProgressToEntry.Text), 1000, Easing.Linear);
 		}
 	}
 
@@ -106,6 +80,11 @@ public partial class ProgressBarControlPage : ContentPage
 		FlowDirectionLTR.IsChecked = false;
 		FlowDirectionRTL.IsChecked = false;
 		ShadowFalseRadio.IsChecked = false;
-		ReinitializeProgressBar();
+		_viewModel.Progress = 0.5;
+		_viewModel.ProgressColor = null;
+		_viewModel.BackgroundColor = null;
+		_viewModel.IsVisible = true;
+		_viewModel.FlowDirection = FlowDirection.LeftToRight;
+		_viewModel.Shadow = null;
 	}
 }

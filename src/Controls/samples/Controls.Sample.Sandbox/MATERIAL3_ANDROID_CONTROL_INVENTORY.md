@@ -57,7 +57,7 @@ inventory row and is omitted from individual owner cells to avoid repetition.
 
 | Control | Legacy implementation | Material 3 implementation | Property/state coverage | Test status | Known risks or gaps | Provisional owner |
 | --- | --- | --- | --- | --- | --- | --- |
-| Label | `LabelHandler` / AppCompat text view | `LabelHandler2` / `MauiMaterialTextView` based on `MaterialTextView` | Text, formatted text, font, color, alignment and line behavior are mapped; theme reset and accessibility states require explicit coverage | Dedicated M3 UI | Public customization surface remains internal; typography is not backed by a MAUI token contract | Core Android Handlers |
+| Label | `LabelHandler` / AppCompat text view | `LabelHandler2` / `MauiMaterialTextView` based on `MaterialTextView` | Text, formatted text, font, color, alignment and line behavior are mapped; disabled state and set-then-clear theme restoration now have explicit coverage | Dedicated M3 UI | Public customization surface remains internal; typography is not backed by a MAUI token contract | Core Android Handlers |
 | Editor | `EditorHandler` | `EditorHandler2` / `MauiMaterialEditText` | Text, placeholder, font, color, alignment, keyboard, focus and selection mappings exist | Dedicated M3 UI | `TextInputEditText` hierarchy can change measurement, placeholder and focus behavior | Core Android Handlers and Controls Android |
 | Entry | `EntryHandler` | `EntryHandler2` / `MauiMaterialTextInputLayout` with `MauiMaterialEditText` | Text, placeholder, password, font, colors, alignment, keyboard, clear button, focus and selection mappings exist | Dedicated M3 UI | Native hierarchy differs from legacy; placeholder flow direction and character-spacing limitations are documented in tests | Core Android Handlers and Controls Android |
 | Picker | `PickerHandler` | `PickerHandler2` / `MauiMaterialPicker` | Title, title color, selected item, font, text color, alignment and dialog mappings exist | Dedicated M3 UI | Dialog styling, selection synchronization and clearing values need lifecycle coverage | Core Android Handlers |
@@ -67,9 +67,9 @@ inventory row and is omitted from individual owner cells to avoid repetition.
 | RadioButton | `RadioButtonHandler` | `RadioButtonHandler2` / `MaterialRadioButton` | Checked state, content, color and enabled-state mappings exist | Dedicated M3 UI | State tint and reset-to-theme behavior need semantic-theme tests | Core Android Handlers |
 | Switch | `SwitchHandler` | `SwitchHandler2` / `MaterialSwitch` | On state, thumb and track mappings exist | Dedicated M3 UI | Native Material 3 geometry and state colors differ; explicit color precedence must remain stable | Core Android Handlers |
 | Slider | `SliderHandler` | `SliderHandler2` / Material `Slider` | Min, max, value, progress colors, enabled state and touch synchronization are mapped | Dedicated M3 UI | Listener implementation contains transitional work; event cleanup and drag behavior need device coverage | Core Android Handlers |
-| ProgressBar | `ProgressBarHandler` | `ProgressBarHandler2` / `LinearProgressIndicator` | Progress and indicator-color mappings exist | Dedicated M3 UI | Resetting explicit indicator colors to the theme default requires dedicated semantic tests | Core Android Handlers |
-| ActivityIndicator | `ActivityIndicatorHandler` | `ActivityIndicatorHandler2` / `MaterialActivityIndicator` | Running state, color and visibility use the shared handler contract | Coverage gap | No dedicated Material 3 feature suite was identified; size and indicator-style differences need baselines | Core Android Handlers |
-| Image | `ImageHandler` | `ImageHandler2` / Material shape-aware image view | Source, aspect, tint, loading and measurement mappings use the image-handler contract | Dedicated M3 UI | Shape behavior and explicit background interactions require compatibility coverage | Core Android Handlers |
+| ProgressBar | `ProgressBarHandler` | `ProgressBarHandler2` / `LinearProgressIndicator` | Progress, indicator-color mapping and explicit-color clearing on the existing handler now have dedicated coverage | Dedicated M3 UI | Runtime theme changes still require broader semantic-theme coverage | Core Android Handlers |
+| ActivityIndicator | `ActivityIndicatorHandler` | `ActivityIndicatorHandler2` / `MaterialActivityIndicator` | Running and disabled states now have dedicated Material 3 coverage; color and visibility use the shared handler contract | Dedicated M3 UI | Size and indicator-style differences still require broader baselines | Core Android Handlers |
+| Image | `ImageHandler` | `ImageHandler2` / Material shape-aware image view | Source, aspect, tint, loading, enabled state, measurement and replacement-instance bindings now have dedicated coverage | Dedicated M3 UI | Shape behavior and explicit background interactions require compatibility coverage | Core Android Handlers |
 
 Primary registration source:
 `src/Controls/src/Core/Hosting/AppHostBuilderExtensions.cs`.
@@ -237,10 +237,9 @@ The following are not accepted as visual differences:
 5. Dynamic color is not integrated.
 6. Adaptive Material 3 layout behavior is outside the current migration.
 7. Several `Handler2` and native wrapper types remain internal.
-8. ActivityIndicator lacks a dedicated Material 3 feature suite.
-9. Navigation and compatibility controls lack a consolidated Material 3 test
+8. Navigation and compatibility controls lack a consolidated Material 3 test
    suite.
-10. Generic test coverage does not prove semantic theme reset, accessibility
+9. Generic test coverage does not prove semantic theme reset, accessibility
     or runtime theme-change behavior.
 
 ## Existing dedicated Material 3 test suites
@@ -248,6 +247,7 @@ The following are not accepted as visual differences:
 - `ButtonMaterial3FeatureTests.cs`
 - `DatePickerMaterial3FeatureTests.cs`
 - `ImageButtonMaterial3FeatureTests.cs`
+- `Material3ActivityIndicatorFeatureTests.cs`
 - `Material3CheckBoxFeatureTests.cs`
 - `Material3EditorFeatureTests.cs`
 - `Material3EntryFeatureTests.cs`

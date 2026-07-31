@@ -315,6 +315,25 @@ complexity.
 
 Focus on theme defaults, measurement, explicit colors and enabled state.
 
+**Batch 1 assessment:** Implementation complete. Existing production handlers
+already followed the Phase 4 registration and lifecycle contract, so this batch
+added the missing compatibility evidence instead of duplicating handler logic:
+
+- ActivityIndicator now has dedicated Material 3 running and disabled-state
+  coverage.
+- Label now covers disabled state and set-then-clear text-color restoration.
+- Image now covers disabled state and replacement-instance recreation while
+  retaining all mapped bindings.
+- ProgressBar now covers clearing an explicit indicator color on the existing
+  control, preserving the active handler rather than validating a new instance.
+- Registration tests now confirm the foundation replacement handlers retain
+  the shared mapper contract.
+
+The shared UI-test assembly compiles successfully. Android HostApp compilation
+continues to be blocked by the pre-existing generated
+`ResourceDictionary.AddFactory` errors, with no errors attributed to the Batch
+1 files.
+
 ### Batch 2: Selection controls
 
 - CheckBox

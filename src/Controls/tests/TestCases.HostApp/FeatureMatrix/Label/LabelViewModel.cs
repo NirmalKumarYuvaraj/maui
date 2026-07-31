@@ -95,6 +95,13 @@ public class LabelViewModel : INotifyPropertyChanged
 		set { textColor = value; OnPropertyChanged(); }
 	}
 
+	private bool isEnabled = true;
+	public bool IsEnabled
+	{
+		get => isEnabled;
+		set { isEnabled = value; OnPropertyChanged(); }
+	}
+
 	private double fontSize = 18;
 	public double FontSize
 	{

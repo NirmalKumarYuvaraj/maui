@@ -96,6 +96,11 @@
                                  FontSize="10"
                                  CheckedChanged="OnTextColorChanged"
                                  AutomationId="TextColorGreen"/>
+                    <RadioButton Content="Default"
+                                 Value="Default"
+                                 FontSize="10"
+                                 CheckedChanged="OnTextColorChanged"
+                                 AutomationId="TextColorDefault"/>
                 </HorizontalStackLayout>
             </VerticalStackLayout>
             <VerticalStackLayout Grid.Row="4"
@@ -283,6 +288,23 @@
                                  FontSize="11"
                                  CheckedChanged="OnLineBreakModeChanged"
                                  AutomationId="LineBreakModeTailTruncation"/>
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+            <VerticalStackLayout Grid.Row="7"
+                                 Grid.Column="1">
+                <Label Text="IsEnabled"/>
+                <HorizontalStackLayout>
+                    <RadioButton Content="True"
+                                 Value="True"
+                                 IsChecked="True"
+                                 GroupName="IsEnabled"
+                                 CheckedChanged="OnIsEnabledChanged"
+                                 AutomationId="IsEnabledTrue"/>
+                    <RadioButton Content="False"
+                                 Value="False"
+                                 GroupName="IsEnabled"
+                                 CheckedChanged="OnIsEnabledChanged"
+                                 AutomationId="IsEnabledFalse"/>
                 </HorizontalStackLayout>
             </VerticalStackLayout>
         </Grid>

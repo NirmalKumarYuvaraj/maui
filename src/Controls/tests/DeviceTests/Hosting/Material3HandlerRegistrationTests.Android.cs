@@ -30,7 +30,11 @@ namespace Microsoft.Maui.DeviceTests
 				var defaultHandlers = defaultApp.Services.GetRequiredService<IMauiHandlersFactory>();
 
 				Assert.IsType<LabelHandler2>(defaultHandlers.GetHandler(typeof(Label)));
+				Assert.IsType<ImageHandler2>(defaultHandlers.GetHandler(typeof(Image)));
+				Assert.IsType<ActivityIndicatorHandler2>(defaultHandlers.GetHandler(typeof(ActivityIndicator)));
+				Assert.IsType<ProgressBarHandler2>(defaultHandlers.GetHandler(typeof(ProgressBar)));
 				Assert.IsType<ButtonHandler>(defaultHandlers.GetHandler(typeof(Button)));
+				Assert.Same(ImageHandler.Mapper, ImageHandler2.Mapper);
 
 				var customizedApp = MauiApp.CreateBuilder()
 					.UseMauiApp<ApplicationStub>()

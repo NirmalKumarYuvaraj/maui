@@ -141,12 +141,36 @@
                                         FontSize="14"
                                         CheckedChanged="OnIsVisibleCheckedChanged"/>
                 </HorizontalStackLayout>
+                <Label Text="Is Enabled:"
+                       FontSize="15"/>
+                <HorizontalStackLayout>
+                        <RadioButton x:Name="IsEnabledTrueRadio"
+                                     AutomationId="IsEnabledTrueRadio"
+                                     GroupName="IsEnabled"
+                                     Content="True"
+                                     IsChecked="True"
+                                     FontSize="14"
+                                     CheckedChanged="OnIsEnabledCheckedChanged"/>
+                        <RadioButton x:Name="IsEnabledFalseRadio"
+                                     AutomationId="IsEnabledFalseRadio"
+                                     GroupName="IsEnabled"
+                                     Content="False"
+                                     FontSize="14"
+                                     CheckedChanged="OnIsEnabledCheckedChanged"/>
+                </HorizontalStackLayout>
                  <HorizontalStackLayout Spacing="20">
                         <Label Text="Shadow"
                                         VerticalOptions="Center"/>
                         <CheckBox IsChecked="{Binding HasShadow}"
                                         AutomationId="ShadowCheckBox"
                                         VerticalOptions="Center"/>
+                </HorizontalStackLayout>
+                <HorizontalStackLayout Spacing="20">
+                        <Label Text="Recreate on apply"
+                               VerticalOptions="Center"/>
+                        <CheckBox IsChecked="{Binding RecreateOnApply}"
+                                  AutomationId="RecreateImage"
+                                  VerticalOptions="Center"/>
                 </HorizontalStackLayout>
 
         </VerticalStackLayout>

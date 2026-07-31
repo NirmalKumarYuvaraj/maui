@@ -129,6 +129,36 @@ public class Material3LabelFeatureTests : _GalleryUITest
 		VerifyScreenshot(tolerance: 0.5, retryTimeout: TimeSpan.FromSeconds(2));
 	}
 
+	[Test]
+	[Category(UITestCategories.Material3)]
+	public void Material3Label_SetIsEnabledFalse_VerifyVisualState()
+	{
+		App.WaitForElement("Options");
+		App.Tap("Options");
+		App.WaitForElement("IsEnabledFalse");
+		App.Tap("IsEnabledFalse");
+		App.WaitForElement("Apply");
+		App.Tap("Apply");
+		App.WaitForElement("MainLabel");
+		VerifyScreenshot(tolerance: 0.5, retryTimeout: TimeSpan.FromSeconds(2));
+	}
+
+	[Test]
+	[Category(UITestCategories.Material3)]
+	public void Material3Label_ClearTextColor_RestoresDefaultVisualState()
+	{
+		App.WaitForElement("Options");
+		App.Tap("Options");
+		App.WaitForElement("TextColorRed");
+		App.Tap("TextColorRed");
+		App.WaitForElement("TextColorDefault");
+		App.Tap("TextColorDefault");
+		App.WaitForElement("Apply");
+		App.Tap("Apply");
+		App.WaitForElement("MainLabel");
+		VerifyScreenshot(tolerance: 0.5, retryTimeout: TimeSpan.FromSeconds(2));
+	}
+
 	[Test, Order(8)]
 	[Category(UITestCategories.Material3)]
 	public void Material3Label_VerifyLabelWhenFormattedTextWithPadding()

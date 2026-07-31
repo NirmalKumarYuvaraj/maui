@@ -9,6 +9,7 @@ public class ImageViewModel : INotifyPropertyChanged
 	private Aspect _aspect;
 	private bool _isAnimationPlaying;
 	private bool _isOpaque;
+	private bool _isEnabled = true;
 	private bool _isVisible = true;
 	private double _size = 40;
 	private Color _color = Colors.Blue;
@@ -16,6 +17,8 @@ public class ImageViewModel : INotifyPropertyChanged
 	private Shadow _imageShadow;
 	private FlowDirection _flowDirection = FlowDirection.LeftToRight;
 	private ImageSource _source = ImageSource.FromFile("animated_heart.gif");
+	private bool _recreateOnApply;
+	private int _recreationCount;
 
 	public Aspect Aspect
 	{
@@ -33,6 +36,24 @@ public class ImageViewModel : INotifyPropertyChanged
 	{
 		get => _isOpaque;
 		set { if (_isOpaque != value) { _isOpaque = value; OnPropertyChanged(); } }
+	}
+
+	public bool IsEnabled
+	{
+		get => _isEnabled;
+		set { if (_isEnabled != value) { _isEnabled = value; OnPropertyChanged(); } }
+	}
+
+	public bool RecreateOnApply
+	{
+		get => _recreateOnApply;
+		set { if (_recreateOnApply != value) { _recreateOnApply = value; OnPropertyChanged(); } }
+	}
+
+	public int RecreationCount
+	{
+		get => _recreationCount;
+		set { if (_recreationCount != value) { _recreationCount = value; OnPropertyChanged(); } }
 	}
 
 	public ImageSource Source

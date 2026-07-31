@@ -82,6 +82,19 @@ public class Material3ProgressBarFeatureTests : _GalleryUITest
 
 	[Test]
 	[Category(UITestCategories.Material3)]
+	public void Material3ProgressBar_ClearProgressColor_RestoresDefaultVisualState()
+	{
+		App.WaitForElement("ResetButton");
+		App.Tap("ResetButton");
+		App.WaitForElement("ProgressColorRedButton");
+		App.Tap("ProgressColorRedButton");
+		App.Tap("ResetButton");
+		App.WaitForElement("ProgressBarControl");
+		VerifyScreenshot(tolerance: 0.5, retryTimeout: TimeSpan.FromSeconds(2));
+	}
+
+	[Test]
+	[Category(UITestCategories.Material3)]
 	public void Material3ProgressBar_ChangeFlowDirection_RTL_VerifyLabel()
 	{
 		App.WaitForElement("ResetButton");
