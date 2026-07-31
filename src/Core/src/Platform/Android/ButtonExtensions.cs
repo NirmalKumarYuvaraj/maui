@@ -1,4 +1,6 @@
-﻿using Android.Widget;
+﻿using Android.Content.Res;
+using Android.Graphics.Drawables;
+using Android.Widget;
 using Google.Android.Material.Button;
 using Microsoft.Maui.Graphics;
 using AColor = Android.Graphics.Color;
@@ -10,6 +12,23 @@ namespace Microsoft.Maui.Platform
 	{
 		public static void UpdateBackground(this MaterialButton platformView, IButton button) =>
 			platformView.UpdateButtonBackground(button);
+
+		internal static void UpdateBackground(
+			this MaterialButton platformView,
+			IButton button,
+			Drawable? defaultBackground,
+			ColorStateList? defaultBackgroundTintList)
+		{
+			if (button.Background.IsNullOrEmpty() && platformView.TryGetMauiBackground(out _, out _, out _, out _, out _))
+			{
+				platformView.Background = defaultBackground;
+				platformView.BackgroundTintList = defaultBackgroundTintList;
+				platformView.UpdateButtonStroke(button);
+				return;
+			}
+
+			platformView.UpdateButtonBackground(button);
+		}
 
 		public static void UpdateStrokeColor(this MaterialButton platformView, IButton button) =>
 			platformView.UpdateButtonStroke(button);

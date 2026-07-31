@@ -37,13 +37,13 @@ namespace Microsoft.Maui.Handlers
 
 		protected override void ConnectHandler(ShapeableImageView platformView)
 		{
+			base.ConnectHandler(platformView);
+
 			platformView.FocusChange += OnFocusChange;
 			platformView.Click += OnClick;
 			platformView.Touch += OnTouch;
 			platformView.ViewAttachedToWindow += OnPlatformViewAttachedToWindow;
-
 			platformView.LayoutChange += OnPlatformViewLayoutChange;
-			base.ConnectHandler(platformView);
 		}
 
 		public static void MapBackground(IImageButtonHandler handler, IImageButton imageButton)
@@ -98,6 +98,7 @@ namespace Microsoft.Maui.Handlers
 				case MotionEventActions.Down:
 					VirtualView?.Pressed();
 					break;
+				case MotionEventActions.Cancel:
 				case MotionEventActions.Up:
 					VirtualView?.Released();
 					break;

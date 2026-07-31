@@ -13,6 +13,7 @@ namespace Microsoft.Maui.Platform
 		SurfaceContainer,
 		OnSurface,
 		OnSurfaceVariant,
+		OutlineVariant,
 	}
 
 	static class Material3ThemeResolver
@@ -46,6 +47,7 @@ namespace Microsoft.Maui.Platform
 				Material3ColorRole.SurfaceContainer => Color.FromArgb(isDark ? "#1D1B20" : "#F3EDF7"),
 				Material3ColorRole.OnSurface => Color.FromArgb(isDark ? "#E6E0E9" : "#1D1B20"),
 				Material3ColorRole.OnSurfaceVariant => Color.FromArgb(isDark ? "#CAC4D0" : "#49454F"),
+				Material3ColorRole.OutlineVariant => Color.FromArgb(isDark ? "#49454F" : "#CAC4D0"),
 				_ => throw new ArgumentOutOfRangeException(nameof(role)),
 			};
 
@@ -57,6 +59,7 @@ namespace Microsoft.Maui.Platform
 				Material3ColorRole.SurfaceContainer => Resource.Attribute.colorSurfaceContainer,
 				Material3ColorRole.OnSurface => Resource.Attribute.colorOnSurface,
 				Material3ColorRole.OnSurfaceVariant => Resource.Attribute.colorOnSurfaceVariant,
+				Material3ColorRole.OutlineVariant => Resource.Attribute.colorOutlineVariant,
 				_ => throw new ArgumentOutOfRangeException(nameof(role)),
 			};
 

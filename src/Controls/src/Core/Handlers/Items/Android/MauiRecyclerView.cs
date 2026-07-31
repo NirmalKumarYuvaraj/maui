@@ -721,6 +721,12 @@ namespace Microsoft.Maui.Controls.Handlers.Items
 		{
 			if (disposing)
 			{
+				if (Material3Configuration.Enabled)
+					ClearAppBarLiftTargetAndPendingPost();
+
+				_setAppBarLiftTargetRunnable?.Dispose();
+				_setAppBarLiftTargetRunnable = null;
+
 				_parentScrollGestureDispatcher?.Dispose();
 				_parentScrollGestureDispatcher = null;
 			}

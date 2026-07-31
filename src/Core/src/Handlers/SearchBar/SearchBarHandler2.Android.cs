@@ -12,6 +12,8 @@ namespace Microsoft.Maui.Handlers;
 // TODO: material3 - make it public in .net 11
 internal class SearchBarHandler2 : ViewHandler<ISearchBar, MauiMaterialSearchBarTextInputLayout>
 {
+    ColorStateList? _defaultHintTextColors;
+
     public static PropertyMapper<ISearchBar, SearchBarHandler2> Mapper =
     new(ViewMapper)
     {
@@ -60,6 +62,8 @@ internal class SearchBarHandler2 : ViewHandler<ISearchBar, MauiMaterialSearchBar
 
     protected override void ConnectHandler(MauiMaterialSearchBarTextInputLayout platformView)
     {
+        _defaultHintTextColors = platformView.EditText?.HintTextColors;
+
         base.ConnectHandler(platformView);
         if (platformView.EditText is not null)
         {
@@ -88,6 +92,7 @@ internal class SearchBarHandler2 : ViewHandler<ISearchBar, MauiMaterialSearchBar
         }
 
         platformView.SetEndIconOnClickListener(null);
+        _defaultHintTextColors = null;
 
         base.DisconnectHandler(platformView);
     }
@@ -145,7 +150,13 @@ internal class SearchBarHandler2 : ViewHandler<ISearchBar, MauiMaterialSearchBar
 
     public static void MapPlaceholderColor(SearchBarHandler2 handler, ISearchBar searchBar)
     {
-        handler.PlatformView?.EditText?.UpdatePlaceholderColor(searchBar);
+        if (handler.PlatformView?.EditText is not EditText editText)
+            return;
+
+        if (searchBar.PlaceholderColor is not null)
+            editText.UpdatePlaceholderColor(searchBar);
+        else if (handler._defaultHintTextColors is not null)
+            editText.SetHintTextColor(handler._defaultHintTextColors);
     }
 
     public static void MapText(SearchBarHandler2 handler, ISearchBar searchBar)

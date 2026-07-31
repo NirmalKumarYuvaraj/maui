@@ -253,6 +253,8 @@ internal class DatePickerHandler2 : ViewHandler<IDatePicker, MauiMaterialDatePic
         if (_dialog is null)
         {
             UpdateIsOpenState(false);
+            if (VirtualView is not null)
+                VirtualView.IsFocused = false;
             return;
         }
 
@@ -265,6 +267,8 @@ internal class DatePickerHandler2 : ViewHandler<IDatePicker, MauiMaterialDatePic
 
         _dialog = null;
         UpdateIsOpenState(false);
+        if (VirtualView is not null)
+            VirtualView.IsFocused = false;
     }
 
     void RemoveListeners()
@@ -347,5 +351,7 @@ internal class MaterialDatePickerDismissListener : Java.Lang.Object, IDialogInte
         // Clean up without trying to dismiss again
         handler._dialog = null;
         handler.UpdateIsOpenState(false);
+        if (handler.VirtualView is not null)
+            handler.VirtualView.IsFocused = false;
     }
 }

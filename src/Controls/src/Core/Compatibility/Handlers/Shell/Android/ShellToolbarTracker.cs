@@ -611,7 +611,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 					using (var newDrawable = constant.NewDrawable())
 					using (var iconDrawable = newDrawable.Mutate())
 					{
-						iconDrawable.SetColorFilter(TintColor.ToPlatform(Colors.White), FilterMode.SrcAtop);
+						iconDrawable.SetColorFilter(TintColor.ToPlatform(GetDefaultToolbarTintColor(context)), FilterMode.SrcAtop);
 						menuItem.SetIcon(iconDrawable);
 					}
 				}
@@ -675,7 +675,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			if (menu.FindItem(_placeholderMenuItemId) is IMenuItem item)
 			{
 				using (var icon = item.Icon)
-					icon.SetColorFilter(TintColor.ToPlatform(Colors.White), FilterMode.SrcAtop);
+					icon.SetColorFilter(TintColor.ToPlatform(GetDefaultToolbarTintColor(toolbar.Context)), FilterMode.SrcAtop);
 			}
 		}
 
@@ -719,7 +719,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 					item.SetEnabled(SearchHandler.IsSearchEnabled);
 					item.SetIcon(Resource.Drawable.abc_ic_search_api_material);
 					using (var icon = item.Icon)
-						icon.SetColorFilter(TintColor.ToPlatform(Colors.White), FilterMode.SrcAtop);
+						icon.SetColorFilter(TintColor.ToPlatform(GetDefaultToolbarTintColor(toolbar.Context)), FilterMode.SrcAtop);
 					item.SetShowAsAction(ShowAsAction.IfRoom | ShowAsAction.CollapseActionView);
 
 					if (_searchView.View.Parent is not null)
@@ -794,7 +794,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 					// we want the newly added button which will need layout
 					if (child.IsLayoutRequested)
 					{
-						button.SetColorFilter(TintColor.ToPlatform(Colors.White), PorterDuff.Mode.SrcAtop);
+						button.SetColorFilter(TintColor.ToPlatform(GetDefaultToolbarTintColor(button.Context)), PorterDuff.Mode.SrcAtop);
 					}
 
 					button.Dispose();
@@ -824,6 +824,11 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			UpdateToolbarItemsTintColors(_platformToolbar);
 		}
 
+		static Color GetDefaultToolbarTintColor(Context context) =>
+			Material3Configuration.Enabled
+				? Material3ThemeResolver.ResolveMauiColor(context, Material3ColorRole.OnSurface)
+				: Colors.White;
+
 		class FlyoutIconDrawerDrawable : DrawerArrowDrawable
 		{
 			public Drawable IconBitmap { get; set; }
@@ -845,7 +850,10 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 			public FlyoutIconDrawerDrawable(Context context, Color defaultColor, Drawable icon, string text) : base(context)
 			{
-				TintColor = defaultColor;
+				TintColor = defaultColor ??
+					(Material3Configuration.Enabled
+						? Material3ThemeResolver.ResolveMauiColor(context, Material3ColorRole.OnSurface)
+						: null);
 				if (context.TryResolveAttribute(AndroidResource.Attribute.TextSize, out float? value) &&
 					value != null)
 				{

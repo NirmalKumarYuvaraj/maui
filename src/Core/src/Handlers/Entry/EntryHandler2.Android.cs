@@ -56,9 +56,6 @@ internal class EntryHandler2 : ViewHandler<IEntry, MauiMaterialTextInputLayout>
 		layout.BoxBackgroundMode = TextInputLayout.BoxBackgroundOutline;
 		layout.AddView(new MauiMaterialEditText(layout.Context!));
 
-		// Store the original default hint colors before any customization
-		_defaultHintTextColors = layout.DefaultHintTextColor;
-
 		return layout;
 	}
 
@@ -75,6 +72,8 @@ internal class EntryHandler2 : ViewHandler<IEntry, MauiMaterialTextInputLayout>
 
 	protected override void ConnectHandler(MauiMaterialTextInputLayout platformView)
 	{
+		_defaultHintTextColors = platformView.DefaultHintTextColor;
+
 		base.ConnectHandler(platformView);
 
 		platformView.ViewAttachedToWindow += OnViewAttachedToWindow;

@@ -179,8 +179,9 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 		protected virtual BottomSheetDialog CreateMoreBottomSheet(Action<int, BottomSheetDialog> selectCallback)
 		{
-			var bottomSheetDialog = new BottomSheetDialog(Context);
-			var bottomSheetLayout = new LinearLayout(Context);
+			var context = MauiMaterialContextThemeWrapper.Create(Context);
+			var bottomSheetDialog = new BottomSheetDialog(context);
+			var bottomSheetLayout = new LinearLayout(context);
 			using (var bottomShellLP = new LP(LP.MatchParent, LP.WrapContent))
 				bottomSheetLayout.LayoutParameters = bottomShellLP;
 			bottomSheetLayout.Orientation = Orientation.Vertical;
@@ -192,14 +193,14 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				var closure_i = i;
 				var shellContent = items[i];
 
-				using (var innerLayout = new LinearLayout(Context))
+				using (var innerLayout = new LinearLayout(context))
 				{
 					innerLayout.SetClipToOutline(true);
 					innerLayout.SetBackground(
 						Material3Configuration.Enabled
-							? BottomNavigationViewUtils.CreateItemBackgroundDrawable(Context)
+							? BottomNavigationViewUtils.CreateItemBackgroundDrawable(context)
 							: CreateItemBackgroundDrawable());
-					innerLayout.SetPadding(0, (int)Context.ToPixels(6), 0, (int)Context.ToPixels(6));
+					innerLayout.SetPadding(0, (int)context.ToPixels(6), 0, (int)context.ToPixels(6));
 					innerLayout.Orientation = Orientation.Horizontal;
 					using (var param = new LP(LP.MatchParent, LP.WrapContent))
 						innerLayout.LayoutParameters = param;
@@ -215,13 +216,13 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 					innerLayout.Click += clickCallback;
 
-					var image = new ImageView(Context);
-					var lp = new LinearLayout.LayoutParams((int)Context.ToPixels(32), (int)Context.ToPixels(32))
+					var image = new ImageView(context);
+					var lp = new LinearLayout.LayoutParams((int)context.ToPixels(32), (int)context.ToPixels(32))
 					{
-						LeftMargin = (int)Context.ToPixels(20),
-						RightMargin = (int)Context.ToPixels(20),
-						TopMargin = (int)Context.ToPixels(6),
-						BottomMargin = (int)Context.ToPixels(6),
+						LeftMargin = (int)context.ToPixels(20),
+						RightMargin = (int)context.ToPixels(20),
+						TopMargin = (int)context.ToPixels(6),
+						BottomMargin = (int)context.ToPixels(6),
 						Gravity = GravityFlags.Center
 					};
 					image.LayoutParameters = lp;
@@ -239,7 +240,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 							if (result?.Value is not null)
 							{
 								var color = Material3Configuration.Enabled
-									? new AColor(Material3ThemeResolver.ResolveColor(Context, Material3ColorRole.OnSurfaceVariant))
+									? new AColor(Material3ThemeResolver.ResolveColor(context, Material3ColorRole.OnSurfaceVariant))
 									: Colors.Black.MultiplyAlpha(0.6f).ToPlatform();
 								result.Value.SetTint(color);
 							}
@@ -247,14 +248,14 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 					innerLayout.AddView(image);
 
-					using (var text = new TextView(Context))
+					using (var text = new TextView(context))
 					{
 						text.Typeface = services.GetRequiredService<IFontManager>()
 							.GetTypeface(Font.OfSize("sans-serif-medium", 0.0));
 
 						text.SetTextColor(
 							Material3Configuration.Enabled
-								? new AColor(Material3ThemeResolver.ResolveColor(Context, Material3ColorRole.OnSurface))
+								? new AColor(Material3ThemeResolver.ResolveColor(context, Material3ColorRole.OnSurface))
 								: AColor.Black);
 						text.Text = shellContent.Title;
 						lp = new LinearLayout.LayoutParams(0, LP.WrapContent)

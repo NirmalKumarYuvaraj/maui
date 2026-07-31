@@ -206,7 +206,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			_textBlock.Threshold = 1;
 			_textBlock.Adapter = new ShellSearchViewAdapter(SearchHandler, _shellContext);
 			_textBlock.ItemClick += OnTextBlockItemClicked;
-			_textBlock.SetDropDownBackgroundDrawable(new ClipDrawableWrapper(_textBlock.DropDownBackground));
+			_textBlock.SetDropDownBackgroundDrawable(new ClipDrawableWrapper(_textBlock.Context, _textBlock.DropDownBackground));
 
 			// A note on accessibility. The _textBlocks hint is what android defaults to reading in the screen
 			// reader. Therefore, we do not need to set something else.
@@ -376,8 +376,11 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 		class ClipDrawableWrapper : ASupportDrawable.DrawableWrapperCompat
 		{
-			public ClipDrawableWrapper(Drawable dr) : base(dr)
+			readonly Context _context;
+
+			public ClipDrawableWrapper(Context context, Drawable dr) : base(dr)
 			{
+				_context = context;
 			}
 
 			public override void Draw(Canvas canvas)
@@ -398,7 +401,9 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 				paint = new Paint
 				{
-					Color = AColor.LightGray
+					Color = Material3Configuration.Enabled
+						? new AColor(Material3ThemeResolver.ResolveColor(_context, Material3ColorRole.OutlineVariant))
+						: AColor.LightGray
 				};
 #pragma warning restore CA1416
 				canvas.DrawLine(0, 0, canvas.Width, 0, paint);

@@ -82,6 +82,7 @@ namespace Microsoft.Maui.Controls.Compatibility.Platform.Android
 				_itemDecoration = null;
 
 				ClearLayoutListener();
+				_oldViews?.Clear();
 			}
 
 			base.Dispose(disposing);
@@ -111,6 +112,10 @@ namespace Microsoft.Maui.Controls.Compatibility.Platform.Android
 			if (Carousel != null)
 				Carousel.Scrolled -= CarouselViewScrolled;
 
+			if (oldElement is FormsCarouselView oldCarousel)
+				oldCarousel.VisibleViews.Clear();
+
+			_oldViews?.Clear();
 			ClearLayoutListener();
 			base.TearDownOldElement(oldElement);
 		}

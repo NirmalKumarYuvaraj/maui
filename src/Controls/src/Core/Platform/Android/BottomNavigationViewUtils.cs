@@ -184,7 +184,7 @@ namespace Microsoft.Maui.Controls.Platform
 			List<(string title, ImageSource icon, bool tabEnabled)> items,
 			int maxItemCount)
 		{
-			var context = mauiContext.Context;
+			var context = MauiMaterialContextThemeWrapper.Create(mauiContext.Context);
 			var bottomSheetDialog = new BottomSheetDialog(context);
 			var bottomSheetLayout = new LinearLayout(context);
 			using (var bottomShellLP = new LP(LP.MatchParent, LP.WrapContent))

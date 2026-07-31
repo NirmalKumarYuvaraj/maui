@@ -92,6 +92,8 @@ internal partial class TimePickerHandler2 : ViewHandler<ITimePicker, MauiMateria
         if (_dialog is null)
         {
             UpdateIsOpenState(false);
+            if (VirtualView is not null)
+                VirtualView.IsFocused = false;
             return;
         }
 
@@ -104,6 +106,8 @@ internal partial class TimePickerHandler2 : ViewHandler<ITimePicker, MauiMateria
 
         _dialog = null;
         UpdateIsOpenState(false);
+        if (VirtualView is not null)
+            VirtualView.IsFocused = false;
     }
 
     void ShowPickerDialog()
@@ -283,5 +287,7 @@ internal class MaterialTimePickerDismissListener : Java.Lang.Object, IDialogInte
         handler._dialog = null;
 
         handler.UpdateIsOpenState(false);
+        if (handler.VirtualView is not null)
+            handler.VirtualView.IsFocused = false;
     }
 }

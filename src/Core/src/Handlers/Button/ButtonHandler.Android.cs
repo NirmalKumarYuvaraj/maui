@@ -26,6 +26,8 @@ namespace Microsoft.Maui.Handlers
 		// Cached default Material theme text colors, captured before any MAUI property mapping.
 		// Restored when TextColor is set to null (e.g. when a VisualState setter is unapplied).
 		ColorStateList? _defaultTextColors;
+		ColorStateList? _defaultBackgroundTintList;
+		Drawable? _defaultBackground;
 
 		protected override MaterialButton CreatePlatformView()
 		{
@@ -42,6 +44,12 @@ namespace Microsoft.Maui.Handlers
 
 		protected override void ConnectHandler(MaterialButton platformView)
 		{
+			_defaultTextColors = platformView.TextColors;
+			_defaultBackgroundTintList = platformView.BackgroundTintList;
+			_defaultBackground = platformView.Background;
+
+			base.ConnectHandler(platformView);
+
 			ClickListener.Handler = this;
 			platformView.SetOnClickListener(ClickListener);
 
@@ -50,11 +58,6 @@ namespace Microsoft.Maui.Handlers
 
 			platformView.FocusChange += OnNativeViewFocusChange;
 			platformView.LayoutChange += OnPlatformViewLayoutChange;
-
-			// Capture Material theme defaults before MAUI property mapping is applied
-			_defaultTextColors = platformView.TextColors;
-
-			base.ConnectHandler(platformView);
 		}
 
 		protected override void DisconnectHandler(MaterialButton platformView)
@@ -69,6 +72,8 @@ namespace Microsoft.Maui.Handlers
 			platformView.LayoutChange -= OnPlatformViewLayoutChange;
 
 			_defaultTextColors = null;
+			_defaultBackgroundTintList = null;
+			_defaultBackground = null;
 
 			ImageSourceLoader.Reset();
 
@@ -78,7 +83,17 @@ namespace Microsoft.Maui.Handlers
 		// This is a Android-specific mapping
 		public static void MapBackground(IButtonHandler handler, IButton button)
 		{
-			handler.PlatformView?.UpdateBackground(button);
+			if (handler is ButtonHandler platformHandler)
+			{
+				handler.PlatformView?.UpdateBackground(
+					button,
+					platformHandler._defaultBackground,
+					platformHandler._defaultBackgroundTintList);
+			}
+			else
+			{
+				handler.PlatformView?.UpdateBackground(button);
+			}
 		}
 
 		public static void MapStrokeColor(IButtonHandler handler, IButton button)
