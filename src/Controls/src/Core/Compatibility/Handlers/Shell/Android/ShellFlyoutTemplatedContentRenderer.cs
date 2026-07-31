@@ -610,7 +610,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				var color = _shellContext.Shell.FlyoutBackgroundColor;
 				if (_defaultBackgroundColor is null)
 				{
-					if (RuntimeFeature.IsMaterial3Enabled)
+					if (Material3Configuration.Enabled)
 					{
 						var colorSurface = ContextExtensions.GetThemeAttrColor(_shellContext.AndroidContext, Resource.Attribute.colorSurface);
 						_defaultBackgroundColor = new ColorDrawable(new AColor(colorSurface));

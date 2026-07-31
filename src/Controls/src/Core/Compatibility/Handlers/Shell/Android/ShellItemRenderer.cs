@@ -195,7 +195,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				{
 					innerLayout.SetClipToOutline(true);
 					innerLayout.SetBackground(
-						RuntimeFeature.IsMaterial3Enabled
+						Material3Configuration.Enabled
 							? BottomNavigationViewUtils.CreateItemBackgroundDrawable(Context)
 							: CreateItemBackgroundDrawable());
 					innerLayout.SetPadding(0, (int)Context.ToPixels(6), 0, (int)Context.ToPixels(6));
@@ -237,7 +237,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 							image.SetImageDrawable(result?.Value);
 							if (result?.Value is not null)
 							{
-								var color = RuntimeFeature.IsMaterial3Enabled
+								var color = Material3Configuration.Enabled
 									? new AColor(Context.GetThemeAttrColor(Resource.Attribute.colorOnSurfaceVariant))
 									: Colors.Black.MultiplyAlpha(0.6f).ToPlatform();
 								result.Value.SetTint(color);
@@ -252,7 +252,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 							.GetTypeface(Font.OfSize("sans-serif-medium", 0.0));
 
 						text.SetTextColor(
-							RuntimeFeature.IsMaterial3Enabled
+							Material3Configuration.Enabled
 								? new AColor(Context.GetThemeAttrColor(Resource.Attribute.colorOnSurface))
 								: AColor.Black);
 						text.Text = shellContent.Title;

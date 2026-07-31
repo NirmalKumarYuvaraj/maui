@@ -772,14 +772,14 @@ namespace Microsoft.Maui.Controls
 
 #if ANDROID
 		static Color DefaultBackgroundColor => ResolveThemeColor(
-			RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#FEF7FF") : Color.FromArgb("#2c3e50"),
-			RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#141218") : Color.FromArgb("#1B3147"));
+			Material3Configuration.Enabled ? Color.FromArgb("#FEF7FF") : Color.FromArgb("#2c3e50"),
+			Material3Configuration.Enabled ? Color.FromArgb("#141218") : Color.FromArgb("#1B3147"));
 		static Color DefaultForegroundColor => ResolveThemeColor(
-			RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#1D1B20") : Colors.White,
-			RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#E6E0E9") : Colors.White);
+			Material3Configuration.Enabled ? Color.FromArgb("#1D1B20") : Colors.White,
+			Material3Configuration.Enabled ? Color.FromArgb("#E6E0E9") : Colors.White);
 		static Color DefaultTitleColor => ResolveThemeColor(
-			RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#1D1B20") : Colors.White,
-			RuntimeFeature.IsMaterial3Enabled ? Color.FromArgb("#E6E0E9") : Colors.White);
+			Material3Configuration.Enabled ? Color.FromArgb("#1D1B20") : Colors.White,
+			Material3Configuration.Enabled ? Color.FromArgb("#E6E0E9") : Colors.White);
 
 		static bool IsDarkTheme => (Application.Current?.RequestedTheme == AppTheme.Dark);
 
@@ -1282,7 +1282,7 @@ namespace Microsoft.Maui.Controls
 				Color light;
 				Color dark;
 
-				if (DeviceInfo.Platform == DevicePlatform.Android && RuntimeFeature.IsMaterial3Enabled)
+				if (DeviceInfo.Platform == DevicePlatform.Android && Material3Configuration.Enabled)
 				{
 					light = Color.FromArgb("#FEF7FF");
 					dark = Color.FromArgb("#141218");

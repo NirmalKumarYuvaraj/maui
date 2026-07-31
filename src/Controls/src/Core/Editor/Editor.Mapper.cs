@@ -16,7 +16,7 @@ namespace Microsoft.Maui.Controls
 			EditorHandler.Mapper.ReplaceMapping<Editor, IEditorHandler>(nameof(TextTransform), MapText);
 
 #if ANDROID
-			if (RuntimeFeature.IsMaterial3Enabled)
+			if (Material3Configuration.Enabled)
 			{
 				EditorHandler2.Mapper.ReplaceMapping<Editor, EditorHandler2>(nameof(Text), MapText);
 				EditorHandler2.Mapper.ReplaceMapping<Editor, EditorHandler2>(nameof(TextTransform), MapText);

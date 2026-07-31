@@ -23,7 +23,7 @@ namespace Microsoft.Maui.Controls
 			SearchBarHandler.Mapper.ReplaceMapping<SearchBar, ISearchBarHandler>(nameof(InputTransparent), MapUserInteraction);
 #endif
 #if ANDROID
-			if (RuntimeFeature.IsMaterial3Enabled)
+			if (Material3Configuration.Enabled)
 			{
 				// Material3 SearchBar handler mappings
 				SearchBarHandler2.Mapper.ReplaceMapping<SearchBar, SearchBarHandler2>(nameof(Text), MapText);

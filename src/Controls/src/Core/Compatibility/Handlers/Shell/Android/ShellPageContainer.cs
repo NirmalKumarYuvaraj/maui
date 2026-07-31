@@ -26,7 +26,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			{
 				bool isDark = ShellRenderer.IsDarkTheme;
 
-				int color = RuntimeFeature.IsMaterial3Enabled
+				int color = Material3Configuration.Enabled
 				 ? GetMaterial3Background(context)
 				 : GetResourceBackground(context, isDark);
 

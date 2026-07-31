@@ -71,7 +71,7 @@ public static partial class AppHostBuilderExtensions
 		handlersCollection.AddHandler<CarouselView, CarouselViewHandler>();
 #endif
 #if ANDROID
-		if (RuntimeFeature.IsMaterial3Enabled)
+		if (Material3Configuration.Enabled)
 		{
 			handlersCollection.AddHandler<Label, LabelHandler2>();
 			handlersCollection.AddHandler<Editor, EditorHandler2>();

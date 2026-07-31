@@ -628,7 +628,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				return;
 			if (Shell.GetNavBarHasShadow(page))
 			{
-				if (RuntimeFeature.IsMaterial3Enabled)
+				if (Material3Configuration.Enabled)
 				{
 					// AppBar elevation is  set 0f to match Material 3 AppBar behavior.
 					_appBar.SetElevation(0f);

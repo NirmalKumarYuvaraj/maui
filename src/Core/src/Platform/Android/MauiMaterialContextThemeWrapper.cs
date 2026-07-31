@@ -7,7 +7,7 @@ internal class MauiMaterialContextThemeWrapper : ContextThemeWrapper
 {
     // IsMaterial3Enabled Flag needed for Control Level theming. App Level theming is handled in MauiAppCompatActivity
     public MauiMaterialContextThemeWrapper(Context context)
-        : this(context, RuntimeFeature.IsMaterial3Enabled
+        : this(context, Material3Configuration.Enabled
             ? Resource.Style.Maui_Material3_Theme_Base
             : Resource.Style.Maui_MainTheme_Base)
     {

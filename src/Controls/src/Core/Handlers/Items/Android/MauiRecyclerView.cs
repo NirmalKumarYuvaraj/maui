@@ -70,7 +70,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items
 		{
 			base.OnAttachedToWindow();
 
-			if (RuntimeFeature.IsMaterial3Enabled)
+			if (Material3Configuration.Enabled)
 			{
 				PostTrySetAppBarLiftTargetIfOnScreen();
 			}
@@ -79,7 +79,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items
 		protected override void OnDetachedFromWindow()
 		{
 			// Clean up AppBar listener while the ViewTreeObserver is still valid.
-			if (RuntimeFeature.IsMaterial3Enabled)
+			if (Material3Configuration.Enabled)
 			{
 				ClearAppBarLiftTargetAndPendingPost();
 			}
@@ -96,7 +96,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items
 				return;
 			}
 
-			if (!RuntimeFeature.IsMaterial3Enabled)
+			if (!Material3Configuration.Enabled)
 			{
 				return;
 			}

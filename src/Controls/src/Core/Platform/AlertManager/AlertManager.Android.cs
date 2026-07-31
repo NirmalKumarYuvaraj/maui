@@ -345,7 +345,7 @@ namespace Microsoft.Maui.Controls.Platform
 				{
 					if (activity is AppCompatActivity)
 					{
-						if (RuntimeFeature.IsMaterial3Enabled)
+						if (Material3Configuration.Enabled)
 						{
 							_appcompatBuilder = new MaterialAlertDialogBuilder(MauiMaterialContextThemeWrapper.Create(activity));
 						}

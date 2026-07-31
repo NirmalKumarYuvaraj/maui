@@ -61,7 +61,7 @@ namespace Microsoft.Maui.Platform
 				return ColorStateListExtensions.CreateCheckBox(tintColor);
 			}
 
-			if (RuntimeFeature.IsMaterial3Enabled)
+			if (Material3Configuration.Enabled)
 			{
 				// Material 3: Use the original theme's buttonTint
 				if (defaultButtonTintList is not null)

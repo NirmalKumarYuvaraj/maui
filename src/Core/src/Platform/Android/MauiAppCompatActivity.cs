@@ -22,7 +22,7 @@ namespace Microsoft.Maui
 				savedInstanceState,
 				AllowFragmentRestore,
 				Resource.Attribute.maui_splash,
-				RuntimeFeature.IsMaterial3Enabled
+				Material3Configuration.Enabled
 				? Resource.Style.Maui_Material3_Theme_NoActionBar
 				: Resource.Style.Maui_MainTheme_NoActionBar);
 

@@ -26,7 +26,7 @@ namespace Microsoft.Maui.DeviceTests
 		[Category(TestCategory.ScrollView)]
 		public async Task AppBarLiftTargetSetToScrollViewOnAttach()
 		{
-			if (!Microsoft.Maui.RuntimeFeature.IsMaterial3Enabled)
+			if (!Microsoft.Maui.Material3Configuration.Enabled)
 				return;
 
 			await InvokeOnMainThreadAsync(async () =>
@@ -78,7 +78,7 @@ namespace Microsoft.Maui.DeviceTests
 		[Category(TestCategory.ScrollView)]
 		public async Task AppBarLiftTargetClearedOnVisibilityGone()
 		{
-			if (!Microsoft.Maui.RuntimeFeature.IsMaterial3Enabled)
+			if (!Microsoft.Maui.Material3Configuration.Enabled)
 				return;
 
 			await InvokeOnMainThreadAsync(async () =>
@@ -129,7 +129,7 @@ namespace Microsoft.Maui.DeviceTests
 		[Category(TestCategory.ScrollView)]
 		public async Task AppBarLiftTargetNotSetWhenNoAppBarLayout()
 		{
-			if (!Microsoft.Maui.RuntimeFeature.IsMaterial3Enabled)
+			if (!Microsoft.Maui.Material3Configuration.Enabled)
 				return;
 
 			await InvokeOnMainThreadAsync(async () =>

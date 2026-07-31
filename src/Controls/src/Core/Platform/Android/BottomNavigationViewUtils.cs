@@ -36,7 +36,7 @@ namespace Microsoft.Maui.Controls.Platform
 
 		internal static Drawable CreateItemBackgroundDrawable(Context context)
 		{
-			if (!RuntimeFeature.IsMaterial3Enabled)
+			if (!Material3Configuration.Enabled)
 			{
 				return CreateItemBackgroundDrawable();
 			}
@@ -228,7 +228,7 @@ namespace Microsoft.Maui.Controls.Platform
 					lp.Dispose();
 
 					image.ImageTintList = ColorStateList.ValueOf(
-						RuntimeFeature.IsMaterial3Enabled
+						Material3Configuration.Enabled
 							? new AColor(context.GetThemeAttrColor(Resource.Attribute.colorOnSurfaceVariant))
 							: Colors.Black.MultiplyAlpha(0.6f).ToPlatform());
 
@@ -243,7 +243,7 @@ namespace Microsoft.Maui.Controls.Platform
 					{
 						text.SetTypeface(Typeface.Create("sans-serif-medium", TypefaceStyle.Normal), TypefaceStyle.Normal);
 						text.SetTextColor(
-							RuntimeFeature.IsMaterial3Enabled
+							Material3Configuration.Enabled
 								? new AColor(context.GetThemeAttrColor(Resource.Attribute.colorOnSurface))
 								: AColor.Black);
 						text.Text = shellContent.title;

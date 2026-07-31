@@ -193,7 +193,7 @@ static class MauiRippleDrawableExtensions
 		var strokeWidthPixels = (int)context.ToPixels(strokeWidth);
 
 		// Get default corner radius based on Material Design version
-		var defaultCornerRadius = RuntimeFeature.IsMaterial3Enabled
+		var defaultCornerRadius = Material3Configuration.Enabled
 					? DefaultCornerRadiusMaterial3
 					: DefaultCornerRadiusMaterial2;
 

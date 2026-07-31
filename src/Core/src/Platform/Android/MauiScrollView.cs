@@ -64,7 +64,7 @@ namespace Microsoft.Maui.Platform
 			base.OnAttachedToWindow();
 			_isInsetListenerSet = MauiWindowInsetListenerExtensions.TrySetMauiWindowInsetListener(this, _context);
 
-			if (RuntimeFeature.IsMaterial3Enabled)
+			if (Material3Configuration.Enabled)
 			{
 				// Pin the MAUI navigation AppBarLayout's lift-on-scroll target to this NestedScrollView.
 				// Otherwise AppBarLayout auto-detects the outer FragmentContainerView as the scrolling target,
@@ -82,7 +82,7 @@ namespace Microsoft.Maui.Platform
 		protected override void OnDetachedFromWindow()
 		{
 			// Clean up AppBar listener while the ViewTreeObserver is still valid.
-			if (RuntimeFeature.IsMaterial3Enabled)
+			if (Material3Configuration.Enabled)
 			{
 				ClearAppBarLiftTargetAndPendingPost();
 			}
@@ -104,7 +104,7 @@ namespace Microsoft.Maui.Platform
 				return;
 			}
 
-			if (!RuntimeFeature.IsMaterial3Enabled)
+			if (!Material3Configuration.Enabled)
 			{
 				return;
 			}
