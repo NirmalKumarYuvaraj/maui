@@ -49,6 +49,7 @@ namespace Microsoft.Maui.Handlers
 			_defaultBackground = platformView.Background;
 
 			base.ConnectHandler(platformView);
+			Material3ThemeManager.ThemeChanged += OnMaterial3ThemeChanged;
 
 			ClickListener.Handler = this;
 			platformView.SetOnClickListener(ClickListener);
@@ -70,6 +71,7 @@ namespace Microsoft.Maui.Handlers
 
 			platformView.FocusChange -= OnNativeViewFocusChange;
 			platformView.LayoutChange -= OnPlatformViewLayoutChange;
+			Material3ThemeManager.ThemeChanged -= OnMaterial3ThemeChanged;
 
 			_defaultTextColors = null;
 			_defaultBackgroundTintList = null;
@@ -85,6 +87,9 @@ namespace Microsoft.Maui.Handlers
 		{
 			if (handler is ButtonHandler platformHandler)
 			{
+				if (Material3Configuration.Enabled && button.Background.IsNullOrEmpty())
+					platformHandler.RefreshDefaultBackground();
+
 				handler.PlatformView?.UpdateBackground(
 					button,
 					platformHandler._defaultBackground,
@@ -125,6 +130,9 @@ namespace Microsoft.Maui.Handlers
 		{
 			if (button.TextColor is null)
 			{
+				if (Material3Configuration.Enabled && handler is ButtonHandler materialHandler)
+					materialHandler._defaultTextColors = Material3ThemeDefaults.GetButtonTextColors(materialHandler.PlatformView.Context);
+
 				// Restore the Material theme default colors captured before any MAUI mapping
 				if (handler is ButtonHandler buttonHandler && buttonHandler._defaultTextColors is not null)
 					handler.PlatformView?.SetTextColor(buttonHandler._defaultTextColors);
@@ -199,6 +207,24 @@ namespace Microsoft.Maui.Handlers
 		{
 			if (sender is MaterialButton platformView && VirtualView is not null)
 				platformView.UpdateBackground(VirtualView);
+		}
+
+		void OnMaterial3ThemeChanged(object? sender, EventArgs e)
+		{
+			if (VirtualView is null)
+				return;
+
+			if (VirtualView is ITextStyle textStyle && textStyle.TextColor is null)
+				UpdateValue(nameof(ITextStyle.TextColor));
+
+			if (VirtualView.Background.IsNullOrEmpty())
+				UpdateValue(nameof(IButton.Background));
+		}
+
+		void RefreshDefaultBackground()
+		{
+			(_defaultBackground, _defaultBackgroundTintList) =
+				Material3ThemeDefaults.GetButtonBackground(PlatformView.Context);
 		}
 
 		class ButtonClickListener : Java.Lang.Object, AView.IOnClickListener

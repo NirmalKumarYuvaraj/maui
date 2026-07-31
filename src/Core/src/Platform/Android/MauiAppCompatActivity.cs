@@ -27,6 +27,7 @@ namespace Microsoft.Maui
 				: Resource.Style.Maui_MainTheme_NoActionBar);
 
 			base.OnCreate(savedInstanceState);
+			InitializeMaterial3ThemeTracking();
 			WindowCompat.SetDecorFitsSystemWindows(Window, false);
 
 			if (IPlatformApplication.Current?.Application is not null)

@@ -73,6 +73,7 @@ internal class EditorHandler2 : ViewHandler<IEditor, MauiMaterialEditText>
 	protected override void ConnectHandler(MauiMaterialEditText platformView)
 	{
 		base.ConnectHandler(platformView);
+		Material3ThemeManager.ThemeChanged += OnMaterial3ThemeChanged;
 
 		platformView.TextChanged += OnTextChanged;
 		platformView.FocusChange += OnFocusChange;
@@ -80,6 +81,7 @@ internal class EditorHandler2 : ViewHandler<IEditor, MauiMaterialEditText>
 
 	protected override void DisconnectHandler(MauiMaterialEditText platformView)
 	{
+		Material3ThemeManager.ThemeChanged -= OnMaterial3ThemeChanged;
 		platformView.TextChanged -= OnTextChanged;
 		platformView.FocusChange -= OnFocusChange;
 
@@ -91,6 +93,18 @@ internal class EditorHandler2 : ViewHandler<IEditor, MauiMaterialEditText>
 		_set = false;
 
 		base.DisconnectHandler(platformView);
+	}
+
+	void OnMaterial3ThemeChanged(object? sender, EventArgs e)
+	{
+		if (VirtualView is null)
+			return;
+
+		if (VirtualView.TextColor is null)
+			UpdateValue(nameof(IEditor.TextColor));
+
+		if (VirtualView.PlaceholderColor is null)
+			UpdateValue(nameof(IEditor.PlaceholderColor));
 	}
 
 	public static void MapBackground(EditorHandler2 handler, IEditor editor)

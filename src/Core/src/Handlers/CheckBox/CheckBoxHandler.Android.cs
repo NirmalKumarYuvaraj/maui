@@ -1,8 +1,10 @@
-﻿using Android.Content.Res;
+﻿using System;
+using Android.Content.Res;
 using Android.Views;
 using Android.Widget;
 using AndroidX.AppCompat.Widget;
 using Google.Android.Material.CheckBox;
+using Microsoft.Maui.Graphics;
 
 namespace Microsoft.Maui.Handlers
 {
@@ -26,6 +28,7 @@ namespace Microsoft.Maui.Handlers
 			_defaultButtonTintList = platformView.ButtonTintList;
 
 			base.ConnectHandler(platformView);
+			Material3ThemeManager.ThemeChanged += OnMaterial3ThemeChanged;
 
 			platformView.CheckedChange += OnCheckedChange;
 		}
@@ -33,6 +36,7 @@ namespace Microsoft.Maui.Handlers
 		protected override void DisconnectHandler(AppCompatCheckBox platformView)
 		{
 			platformView.CheckedChange -= OnCheckedChange;
+			Material3ThemeManager.ThemeChanged -= OnMaterial3ThemeChanged;
 			_defaultButtonTintList = null;
 
 			base.DisconnectHandler(platformView);
@@ -52,9 +56,20 @@ namespace Microsoft.Maui.Handlers
 		public static partial void MapForeground(ICheckBoxHandler handler, ICheckBox check)
 		{
 			if (handler is CheckBoxHandler platformHandler)
+			{
+				if (Material3Configuration.Enabled && check.Foreground.IsNullOrEmpty())
+					platformHandler._defaultButtonTintList = Material3ThemeDefaults.GetCheckBoxTint(platformHandler.PlatformView.Context);
+
 				handler.PlatformView?.UpdateForeground(check, platformHandler._defaultButtonTintList);
+			}
 			else
 				handler.PlatformView?.UpdateForeground(check);
+		}
+
+		void OnMaterial3ThemeChanged(object? sender, EventArgs e)
+		{
+			if (VirtualView?.Foreground.IsNullOrEmpty() == true)
+				UpdateValue(nameof(ICheckBox.Foreground));
 		}
 
 		void OnCheckedChange(object? sender, CompoundButton.CheckedChangeEventArgs e)

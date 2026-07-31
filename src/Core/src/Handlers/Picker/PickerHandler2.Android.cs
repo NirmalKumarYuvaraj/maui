@@ -46,12 +46,14 @@ internal partial class PickerHandler2 : ViewHandler<IPicker, MauiMaterialPicker>
 	protected override void ConnectHandler(MauiMaterialPicker platformView)
 	{
 		base.ConnectHandler(platformView);
+		Material3ThemeManager.ThemeChanged += OnMaterial3ThemeChanged;
 
 		platformView.Click += OnClick;
 	}
 
 	protected override void DisconnectHandler(MauiMaterialPicker platformView)
 	{
+		Material3ThemeManager.ThemeChanged -= OnMaterial3ThemeChanged;
 		platformView.Click -= OnClick;
 
 		if (_dialog is not null)
@@ -63,6 +65,18 @@ internal partial class PickerHandler2 : ViewHandler<IPicker, MauiMaterialPicker>
 		}
 
 		base.DisconnectHandler(platformView);
+	}
+
+	void OnMaterial3ThemeChanged(object? sender, EventArgs e)
+	{
+		if (VirtualView is null)
+			return;
+
+		if (VirtualView.TextColor is null)
+			UpdateValue(nameof(IPicker.TextColor));
+
+		if (VirtualView.TitleColor is null)
+			UpdateValue(nameof(IPicker.TitleColor));
 	}
 
 	public static void MapBackground(PickerHandler2 handler, IPicker picker)

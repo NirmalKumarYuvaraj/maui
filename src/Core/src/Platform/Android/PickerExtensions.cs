@@ -76,7 +76,13 @@ namespace Microsoft.Maui.Platform
 		{
 			var titleColor = picker.TitleColor;
 
-			if (titleColor is not null)
+			if (titleColor is null)
+			{
+				if (Material3Configuration.Enabled &&
+					Material3ThemeDefaults.GetHintTextColors(platformPicker.Context) is ColorStateList colors)
+					platformPicker.SetHintTextColor(colors);
+			}
+			else
 			{
 				if (PlatformInterop.CreateEditTextColorStateList(platformPicker.TextColors, titleColor.ToPlatform()) is ColorStateList c)
 				{

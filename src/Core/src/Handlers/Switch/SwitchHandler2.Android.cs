@@ -27,12 +27,12 @@ internal class SwitchHandler2 : SwitchHandler
 	public static new void MapTrackColor(ISwitchHandler handler, ISwitch view)
 	{
 		if (handler is SwitchHandler platformHandler)
-			(handler.PlatformView as MaterialSwitch)?.UpdateTrackColor(view, platformHandler.DefaultTrackTintList);
+			(handler.PlatformView as MaterialSwitch)?.UpdateTrackColor(view, platformHandler.ResolveDefaultTrackTint(view));
 	}
 
 	public static new void MapThumbColor(ISwitchHandler handler, ISwitch view)
 	{
 		if (handler is SwitchHandler platformHandler)
-			(handler.PlatformView as MaterialSwitch)?.UpdateThumbColor(view, platformHandler.DefaultThumbTintList);
+			(handler.PlatformView as MaterialSwitch)?.UpdateThumbColor(view, platformHandler.ResolveDefaultThumbTint(view));
 	}
 }

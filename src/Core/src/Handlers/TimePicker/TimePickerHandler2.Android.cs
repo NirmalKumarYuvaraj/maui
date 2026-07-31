@@ -38,6 +38,7 @@ internal partial class TimePickerHandler2 : ViewHandler<ITimePicker, MauiMateria
     protected override void ConnectHandler(MauiMaterialTimePicker platformView)
     {
         base.ConnectHandler(platformView);
+        Material3ThemeManager.ThemeChanged += OnMaterial3ThemeChanged;
 
         _positiveButtonClickListener = new MaterialTimePickerPositiveButtonClickListener(this);
         _dismissListener = new MaterialTimePickerDismissListener(this);
@@ -48,6 +49,8 @@ internal partial class TimePickerHandler2 : ViewHandler<ITimePicker, MauiMateria
 
     protected override void DisconnectHandler(MauiMaterialTimePicker platformView)
     {
+        Material3ThemeManager.ThemeChanged -= OnMaterial3ThemeChanged;
+
         if (_dialog is not null)
         {
             RemoveListeners();
@@ -69,6 +72,12 @@ internal partial class TimePickerHandler2 : ViewHandler<ITimePicker, MauiMateria
         platformView.HidePicker = null;
 
         base.DisconnectHandler(platformView);
+    }
+
+    void OnMaterial3ThemeChanged(object? sender, EventArgs e)
+    {
+        if (VirtualView?.TextColor is null)
+            UpdateValue(nameof(ITimePicker.TextColor));
     }
 
     void RemoveListeners()

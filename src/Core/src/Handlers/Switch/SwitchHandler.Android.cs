@@ -27,12 +27,14 @@ namespace Microsoft.Maui.Handlers
 			platformView.SetOnCheckedChangeListener(_changeListener);
 
 			base.ConnectHandler(platformView);
+			Material3ThemeManager.ThemeChanged += OnMaterial3ThemeChanged;
 		}
 
 		protected override void DisconnectHandler(ASwitch platformView)
 		{
 			platformView.SetOnCheckedChangeListener(null);
 			_changeListener = null;
+			Material3ThemeManager.ThemeChanged -= OnMaterial3ThemeChanged;
 			DefaultTrackTintList = null;
 			DefaultThumbTintList = null;
 
@@ -64,7 +66,9 @@ namespace Microsoft.Maui.Handlers
 		public static void MapTrackColor(ISwitchHandler handler, ISwitch view)
 		{
 			if (handler is SwitchHandler platformHandler)
-				handler.PlatformView?.UpdateTrackColor(view, platformHandler.DefaultTrackTintList);
+			{
+				handler.PlatformView?.UpdateTrackColor(view, platformHandler.ResolveDefaultTrackTint(view));
+			}
 			else
 				handler.PlatformView?.UpdateTrackColor(view);
 		}
@@ -72,9 +76,27 @@ namespace Microsoft.Maui.Handlers
 		public static void MapThumbColor(ISwitchHandler handler, ISwitch view)
 		{
 			if (handler is SwitchHandler platformHandler)
-				handler.PlatformView?.UpdateThumbColor(view, platformHandler.DefaultThumbTintList);
+			{
+				handler.PlatformView?.UpdateThumbColor(view, platformHandler.ResolveDefaultThumbTint(view));
+			}
 			else
 				handler.PlatformView?.UpdateThumbColor(view);
+		}
+
+		internal ColorStateList? ResolveDefaultTrackTint(ISwitch view)
+		{
+			if (Material3Configuration.Enabled && view.TrackColor is null)
+				DefaultTrackTintList = Material3ThemeDefaults.GetSwitchTrackTint(PlatformView.Context);
+
+			return DefaultTrackTintList;
+		}
+
+		internal ColorStateList? ResolveDefaultThumbTint(ISwitch view)
+		{
+			if (Material3Configuration.Enabled && view.ThumbColor is null)
+				DefaultThumbTintList = Material3ThemeDefaults.GetSwitchThumbTint(PlatformView.Context);
+
+			return DefaultThumbTintList;
 		}
 
 		void OnCheckedChanged(bool isOn)
@@ -83,6 +105,18 @@ namespace Microsoft.Maui.Handlers
 				return;
 
 			VirtualView.IsOn = isOn;
+		}
+
+		void OnMaterial3ThemeChanged(object? sender, EventArgs e)
+		{
+			if (VirtualView is null)
+				return;
+
+			if (VirtualView.TrackColor is null)
+				UpdateValue(nameof(ISwitch.TrackColor));
+
+			if (VirtualView.ThumbColor is null)
+				UpdateValue(nameof(ISwitch.ThumbColor));
 		}
 
 		sealed class CheckedChangeListener : Java.Lang.Object, CompoundButton.IOnCheckedChangeListener

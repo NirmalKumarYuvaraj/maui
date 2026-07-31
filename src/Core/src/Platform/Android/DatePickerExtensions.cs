@@ -100,6 +100,10 @@ namespace Microsoft.Maui.Platform
 					platformDatePicker.SetTextColor(c);
 				}
 			}
+			else if (Material3ThemeDefaults.GetPrimaryTextColors(platformDatePicker.Context) is ColorStateList colors)
+			{
+				platformDatePicker.SetTextColor(colors);
+			}
 		}
 
 		internal static void SetText(this MauiMaterialDatePicker platformDatePicker, IDatePicker datePicker)

@@ -50,8 +50,12 @@ namespace Microsoft.Maui.Platform
 			}
 			else if (textColor is null)
 			{
-				// Fallback to system default color
-				if (OperatingSystem.IsAndroidVersionAtLeast(23) && editText.Context?.Theme is Resources.Theme theme)
+				if (Material3Configuration.Enabled &&
+					Material3ThemeDefaults.GetPrimaryTextColors(editText.Context) is ColorStateList themedColors)
+				{
+					editText.SetTextColor(themedColors);
+				}
+				else if (OperatingSystem.IsAndroidVersionAtLeast(23) && editText.Context?.Theme is Resources.Theme theme)
 				{
 					using var ta = theme.ObtainStyledAttributes([global::Android.Resource.Attribute.TextColorPrimary]);
 					var cs = ta.GetColorStateList(0);
@@ -156,6 +160,13 @@ namespace Microsoft.Maui.Platform
 				editText.SetHintTextColor(c);
 			else if (placeholderTextColor is null)
 			{
+				if (Material3Configuration.Enabled &&
+					Material3ThemeDefaults.GetHintTextColors(editText.Context) is ColorStateList themedColors)
+				{
+					editText.SetHintTextColor(themedColors);
+					return;
+				}
+
 				// Fallback to system default color
 				var typedValue = new TypedValue();
 				if (OperatingSystem.IsAndroidVersionAtLeast(23) &&

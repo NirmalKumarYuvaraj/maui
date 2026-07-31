@@ -68,6 +68,13 @@ namespace Microsoft.Maui.Platform
 
 			if (textColor is null)
 			{
+				if (Material3Configuration.Enabled &&
+					Material3ThemeDefaults.GetPrimaryTextColors(textView.Context) is ColorStateList themedColors)
+				{
+					textView.SetTextColor(themedColors);
+					return;
+				}
+
 				var defaultColors = defaultTextColors.TryGetValue(textView, out var cached) ? cached : null;
 				textView.SetTextColor(defaultColors);
 				return;

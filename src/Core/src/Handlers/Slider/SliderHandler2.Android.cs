@@ -1,3 +1,4 @@
+using System;
 using Android.Content.Res;
 using Android.Views;
 using Google.Android.Material.Slider;
@@ -45,6 +46,7 @@ internal class SliderHandler2 : ViewHandler<ISlider, Slider>
         _defaultThumbTintList = platformView.ThumbTintList;
 
         base.ConnectHandler(platformView);
+        Material3ThemeManager.ThemeChanged += OnMaterial3ThemeChanged;
 
         // TODO: Material3: Add listeners when https://github.com/dotnet/android-libraries/issues/230 is resolved
         // Using Touch event as a workaround for missing addOnChangeListener binding
@@ -91,6 +93,7 @@ internal class SliderHandler2 : ViewHandler<ISlider, Slider>
     {
         // TODO: Material3: Cleanup listeners when implemented
         platformView.Touch -= Slider_Touch;
+        Material3ThemeManager.ThemeChanged -= OnMaterial3ThemeChanged;
         _defaultActiveTrackTintList = null;
         _defaultInactiveTrackTintList = null;
         _defaultThumbTintList = null;
@@ -115,11 +118,17 @@ internal class SliderHandler2 : ViewHandler<ISlider, Slider>
 
     public static void MapMinimumTrackColor(SliderHandler2 handler, ISlider slider)
     {
+        if (slider.MinimumTrackColor is null)
+            handler._defaultActiveTrackTintList = Material3ThemeDefaults.GetSliderActiveTrackTint(handler.PlatformView.Context);
+
         handler.PlatformView?.UpdateMinimumTrackColor(slider, handler._defaultActiveTrackTintList);
     }
 
     public static void MapMaximumTrackColor(SliderHandler2 handler, ISlider slider)
     {
+        if (slider.MaximumTrackColor is null)
+            handler._defaultInactiveTrackTintList = Material3ThemeDefaults.GetSliderInactiveTrackTint(handler.PlatformView.Context);
+
         handler.PlatformView?.UpdateMaximumTrackColor(slider, handler._defaultInactiveTrackTintList);
     }
 
@@ -130,6 +139,9 @@ internal class SliderHandler2 : ViewHandler<ISlider, Slider>
             handler.UpdateValue(nameof(ISlider.ThumbImageSource));
             return;
         }
+
+        if (slider.ThumbColor is null)
+            handler._defaultThumbTintList = Material3ThemeDefaults.GetSliderThumbTint(handler.PlatformView.Context);
 
         handler.PlatformView?.UpdateThumbColor(slider, handler._defaultThumbTintList);
     }
@@ -159,5 +171,20 @@ internal class SliderHandler2 : ViewHandler<ISlider, Slider>
         {
             VirtualView.Value = value;
         }
+    }
+
+    void OnMaterial3ThemeChanged(object? sender, EventArgs e)
+    {
+        if (VirtualView is null)
+            return;
+
+        if (VirtualView.MinimumTrackColor is null)
+            UpdateValue(nameof(ISlider.MinimumTrackColor));
+
+        if (VirtualView.MaximumTrackColor is null)
+            UpdateValue(nameof(ISlider.MaximumTrackColor));
+
+        if (VirtualView.ThumbColor is null && VirtualView.ThumbImageSource is null)
+            UpdateValue(nameof(ISlider.ThumbColor));
     }
 }

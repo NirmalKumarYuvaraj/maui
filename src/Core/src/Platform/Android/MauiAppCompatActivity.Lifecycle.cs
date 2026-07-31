@@ -12,6 +12,13 @@ namespace Microsoft.Maui
 {
 	public partial class MauiAppCompatActivity
 	{
+		UiMode? _lastUiModeNightMask;
+
+		void InitializeMaterial3ThemeTracking()
+		{
+			_lastUiModeNightMask = Resources?.Configuration?.UiMode & UiMode.NightMask;
+		}
+
 		protected override void OnActivityResult(int requestCode, Result resultCode, Intent? data)
 		{
 			base.OnActivityResult(requestCode, resultCode, data);
@@ -33,6 +40,13 @@ namespace Microsoft.Maui
 		public override void OnConfigurationChanged(Configuration newConfig)
 		{
 			base.OnConfigurationChanged(newConfig);
+
+			var uiModeNightMask = newConfig.UiMode & UiMode.NightMask;
+			if (_lastUiModeNightMask != uiModeNightMask)
+			{
+				_lastUiModeNightMask = uiModeNightMask;
+				Material3ThemeManager.NotifyThemeChanged();
+			}
 
 			IPlatformApplication.Current?.Services?.InvokeLifecycleEvents<AndroidLifecycle.OnConfigurationChanged>(del => del(this, newConfig));
 		}

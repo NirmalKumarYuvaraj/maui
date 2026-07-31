@@ -75,6 +75,7 @@ internal class EntryHandler2 : ViewHandler<IEntry, MauiMaterialTextInputLayout>
 		_defaultHintTextColors = platformView.DefaultHintTextColor;
 
 		base.ConnectHandler(platformView);
+		Material3ThemeManager.ThemeChanged += OnMaterial3ThemeChanged;
 
 		platformView.ViewAttachedToWindow += OnViewAttachedToWindow;
 		platformView.EditText?.TextChanged += OnTextChanged;
@@ -99,6 +100,7 @@ internal class EntryHandler2 : ViewHandler<IEntry, MauiMaterialTextInputLayout>
 		platformView.EditText?.TextChanged -= OnTextChanged;
 		platformView.EditText?.FocusChange -= OnFocusedChange;
 		platformView.SetEndIconOnClickListener(null);
+		Material3ThemeManager.ThemeChanged -= OnMaterial3ThemeChanged;
 
 		_clearButtonClickListener?.Dispose();
 		_clearButtonClickListener = null;
@@ -116,6 +118,18 @@ internal class EntryHandler2 : ViewHandler<IEntry, MauiMaterialTextInputLayout>
 		}
 
 		PlatformView.EditText?.UpdateReturnType(VirtualView);
+	}
+
+	void OnMaterial3ThemeChanged(object? sender, EventArgs e)
+	{
+		if (VirtualView is null)
+			return;
+
+		if (VirtualView.PlaceholderColor is null)
+			UpdateValue(nameof(IEntry.PlaceholderColor));
+
+		if (VirtualView.TextColor is null)
+			UpdateValue(nameof(IEntry.TextColor));
 	}
 
 	public static void MapBackground(EntryHandler2 handler, IEntry entry) =>
@@ -184,7 +198,9 @@ internal class EntryHandler2 : ViewHandler<IEntry, MauiMaterialTextInputLayout>
 		}
 		else
 		{
-			// Reset to the original default Material Design hint colors stored during creation
+			if (Material3Configuration.Enabled)
+				handler._defaultHintTextColors = Material3ThemeDefaults.GetEntryHintTextColors(handler.PlatformView.Context);
+
 			handler.PlatformView.DefaultHintTextColor = handler._defaultHintTextColors;
 		}
 	}

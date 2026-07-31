@@ -1,3 +1,4 @@
+using System;
 using Android.Text;
 using Android.Views;
 using AndroidX.AppCompat.Widget;
@@ -150,6 +151,24 @@ namespace Microsoft.Maui.Handlers
 		protected override MauiMaterialTextView CreatePlatformView()
 		{
 			return new MauiMaterialTextView(Context);
+		}
+
+		protected override void ConnectHandler(AppCompatTextView platformView)
+		{
+			base.ConnectHandler(platformView);
+			Material3ThemeManager.ThemeChanged += OnMaterial3ThemeChanged;
+		}
+
+		protected override void DisconnectHandler(AppCompatTextView platformView)
+		{
+			Material3ThemeManager.ThemeChanged -= OnMaterial3ThemeChanged;
+			base.DisconnectHandler(platformView);
+		}
+
+		void OnMaterial3ThemeChanged(object? sender, EventArgs e)
+		{
+			if (VirtualView?.TextColor is null)
+				UpdateValue(nameof(ILabel.TextColor));
 		}
 	}
 }

@@ -44,6 +44,7 @@ internal class DatePickerHandler2 : ViewHandler<IDatePicker, MauiMaterialDatePic
     protected override void ConnectHandler(MauiMaterialDatePicker platformView)
     {
         base.ConnectHandler(platformView);
+        Material3ThemeManager.ThemeChanged += OnMaterial3ThemeChanged;
 
         _positiveButtonClickListener = new MaterialDatePickerPositiveButtonClickListener(this);
         _dismissListener = new MaterialDatePickerDismissListener(this);
@@ -54,6 +55,8 @@ internal class DatePickerHandler2 : ViewHandler<IDatePicker, MauiMaterialDatePic
 
     protected override void DisconnectHandler(MauiMaterialDatePicker platformView)
     {
+        Material3ThemeManager.ThemeChanged -= OnMaterial3ThemeChanged;
+
         if (_dialog is not null)
         {
             RemoveListeners();
@@ -75,6 +78,12 @@ internal class DatePickerHandler2 : ViewHandler<IDatePicker, MauiMaterialDatePic
         platformView.HidePicker = null;
 
         base.DisconnectHandler(platformView);
+    }
+
+    void OnMaterial3ThemeChanged(object? sender, EventArgs e)
+    {
+        if (VirtualView?.TextColor is null)
+            UpdateValue(nameof(IDatePicker.TextColor));
     }
 
     static void MapBackground(DatePickerHandler2 handler, IDatePicker datePicker)

@@ -1,7 +1,9 @@
-﻿using Android.Graphics.Drawables;
+﻿using System;
+using Android.Graphics.Drawables;
 using Android.Views;
 using Android.Widget;
 using AndroidX.AppCompat.Widget;
+using Microsoft.Maui.Graphics;
 
 namespace Microsoft.Maui.Handlers
 {
@@ -33,6 +35,7 @@ namespace Microsoft.Maui.Handlers
 			{
 				_defaultBackground = platformRadioButton.Background;
 				base.ConnectHandler(platformView);
+				Material3ThemeManager.ThemeChanged += OnMaterial3ThemeChanged;
 				platformRadioButton.CheckedChange += OnCheckChanged;
 			}
 			else
@@ -49,6 +52,7 @@ namespace Microsoft.Maui.Handlers
 				platformRadioButton.ResetBackground(_defaultBackground, ref _backgroundDrawable);
 			}
 
+			Material3ThemeManager.ThemeChanged -= OnMaterial3ThemeChanged;
 			_defaultBackground = null;
 
 			base.DisconnectHandler(platformView);
@@ -57,7 +61,12 @@ namespace Microsoft.Maui.Handlers
 		public static void MapBackground(IRadioButtonHandler handler, IRadioButton radioButton)
 		{
 			if (handler is RadioButtonHandler platformHandler)
+			{
+				if (Material3Configuration.Enabled && !HasCustomBackground(radioButton))
+					platformHandler._defaultBackground = Material3ThemeDefaults.GetRadioButtonBackground(platformHandler.PlatformView.Context);
+
 				GetPlatformRadioButton(handler)?.UpdateBackground(radioButton, platformHandler._defaultBackground, ref platformHandler._backgroundDrawable);
+			}
 			else
 				GetPlatformRadioButton(handler)?.UpdateBackground(radioButton);
 		}
@@ -120,5 +129,23 @@ namespace Microsoft.Maui.Handlers
 
 			VirtualView.IsChecked = e.IsChecked;
 		}
+
+		void OnMaterial3ThemeChanged(object? sender, EventArgs e)
+		{
+			if (VirtualView is null)
+				return;
+
+			if (!HasCustomBackground(VirtualView))
+				UpdateValue(nameof(IRadioButton.Background));
+
+			if (VirtualView.TextColor is null)
+				UpdateValue(nameof(IRadioButton.TextColor));
+		}
+
+		static bool HasCustomBackground(IRadioButton radioButton) =>
+			!radioButton.Background.IsNullOrEmpty() ||
+			radioButton.StrokeColor is not null ||
+			radioButton.StrokeThickness > 0 ||
+			radioButton.CornerRadius > 0;
 	}
 }

@@ -65,6 +65,7 @@ internal class SearchBarHandler2 : ViewHandler<ISearchBar, MauiMaterialSearchBar
         _defaultHintTextColors = platformView.EditText?.HintTextColors;
 
         base.ConnectHandler(platformView);
+        Material3ThemeManager.ThemeChanged += OnMaterial3ThemeChanged;
         if (platformView.EditText is not null)
         {
             platformView.EditText.TextChanged += OnTextChanged;
@@ -92,6 +93,7 @@ internal class SearchBarHandler2 : ViewHandler<ISearchBar, MauiMaterialSearchBar
         }
 
         platformView.SetEndIconOnClickListener(null);
+        Material3ThemeManager.ThemeChanged -= OnMaterial3ThemeChanged;
         _defaultHintTextColors = null;
 
         base.DisconnectHandler(platformView);
@@ -155,8 +157,14 @@ internal class SearchBarHandler2 : ViewHandler<ISearchBar, MauiMaterialSearchBar
 
         if (searchBar.PlaceholderColor is not null)
             editText.UpdatePlaceholderColor(searchBar);
-        else if (handler._defaultHintTextColors is not null)
-            editText.SetHintTextColor(handler._defaultHintTextColors);
+        else
+        {
+            if (Material3Configuration.Enabled)
+                handler._defaultHintTextColors = Material3ThemeDefaults.GetSearchBarHintTextColors(handler.PlatformView.Context);
+
+            if (handler._defaultHintTextColors is not null)
+                editText.SetHintTextColor(handler._defaultHintTextColors);
+        }
     }
 
     public static void MapText(SearchBarHandler2 handler, ISearchBar searchBar)
@@ -327,5 +335,17 @@ internal class SearchBarHandler2 : ViewHandler<ISearchBar, MauiMaterialSearchBar
     void OnFocusChange(object? sender, View.FocusChangeEventArgs e)
     {
         VirtualView?.IsFocused = e.HasFocus;
+    }
+
+    void OnMaterial3ThemeChanged(object? sender, EventArgs e)
+    {
+        if (VirtualView is null)
+            return;
+
+        if (VirtualView.PlaceholderColor is null)
+            UpdateValue(nameof(ISearchBar.PlaceholderColor));
+
+        if (VirtualView.TextColor is null)
+            UpdateValue(nameof(ISearchBar.TextColor));
     }
 }
