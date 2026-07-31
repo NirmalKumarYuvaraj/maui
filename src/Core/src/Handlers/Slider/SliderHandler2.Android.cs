@@ -1,3 +1,4 @@
+using Android.Content.Res;
 using Android.Views;
 using Google.Android.Material.Slider;
 
@@ -6,6 +7,10 @@ namespace Microsoft.Maui.Handlers;
 // TODO: Material3: Make it public in .NET 11
 internal class SliderHandler2 : ViewHandler<ISlider, Slider>
 {
+    ColorStateList? _defaultActiveTrackTintList;
+    ColorStateList? _defaultInactiveTrackTintList;
+    ColorStateList? _defaultThumbTintList;
+
     public static PropertyMapper<ISlider, SliderHandler2> Mapper =
             new(ViewMapper)
             {
@@ -35,6 +40,10 @@ internal class SliderHandler2 : ViewHandler<ISlider, Slider>
 
     protected override void ConnectHandler(Slider platformView)
     {
+        _defaultActiveTrackTintList = platformView.TrackActiveTintList;
+        _defaultInactiveTrackTintList = platformView.TrackInactiveTintList;
+        _defaultThumbTintList = platformView.ThumbTintList;
+
         base.ConnectHandler(platformView);
 
         // TODO: Material3: Add listeners when https://github.com/dotnet/android-libraries/issues/230 is resolved
@@ -82,6 +91,9 @@ internal class SliderHandler2 : ViewHandler<ISlider, Slider>
     {
         // TODO: Material3: Cleanup listeners when implemented
         platformView.Touch -= Slider_Touch;
+        _defaultActiveTrackTintList = null;
+        _defaultInactiveTrackTintList = null;
+        _defaultThumbTintList = null;
 
         base.DisconnectHandler(platformView);
     }
@@ -103,17 +115,23 @@ internal class SliderHandler2 : ViewHandler<ISlider, Slider>
 
     public static void MapMinimumTrackColor(SliderHandler2 handler, ISlider slider)
     {
-        handler.PlatformView?.UpdateMinimumTrackColor(slider);
+        handler.PlatformView?.UpdateMinimumTrackColor(slider, handler._defaultActiveTrackTintList);
     }
 
     public static void MapMaximumTrackColor(SliderHandler2 handler, ISlider slider)
     {
-        handler.PlatformView?.UpdateMaximumTrackColor(slider);
+        handler.PlatformView?.UpdateMaximumTrackColor(slider, handler._defaultInactiveTrackTintList);
     }
 
     public static void MapThumbColor(SliderHandler2 handler, ISlider slider)
     {
-        handler.PlatformView?.UpdateThumbColor(slider);
+        if (slider.ThumbImageSource is not null)
+        {
+            handler.UpdateValue(nameof(ISlider.ThumbImageSource));
+            return;
+        }
+
+        handler.PlatformView?.UpdateThumbColor(slider, handler._defaultThumbTintList);
     }
 
     public static void MapThumbImageSource(SliderHandler2 handler, ISlider slider)

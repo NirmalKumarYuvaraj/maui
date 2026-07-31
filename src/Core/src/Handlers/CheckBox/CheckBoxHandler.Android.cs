@@ -1,4 +1,5 @@
-﻿using Android.Views;
+﻿using Android.Content.Res;
+using Android.Views;
 using Android.Widget;
 using AndroidX.AppCompat.Widget;
 using Google.Android.Material.CheckBox;
@@ -7,6 +8,8 @@ namespace Microsoft.Maui.Handlers
 {
 	public partial class CheckBoxHandler : ViewHandler<ICheckBox, AppCompatCheckBox>
 	{
+		ColorStateList? _defaultButtonTintList;
+
 		protected override AppCompatCheckBox CreatePlatformView()
 		{
 			var platformCheckBox = new MaterialCheckBox(MauiMaterialContextThemeWrapper.Create(Context))
@@ -20,12 +23,19 @@ namespace Microsoft.Maui.Handlers
 
 		protected override void ConnectHandler(AppCompatCheckBox platformView)
 		{
+			_defaultButtonTintList = platformView.ButtonTintList;
+
+			base.ConnectHandler(platformView);
+
 			platformView.CheckedChange += OnCheckedChange;
 		}
 
 		protected override void DisconnectHandler(AppCompatCheckBox platformView)
 		{
 			platformView.CheckedChange -= OnCheckedChange;
+			_defaultButtonTintList = null;
+
+			base.DisconnectHandler(platformView);
 		}
 
 		// This is an Android-specific mapping
@@ -41,7 +51,10 @@ namespace Microsoft.Maui.Handlers
 
 		public static partial void MapForeground(ICheckBoxHandler handler, ICheckBox check)
 		{
-			handler.PlatformView?.UpdateForeground(check);
+			if (handler is CheckBoxHandler platformHandler)
+				handler.PlatformView?.UpdateForeground(check, platformHandler._defaultButtonTintList);
+			else
+				handler.PlatformView?.UpdateForeground(check);
 		}
 
 		void OnCheckedChange(object? sender, CompoundButton.CheckedChangeEventArgs e)

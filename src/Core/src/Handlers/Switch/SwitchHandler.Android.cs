@@ -1,6 +1,6 @@
 using System;
+using Android.Content.Res;
 using Android.Graphics.Drawables;
-using Android.Nfc.CardEmulators;
 using Android.Widget;
 using Microsoft.Maui.Graphics;
 using ASwitch = AndroidX.AppCompat.Widget.SwitchCompat;
@@ -10,6 +10,9 @@ namespace Microsoft.Maui.Handlers
 	public partial class SwitchHandler : ViewHandler<ISwitch, ASwitch>
 	{
 		CheckedChangeListener? _changeListener;
+		internal ColorStateList? DefaultTrackTintList { get; private set; }
+		internal ColorStateList? DefaultThumbTintList { get; private set; }
+
 		protected override ASwitch CreatePlatformView()
 		{
 			return new ASwitch(Context);
@@ -17,6 +20,9 @@ namespace Microsoft.Maui.Handlers
 
 		protected override void ConnectHandler(ASwitch platformView)
 		{
+			DefaultTrackTintList = platformView.TrackTintList;
+			DefaultThumbTintList = platformView.ThumbTintList;
+
 			_changeListener = new CheckedChangeListener(this);
 			platformView.SetOnCheckedChangeListener(_changeListener);
 
@@ -27,6 +33,8 @@ namespace Microsoft.Maui.Handlers
 		{
 			platformView.SetOnCheckedChangeListener(null);
 			_changeListener = null;
+			DefaultTrackTintList = null;
+			DefaultThumbTintList = null;
 
 			base.DisconnectHandler(platformView);
 		}
@@ -56,12 +64,16 @@ namespace Microsoft.Maui.Handlers
 		public static void MapTrackColor(ISwitchHandler handler, ISwitch view)
 		{
 			if (handler is SwitchHandler platformHandler)
+				handler.PlatformView?.UpdateTrackColor(view, platformHandler.DefaultTrackTintList);
+			else
 				handler.PlatformView?.UpdateTrackColor(view);
 		}
 
 		public static void MapThumbColor(ISwitchHandler handler, ISwitch view)
 		{
 			if (handler is SwitchHandler platformHandler)
+				handler.PlatformView?.UpdateThumbColor(view, platformHandler.DefaultThumbTintList);
+			else
 				handler.PlatformView?.UpdateThumbColor(view);
 		}
 

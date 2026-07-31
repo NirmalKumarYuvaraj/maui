@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Android.Content;
 using Android.Content.Res;
 using Android.Graphics;
@@ -23,8 +24,7 @@ namespace Microsoft.Maui.Platform
 		// TODO: Make this public in NET 11.
 		internal static void UpdateMinimum(this Slider mSlider, ISlider slider)
 		{
-
-			mSlider.ValueFrom = (float)slider.Minimum;
+			mSlider.UpdateRange(slider);
 		}
 
 		public static void UpdateMaximum(this SeekBar seekBar, ISlider slider) => UpdateValue(seekBar, slider);
@@ -32,7 +32,7 @@ namespace Microsoft.Maui.Platform
 		// TODO: Make this public in NET 11.
 		internal static void UpdateMaximum(this Slider mSlider, ISlider slider)
 		{
-			mSlider.ValueTo = (float)slider.Maximum;
+			mSlider.UpdateRange(slider);
 		}
 
 		public static void UpdateValue(this SeekBar seekBar, ISlider slider)
@@ -47,10 +47,31 @@ namespace Microsoft.Maui.Platform
 		// TODO: Make this public in NET 11.
 		internal static void UpdateValue(this Slider mSlider, ISlider slider)
 		{
-			if ((float)slider.Value != mSlider.Value)
+			float value = Math.Clamp((float)slider.Value, mSlider.ValueFrom, mSlider.ValueTo);
+
+			if (value != mSlider.Value)
 			{
-				mSlider.Value = (float)slider.Value;
+				mSlider.Value = value;
 			}
+		}
+
+		static void UpdateRange(this Slider mSlider, ISlider slider)
+		{
+			float minimum = (float)slider.Minimum;
+			float maximum = (float)slider.Maximum;
+
+			if (minimum >= mSlider.ValueTo)
+			{
+				mSlider.ValueTo = maximum;
+				mSlider.ValueFrom = minimum;
+			}
+			else
+			{
+				mSlider.ValueFrom = minimum;
+				mSlider.ValueTo = maximum;
+			}
+
+			mSlider.UpdateValue(slider);
 		}
 
 		public static void UpdateMinimumTrackColor(this SeekBar seekBar, ISlider slider)
@@ -63,11 +84,15 @@ namespace Microsoft.Maui.Platform
 		}
 
 		// TODO: Make this public in NET 11.
-		internal static void UpdateMinimumTrackColor(this Slider mSlider, ISlider slider)
+		internal static void UpdateMinimumTrackColor(this Slider mSlider, ISlider slider, ColorStateList? defaultTrackTintList)
 		{
 			if (slider.MinimumTrackColor is not null)
 			{
 				mSlider.TrackActiveTintList = ColorStateList.ValueOf(slider.MinimumTrackColor.ToPlatform());
+			}
+			else
+			{
+				mSlider.TrackActiveTintList = defaultTrackTintList!;
 			}
 		}
 
@@ -81,11 +106,15 @@ namespace Microsoft.Maui.Platform
 		}
 
 		// TODO: Make this public in NET 11.
-		internal static void UpdateMaximumTrackColor(this Slider mSlider, ISlider slider)
+		internal static void UpdateMaximumTrackColor(this Slider mSlider, ISlider slider, ColorStateList? defaultTrackTintList)
 		{
 			if (slider.MaximumTrackColor is not null)
 			{
 				mSlider.TrackInactiveTintList = ColorStateList.ValueOf(slider.MaximumTrackColor.ToPlatform());
+			}
+			else
+			{
+				mSlider.TrackInactiveTintList = defaultTrackTintList!;
 			}
 		}
 
@@ -93,17 +122,15 @@ namespace Microsoft.Maui.Platform
 			seekBar.Thumb?.SetColorFilter(slider.ThumbColor, FilterMode.SrcIn);
 
 		// TODO: Make this public in NET 11.
-		internal static void UpdateThumbColor(this Slider mSlider, ISlider slider)
+		internal static void UpdateThumbColor(this Slider mSlider, ISlider slider, ColorStateList? defaultThumbTintList)
 		{
-			if (slider.ThumbImageSource is not null && slider.Handler is not null)
-			{
-				var provider = slider.Handler.GetRequiredService<IImageSourceServiceProvider>();
-				mSlider.UpdateThumbImageSourceAsync(slider, provider)
-					.FireAndForget();
-			}
-			else if (slider.ThumbColor is not null)
+			if (slider.ThumbColor is not null)
 			{
 				mSlider.ThumbTintList = ColorStateList.ValueOf(slider.ThumbColor.ToPlatform());
+			}
+			else
+			{
+				mSlider.ThumbTintList = defaultThumbTintList!;
 			}
 		}
 

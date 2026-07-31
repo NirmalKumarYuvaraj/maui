@@ -20,6 +20,8 @@ namespace Microsoft.Maui.Handlers
 
 		protected override void ConnectHandler(SeekBar platformView)
 		{
+			base.ConnectHandler(platformView);
+
 			ChangeListener.Handler = this;
 			platformView.SetOnSeekBarChangeListener(ChangeListener);
 		}
@@ -28,6 +30,8 @@ namespace Microsoft.Maui.Handlers
 		{
 			ChangeListener.Handler = null;
 			platformView.SetOnSeekBarChangeListener(null);
+
+			base.DisconnectHandler(platformView);
 		}
 
 		public static void MapMinimum(ISliderHandler handler, ISlider slider)
