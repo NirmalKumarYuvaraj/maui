@@ -72,6 +72,8 @@ internal class EditorHandler2 : ViewHandler<IEditor, MauiMaterialEditText>
 
 	protected override void ConnectHandler(MauiMaterialEditText platformView)
 	{
+		base.ConnectHandler(platformView);
+
 		platformView.TextChanged += OnTextChanged;
 		platformView.FocusChange += OnFocusChange;
 	}
@@ -87,6 +89,8 @@ internal class EditorHandler2 : ViewHandler<IEditor, MauiMaterialEditText>
 		}
 
 		_set = false;
+
+		base.DisconnectHandler(platformView);
 	}
 
 	public static void MapBackground(EditorHandler2 handler, IEditor editor)

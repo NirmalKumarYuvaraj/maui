@@ -44,6 +44,21 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 			Assert.Equal(typeof(ButtonHandlerStub), specificHandler.GetType());
 		}
 
+		[Fact]
+		public void CanOverrideReplacementCandidateHandler()
+		{
+			var mauiApp = MauiApp.CreateBuilder()
+				.UseMauiApp<ApplicationStub>()
+				.ConfigureMauiHandlers(handlers => handlers.AddHandler<Label, LabelHandlerStub>())
+				.Build();
+
+			var handlers = mauiApp.Services.GetRequiredService<IMauiHandlersFactory>();
+			var specificHandler = handlers.GetHandler(typeof(Label));
+
+			Assert.NotNull(specificHandler);
+			Assert.Equal(typeof(LabelHandlerStub), specificHandler.GetType());
+		}
+
 		[Theory]
 		[InlineData(typeof(Label), typeof(LabelHandler))]
 		[InlineData(typeof(Button), typeof(ButtonHandler))]

@@ -45,9 +45,9 @@ internal partial class PickerHandler2 : ViewHandler<IPicker, MauiMaterialPicker>
 
 	protected override void ConnectHandler(MauiMaterialPicker platformView)
 	{
-		platformView.Click += OnClick;
-
 		base.ConnectHandler(platformView);
+
+		platformView.Click += OnClick;
 	}
 
 	protected override void DisconnectHandler(MauiMaterialPicker platformView)

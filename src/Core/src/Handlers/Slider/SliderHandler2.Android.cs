@@ -35,6 +35,8 @@ internal class SliderHandler2 : ViewHandler<ISlider, Slider>
 
     protected override void ConnectHandler(Slider platformView)
     {
+        base.ConnectHandler(platformView);
+
         // TODO: Material3: Add listeners when https://github.com/dotnet/android-libraries/issues/230 is resolved
         // Using Touch event as a workaround for missing addOnChangeListener binding
         // See: https://github.com/dotnet/android-libraries/issues/230#issuecomment-891341936
@@ -80,6 +82,8 @@ internal class SliderHandler2 : ViewHandler<ISlider, Slider>
     {
         // TODO: Material3: Cleanup listeners when implemented
         platformView.Touch -= Slider_Touch;
+
+        base.DisconnectHandler(platformView);
     }
 
     public static void MapValue(SliderHandler2 handler, ISlider slider)

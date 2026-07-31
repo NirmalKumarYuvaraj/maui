@@ -158,7 +158,7 @@ not introduce direct feature-switch checks without an architectural reason.
 
 ## Phase 3: Centralize semantic theme resolution
 
-**Status:** Complete - awaiting review.
+**Status:** Complete.
 
 The implementation introduces
 `src/Core/src/Platform/Android/Material3ThemeResolver.cs` as the Android
@@ -230,6 +230,25 @@ part of later control-migration phases.
 
 ## Phase 4: Standardize handler migration
 
+**Status:** Complete - awaiting review.
+
+Android legacy and Material 3 replacement registrations now have one owner:
+
+`src/Controls/src/Core/Hosting/Material3HandlerRegistration.Android.cs`
+
+The registered control set and ordering are unchanged. Shared controls remain
+outside the replacement list, and user `ConfigureMauiHandlers` registrations
+continue to run afterward and take precedence.
+
+The detailed selection, lifecycle, mapper and extensibility contract is
+recorded in
+[`MATERIAL3_ANDROID_HANDLER_MIGRATION_GUIDE.md`](MATERIAL3_ANDROID_HANDLER_MIGRATION_GUIDE.md).
+
+Editor, Entry and Slider replacement handlers now call the base lifecycle
+methods. Picker registration order was normalized so all replacement handlers
+call `base.ConnectHandler` before registering native listeners and
+`base.DisconnectHandler` after cleanup.
+
 ### Handler selection rule
 
 Use a replacement handler when Material 3 changes:
@@ -276,6 +295,11 @@ Every migrated handler must preserve:
 
 New migrations follow one documented handler-selection strategy and satisfy a
 shared lifecycle checklist.
+
+**Exit-gate assessment:** Complete. Replacement registration is centralized,
+shared controls are explicitly excluded from unnecessary handler duplication,
+custom-handler precedence is retained, and the required lifecycle checklist is
+documented for Phase 5 control work.
 
 ## Phase 5: Migrate controls in batches
 

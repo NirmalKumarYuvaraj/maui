@@ -75,6 +75,8 @@ internal class EntryHandler2 : ViewHandler<IEntry, MauiMaterialTextInputLayout>
 
 	protected override void ConnectHandler(MauiMaterialTextInputLayout platformView)
 	{
+		base.ConnectHandler(platformView);
+
 		platformView.ViewAttachedToWindow += OnViewAttachedToWindow;
 		platformView.EditText?.TextChanged += OnTextChanged;
 		platformView.EditText?.FocusChange += OnFocusedChange;
@@ -103,6 +105,8 @@ internal class EntryHandler2 : ViewHandler<IEntry, MauiMaterialTextInputLayout>
 		_clearButtonClickListener = null;
 
 		_defaultHintTextColors = null;
+
+		base.DisconnectHandler(platformView);
 	}
 
 	void OnViewAttachedToWindow(object? sender, ViewAttachedToWindowEventArgs e)
