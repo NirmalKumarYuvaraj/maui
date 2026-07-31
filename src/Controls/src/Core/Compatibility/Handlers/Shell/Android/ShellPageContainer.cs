@@ -27,20 +27,13 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				bool isDark = ShellRenderer.IsDarkTheme;
 
 				int color = Material3Configuration.Enabled
-				 ? GetMaterial3Background(context)
+				 ? Material3ThemeResolver.ResolveColor(context, Material3ColorRole.Surface)
 				 : GetResourceBackground(context, isDark);
 
 				child.PlatformView.SetBackgroundColor(new AColor(color));
 			}
 			child.PlatformView.RemoveFromParent();
 			AddView(child.PlatformView);
-		}
-
-		int GetMaterial3Background(Context context)
-		{
-			// Material 3 colorSurface automatically adapts to light/dark theme
-			// The theme resolution happens in GetThemeAttrColor based on the active theme
-			return ContextExtensions.GetThemeAttrColor(context, Resource.Attribute.colorSurface);
 		}
 
 		int GetResourceBackground(Context context, bool isDark)

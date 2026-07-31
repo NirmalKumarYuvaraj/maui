@@ -93,14 +93,47 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 
 
 		// These are the primary colors in our styles.xml file
-		public static Color DefaultBackgroundColor => ResolveThemeColor(Material3Configuration.Enabled ? Color.FromArgb("#FEF7FF") : Color.FromArgb("#2c3e50"), Material3Configuration.Enabled ? Color.FromArgb("#141218") : Color.FromArgb("#1B3147"));
-		public static Color DefaultForegroundColor => ResolveThemeColor(Material3Configuration.Enabled ? Color.FromArgb("#1D1B20") : Colors.Black, Material3Configuration.Enabled ? Color.FromArgb("#E6E0E9") : Colors.White);
-		public static Color DefaultTitleColor => ResolveThemeColor(Material3Configuration.Enabled ? Color.FromArgb("#1D1B20") : Colors.White, Material3Configuration.Enabled ? Color.FromArgb("#E6E0E9") : Colors.White);
-		public static Color DefaultUnselectedColor => ResolveThemeColor(
-			Material3Configuration.Enabled ? Color.FromArgb("#49454F") : Color.FromRgba(255, 255, 255, 180),
-			Material3Configuration.Enabled ? Color.FromArgb("#CAC4D0") : Color.FromRgba(255, 255, 255, 180));
-		internal static Color DefaultBottomNavigationViewBackgroundColor => ResolveThemeColor(Material3Configuration.Enabled ? Color.FromArgb("#F3EDF7") : Colors.White, Material3Configuration.Enabled ? Color.FromArgb("#1D1B20") : Color.FromArgb("#1B3147"));
+		public static Color DefaultBackgroundColor => Material3Configuration.Enabled
+			? Material3ThemeResolver.ResolveFallbackColor(Material3ColorRole.Surface, IsDarkTheme)
+			: ResolveThemeColor(Color.FromArgb("#2c3e50"), Color.FromArgb("#1B3147"));
+		public static Color DefaultForegroundColor => Material3Configuration.Enabled
+			? Material3ThemeResolver.ResolveFallbackColor(Material3ColorRole.OnSurface, IsDarkTheme)
+			: ResolveThemeColor(Colors.Black, Colors.White);
+		public static Color DefaultTitleColor => Material3Configuration.Enabled
+			? Material3ThemeResolver.ResolveFallbackColor(Material3ColorRole.OnSurface, IsDarkTheme)
+			: ResolveThemeColor(Colors.White, Colors.White);
+		public static Color DefaultUnselectedColor => Material3Configuration.Enabled
+			? Material3ThemeResolver.ResolveFallbackColor(Material3ColorRole.OnSurfaceVariant, IsDarkTheme)
+			: ResolveThemeColor(Color.FromRgba(255, 255, 255, 180), Color.FromRgba(255, 255, 255, 180));
+		internal static Color DefaultBottomNavigationViewBackgroundColor => Material3Configuration.Enabled
+			? Material3ThemeResolver.ResolveFallbackColor(Material3ColorRole.SurfaceContainer, IsDarkTheme)
+			: ResolveThemeColor(Colors.White, Color.FromArgb("#1B3147"));
 		internal static bool IsDarkTheme => Application.Current?.RequestedTheme == AppTheme.Dark;
+
+		internal static Color GetDefaultBackgroundColor(Context context) =>
+			Material3Configuration.Enabled
+				? Material3ThemeResolver.ResolveMauiColor(context, Material3ColorRole.Surface)
+				: DefaultBackgroundColor;
+
+		internal static Color GetDefaultForegroundColor(Context context) =>
+			Material3Configuration.Enabled
+				? Material3ThemeResolver.ResolveMauiColor(context, Material3ColorRole.OnSurface)
+				: DefaultForegroundColor;
+
+		internal static Color GetDefaultTitleColor(Context context) =>
+			Material3Configuration.Enabled
+				? Material3ThemeResolver.ResolveMauiColor(context, Material3ColorRole.OnSurface)
+				: DefaultTitleColor;
+
+		internal static Color GetDefaultUnselectedColor(Context context) =>
+			Material3Configuration.Enabled
+				? Material3ThemeResolver.ResolveMauiColor(context, Material3ColorRole.OnSurfaceVariant)
+				: DefaultUnselectedColor;
+
+		internal static Color GetDefaultBottomNavigationViewBackgroundColor(Context context) =>
+			Material3Configuration.Enabled
+				? Material3ThemeResolver.ResolveMauiColor(context, Material3ColorRole.SurfaceContainer)
+				: DefaultBottomNavigationViewBackgroundColor;
 
 		static Color ResolveThemeColor(Color light, Color dark)
 		{

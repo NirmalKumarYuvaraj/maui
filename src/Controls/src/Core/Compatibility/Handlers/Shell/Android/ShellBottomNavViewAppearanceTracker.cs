@@ -33,10 +33,15 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			_shellContext = shellContext;
 		}
 
-		static ColorStateList GetDefaultTabColorList(Context context) =>
-			ShellRenderer.IsDarkTheme ?
-			_defaultListDark ??= MakeDefaultColorStateList(context)
-			: _defaultListLight ??= MakeDefaultColorStateList(context);
+		static ColorStateList GetDefaultTabColorList(Context context)
+		{
+			if (Material3Configuration.Enabled)
+				return MakeDefaultColorStateList(context);
+
+			return ShellRenderer.IsDarkTheme
+				? _defaultListDark ??= MakeDefaultColorStateList(context)
+				: _defaultListLight ??= MakeDefaultColorStateList(context);
+		}
 
 		public virtual void ResetAppearance(BottomNavigationView bottomView)
 		{
@@ -82,7 +87,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			AColor newColor;
 
 			if (color == null)
-				newColor = ShellRenderer.DefaultBottomNavigationViewBackgroundColor.ToPlatform();
+				newColor = ShellRenderer.GetDefaultBottomNavigationViewBackgroundColor(bottomView.Context).ToPlatform();
 			else
 				newColor = color.ToPlatform();
 
@@ -131,7 +136,11 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				return null;
 
 			var baseCSL = AppCompatResources.GetColorStateList(context, mTypedValue.ResourceId);
-			var colorPrimary = (ShellRenderer.IsDarkTheme) ? AColor.White : Material3Configuration.Enabled ? Color.FromArgb("#625B71").ToPlatform() : ShellRenderer.DefaultBackgroundColor.ToPlatform();
+			var colorPrimary = Material3Configuration.Enabled
+				? new AColor(Material3ThemeResolver.ResolveColor(context, Material3ColorRole.Primary))
+				: ShellRenderer.IsDarkTheme
+					? AColor.White
+					: ShellRenderer.DefaultBackgroundColor.ToPlatform();
 			int defaultColor = baseCSL.DefaultColor;
 			var disabledcolor = baseCSL.GetColorForState(new[] { -R.Attribute.StateEnabled }, AColor.Gray);
 

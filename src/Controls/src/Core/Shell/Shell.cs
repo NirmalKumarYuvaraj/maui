@@ -771,15 +771,15 @@ namespace Microsoft.Maui.Controls
 		}
 
 #if ANDROID
-		static Color DefaultBackgroundColor => ResolveThemeColor(
-			Material3Configuration.Enabled ? Color.FromArgb("#FEF7FF") : Color.FromArgb("#2c3e50"),
-			Material3Configuration.Enabled ? Color.FromArgb("#141218") : Color.FromArgb("#1B3147"));
-		static Color DefaultForegroundColor => ResolveThemeColor(
-			Material3Configuration.Enabled ? Color.FromArgb("#1D1B20") : Colors.White,
-			Material3Configuration.Enabled ? Color.FromArgb("#E6E0E9") : Colors.White);
-		static Color DefaultTitleColor => ResolveThemeColor(
-			Material3Configuration.Enabled ? Color.FromArgb("#1D1B20") : Colors.White,
-			Material3Configuration.Enabled ? Color.FromArgb("#E6E0E9") : Colors.White);
+		static Color DefaultBackgroundColor => Material3Configuration.Enabled
+			? null
+			: ResolveThemeColor(Color.FromArgb("#2c3e50"), Color.FromArgb("#1B3147"));
+		static Color DefaultForegroundColor => Material3Configuration.Enabled
+			? null
+			: ResolveThemeColor(Colors.White, Colors.White);
+		static Color DefaultTitleColor => Material3Configuration.Enabled
+			? null
+			: ResolveThemeColor(Colors.White, Colors.White);
 
 		static bool IsDarkTheme => (Application.Current?.RequestedTheme == AppTheme.Dark);
 
@@ -1277,27 +1277,14 @@ namespace Microsoft.Maui.Controls
 			Route = Routing.GenerateImplicitRoute("shell");
 			Initialize();
 
-			if (Application.Current is not null)
+			if (Application.Current is not null &&
+				!(DeviceInfo.Platform == DevicePlatform.Android && Material3Configuration.Enabled))
 			{
-				Color light;
-				Color dark;
-
-				if (DeviceInfo.Platform == DevicePlatform.Android && Material3Configuration.Enabled)
-				{
-					light = Color.FromArgb("#FEF7FF");
-					dark = Color.FromArgb("#141218");
-				}
-				else
-				{
-					light = Colors.White;
-					dark = Colors.Black;
-				}
-
 				this.SetBinding(Shell.FlyoutBackgroundColorProperty,
 					new AppThemeBinding
 					{
-						Light = light,
-						Dark = dark,
+						Light = Colors.White,
+						Dark = Colors.Black,
 						Mode = BindingMode.OneWay
 					});
 			}

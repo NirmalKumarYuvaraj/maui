@@ -146,7 +146,8 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			// Apply background color from appearance, fallback to default if unavailable
 			if (_bottomView.Background is ColorDrawable background && appearance is IShellAppearanceElement appearanceElement)
 			{
-				background.Color = appearanceElement.EffectiveTabBarBackgroundColor?.ToPlatform() ?? ShellRenderer.DefaultBottomNavigationViewBackgroundColor.ToPlatform();
+				background.Color = appearanceElement.EffectiveTabBarBackgroundColor?.ToPlatform() ??
+					ShellRenderer.GetDefaultBottomNavigationViewBackgroundColor(Context).ToPlatform();
 			}
 			_appearanceSet = true;
 			_appearanceTracker.SetAppearance(_bottomView, appearance);
@@ -238,7 +239,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 							if (result?.Value is not null)
 							{
 								var color = Material3Configuration.Enabled
-									? new AColor(Context.GetThemeAttrColor(Resource.Attribute.colorOnSurfaceVariant))
+									? new AColor(Material3ThemeResolver.ResolveColor(Context, Material3ColorRole.OnSurfaceVariant))
 									: Colors.Black.MultiplyAlpha(0.6f).ToPlatform();
 								result.Value.SetTint(color);
 							}
@@ -253,7 +254,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 						text.SetTextColor(
 							Material3Configuration.Enabled
-								? new AColor(Context.GetThemeAttrColor(Resource.Attribute.colorOnSurface))
+								? new AColor(Material3ThemeResolver.ResolveColor(Context, Material3ColorRole.OnSurface))
 								: AColor.Black);
 						text.Text = shellContent.Title;
 						lp = new LinearLayout.LayoutParams(0, LP.WrapContent)

@@ -608,20 +608,20 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			if (Brush.IsNullOrEmpty(brush))
 			{
 				var color = _shellContext.Shell.FlyoutBackgroundColor;
-				if (_defaultBackgroundColor is null)
+				Drawable defaultBackground;
+				if (Material3Configuration.Enabled)
 				{
-					if (Material3Configuration.Enabled)
-					{
-						var colorSurface = ContextExtensions.GetThemeAttrColor(_shellContext.AndroidContext, Resource.Attribute.colorSurface);
-						_defaultBackgroundColor = new ColorDrawable(new AColor(colorSurface));
-					}
-					else
-					{
-						_defaultBackgroundColor = _rootView.Background;
-					}
+					var colorSurface = Material3ThemeResolver.ResolveColor(
+						_shellContext.AndroidContext,
+						Material3ColorRole.Surface);
+					defaultBackground = new ColorDrawable(new AColor(colorSurface));
+				}
+				else
+				{
+					defaultBackground = _defaultBackgroundColor ??= _rootView.Background;
 				}
 
-				_rootView.Background = color == null ? _defaultBackgroundColor : new ColorDrawable(color.ToPlatform());
+				_rootView.Background = color == null ? defaultBackground : new ColorDrawable(color.ToPlatform());
 			}
 			else
 				_rootView.UpdateBackground(brush);

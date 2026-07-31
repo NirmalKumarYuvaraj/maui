@@ -41,7 +41,8 @@ namespace Microsoft.Maui.Controls.Platform
 				return CreateItemBackgroundDrawable();
 			}
 
-			var rippleColor = new AColor(context.GetThemeAttrColor(Resource.Attribute.colorOnSurface, 0.10f));
+			var rippleColor = new AColor(
+				Material3ThemeResolver.ResolveColor(context, Material3ColorRole.OnSurface, 0.10f));
 			var stateList = ColorStateList.ValueOf(rippleColor);
 			return new RippleDrawable(stateList, new ColorDrawable(AColor.Transparent), null);
 		}
@@ -229,7 +230,7 @@ namespace Microsoft.Maui.Controls.Platform
 
 					image.ImageTintList = ColorStateList.ValueOf(
 						Material3Configuration.Enabled
-							? new AColor(context.GetThemeAttrColor(Resource.Attribute.colorOnSurfaceVariant))
+							? new AColor(Material3ThemeResolver.ResolveColor(context, Material3ColorRole.OnSurfaceVariant))
 							: Colors.Black.MultiplyAlpha(0.6f).ToPlatform());
 
 					shellContent.icon.LoadImage(mauiContext, result =>
@@ -244,7 +245,7 @@ namespace Microsoft.Maui.Controls.Platform
 						text.SetTypeface(Typeface.Create("sans-serif-medium", TypefaceStyle.Normal), TypefaceStyle.Normal);
 						text.SetTextColor(
 							Material3Configuration.Enabled
-								? new AColor(context.GetThemeAttrColor(Resource.Attribute.colorOnSurface))
+								? new AColor(Material3ThemeResolver.ResolveColor(context, Material3ColorRole.OnSurface))
 								: AColor.Black);
 						text.Text = shellContent.title;
 						lp = new LinearLayout.LayoutParams(0, LP.WrapContent)

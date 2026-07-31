@@ -54,7 +54,7 @@ and theme services rather than directly branching on
 
 ## Phase 1: Establish the migration baseline
 
-**Status:** Complete - awaiting review.
+**Status:** Complete.
 
 The baseline is recorded in
 [`MATERIAL3_ANDROID_CONTROL_INVENTORY.md`](MATERIAL3_ANDROID_CONTROL_INVENTORY.md).
@@ -96,7 +96,7 @@ and compatibility-test status.
 
 ## Phase 2: Centralize Material 3 configuration
 
-**Status:** Complete - awaiting review.
+**Status:** Complete.
 
 The implementation introduces
 `src/Core/src/Material3Configuration.cs` as the single internal configuration
@@ -158,6 +158,32 @@ not introduce direct feature-switch checks without an architectural reason.
 
 ## Phase 3: Centralize semantic theme resolution
 
+**Status:** Complete - awaiting review.
+
+The implementation introduces
+`src/Core/src/Platform/Android/Material3ThemeResolver.cs` as the Android
+semantic color owner.
+
+The resolver:
+
+- Maps Material 3 roles to Android theme attributes.
+- Resolves `colorPrimary`, `colorSurface`, `colorSurfaceContainer`,
+  `colorOnSurface` and `colorOnSurfaceVariant` from the active themed context.
+- Applies alpha after resolving a semantic color.
+- Uses the previous hard-coded Material 3 palette only when a required theme
+  attribute cannot resolve.
+- Reads colors on demand so runtime theme changes are not hidden by static
+  caches.
+
+Shell, flyout, toolbar, tabs, bottom navigation, page containers and more-sheet
+content now consume semantic roles when a themed Android `Context` is
+available. Context-free public fallback properties remain compatible, while
+platform call sites use actual theme attributes.
+
+The default Material 3 `FlyoutBackgroundColor` binding was removed so that an
+unset value can resolve through `colorSurface`. Explicit application values
+continue to take precedence.
+
 ### Work
 
 Create an internal Android Material 3 theme resolver responsible for:
@@ -195,6 +221,12 @@ Native Android Material 3 default
 
 Material 3 colors and component defaults are resolved semantically, and
 clearing an explicit property reliably restores the active theme value.
+
+**Exit-gate assessment:** Complete for the Phase 3 color scope. Material 3
+platform defaults resolve from semantic Android attributes, legacy defaults
+remain unchanged, and unresolved attributes use the previous Material 3
+palette as an explicit fallback. Typography and shape standardization remain
+part of later control-migration phases.
 
 ## Phase 4: Standardize handler migration
 

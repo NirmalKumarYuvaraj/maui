@@ -16,8 +16,9 @@ control is complete merely because it uses a Material 3 native component.
 - Activation property: `UseMaterial3`
 - Runtime switch: `Microsoft.Maui.RuntimeFeature.IsMaterial3Enabled`
 - Phase 1 status: Complete
-- Phase 2 status: Complete - awaiting review
-- Next phase: Centralize semantic theme resolution
+- Phase 2 status: Complete
+- Phase 3 status: Complete - awaiting review
+- Next phase: Standardize handler migration
 
 ## Ownership model
 

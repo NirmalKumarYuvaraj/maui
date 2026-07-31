@@ -220,30 +220,39 @@ namespace Microsoft.Maui.Platform
 
 		internal static int GetThemeAttrColor(this Context context, int attr)
 		{
+			return context.TryGetThemeAttrColor(attr, out int color) ? color : 0;
+		}
+
+		internal static bool TryGetThemeAttrColor(this Context context, int attr, out int color)
+		{
 			using (TypedValue mTypedValue = new TypedValue())
 			{
 				if (context.Theme?.ResolveAttribute(attr, mTypedValue, true) == true)
 				{
 					if (mTypedValue.Type >= DataType.FirstInt && mTypedValue.Type <= DataType.LastInt)
 					{
-						return mTypedValue.Data;
+						color = mTypedValue.Data;
+						return true;
 					}
 					else if (mTypedValue.Type == DataType.String)
 					{
 						if (context.Resources != null)
 						{
 							if (OperatingSystem.IsAndroidVersionAtLeast(23))
-								return context.Resources.GetColor(mTypedValue.ResourceId, context.Theme);
+								color = context.Resources.GetColor(mTypedValue.ResourceId, context.Theme);
 							else
 #pragma warning disable CS0618 // Type or member is obsolete
-								return context.Resources.GetColor(mTypedValue.ResourceId);
+								color = context.Resources.GetColor(mTypedValue.ResourceId);
 #pragma warning restore CS0618 // Type or member is obsolete
+
+							return true;
 						}
 					}
 				}
 			}
 
-			return 0;
+			color = 0;
+			return false;
 		}
 
 		internal static int GetThemeAttrColor(this Context context, int attr, float alpha)
