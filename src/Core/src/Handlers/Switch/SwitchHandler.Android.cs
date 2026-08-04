@@ -1,15 +1,20 @@
 using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using Android.Content.Res;
 using Android.Graphics.Drawables;
 using Android.Nfc.CardEmulators;
 using Android.Widget;
 using Microsoft.Maui.Graphics;
 using ASwitch = AndroidX.AppCompat.Widget.SwitchCompat;
+using MSwitch = Google.Android.Material.MaterialSwitch.MaterialSwitch;
 
 namespace Microsoft.Maui.Handlers
 {
 	public partial class SwitchHandler : ViewHandler<ISwitch, ASwitch>
 	{
 		CheckedChangeListener? _changeListener;
+		ColorStateList? _defaultTrackTintCache;
 		protected override ASwitch CreatePlatformView()
 		{
 			return new ASwitch(Context);
@@ -19,6 +24,18 @@ namespace Microsoft.Maui.Handlers
 		{
 			_changeListener = new CheckedChangeListener(this);
 			platformView.SetOnCheckedChangeListener(_changeListener);
+			// Cache the original theme tint before first modification 
+			// so it can be restored when TrackColor is cleared.
+			if (!_defaultTrackTintCache!.TryGetValue((platformView as MSwitch)!, out var defaultTrackTintList))
+			{
+				var materialSwitch = platformView as MSwitch;
+				var currentTint = materialSwitch?.TrackTintList;
+				if (currentTint is not null)
+				{
+					_defaultTrackTintCache.Add((platformView as MSwitch)!, currentTint);
+					defaultTrackTintList = currentTint;
+				}
+			}
 
 			base.ConnectHandler(platformView);
 		}
@@ -27,7 +44,7 @@ namespace Microsoft.Maui.Handlers
 		{
 			platformView.SetOnCheckedChangeListener(null);
 			_changeListener = null;
-
+			_defaultTrackTintCache = null;
 			base.DisconnectHandler(platformView);
 		}
 
@@ -57,6 +74,17 @@ namespace Microsoft.Maui.Handlers
 		{
 			if (handler is SwitchHandler platformHandler)
 				handler.PlatformView?.UpdateTrackColor(view);
+
+			var trackColor = view.TrackColor;
+
+			if (trackColor is not null)
+			{
+				handler.PlatformView?.UpdateTrackColor(trackColor);
+			}
+			else
+			{
+				handler.PlatformView?.UpdateTrackColor(_defaultTrackTintCache);
+			}
 		}
 
 		public static void MapThumbColor(ISwitchHandler handler, ISwitch view)

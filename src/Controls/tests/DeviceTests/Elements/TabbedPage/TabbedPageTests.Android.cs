@@ -72,6 +72,24 @@ namespace Microsoft.Maui.DeviceTests
 		}
 
 		[Fact]
+		public async Task BottomTabsPreserveMaterial3Background()
+		{
+			if (!RuntimeFeature.IsMaterial3Enabled)
+				return;
+
+			SetupBuilder();
+			var tabbedPage = CreateBasicTabbedPage(true);
+
+			await CreateHandlerAndAddToWindow<TabbedViewHandler>(tabbedPage, handler =>
+			{
+				var bottomNavigationView = GetBottomNavigationView(handler);
+
+				Assert.NotNull(bottomNavigationView.Background);
+				return Task.CompletedTask;
+			});
+		}
+
+		[Fact]
 		public async Task ChangingBottomTabAttributesDoesntRecreateBottomTabs()
 		{
 			SetupBuilder();
