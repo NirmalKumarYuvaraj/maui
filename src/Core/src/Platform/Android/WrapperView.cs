@@ -10,7 +10,7 @@ using AView = Android.Views.View;
 
 namespace Microsoft.Maui.Platform
 {
-	public partial class WrapperView : PlatformWrapperView
+	public partial class WrapperView : PlatformWrapperView, ITouchInterceptingView
 	{
 		// When alpha < 1 and HasOverlappingRendering is true, Android renders into an
 		// offscreen buffer bounded by the view's own dimensions, clipping overflowing
@@ -25,8 +25,11 @@ namespace Microsoft.Maui.Platform
 		bool _invalidateClip;
 
 		AView _borderView;
+		IOnTouchListener _touchListener;
 
 		public bool InputTransparent { get; set; }
+
+		bool ITouchInterceptingView.TouchEventNotReallyHandled { get; set; }
 
 		public WrapperView(Context context)
 			: base(context)
@@ -50,14 +53,23 @@ namespace Microsoft.Maui.Platform
 			_borderView?.Layout(0, 0, child.MeasuredWidth, child.MeasuredHeight);
 		}
 
+		public override void SetOnTouchListener(IOnTouchListener l)
+		{
+			_touchListener = l;
+			base.SetOnTouchListener(l);
+		}
+
+		public override bool OnTouchEvent(MotionEvent e) =>
+			base.OnTouchEvent(e) ||
+			TouchEventInterceptor.OnTouchEvent(this, e);
+
 		public override bool DispatchTouchEvent(MotionEvent e)
 		{
-			if (InputTransparent)
-			{
+			if (!TouchEventInterceptor.PrepareDispatch(this))
 				return false;
-			}
 
-			return base.DispatchTouchEvent(e);
+			var handled = base.DispatchTouchEvent(e);
+			return TouchEventInterceptor.CompleteDispatch(this, e, handled, _touchListener);
 		}
 
 		partial void ClipChanged()

@@ -190,15 +190,8 @@
 				{
 					// if one of the parent layouts are NOT transparent, then
 					// the tap should NOT go through to the bottom button
-#if ANDROID
-					// TODO: Android is broken with everything passing through
-					// https://github.com/dotnet/maui/issues/10252
-					bottom.Clicked += (s, e) => t.ViewContainer.ReportSuccessEvent();
-					top.Clicked += (s, e) => t.ViewContainer.ReportFailEvent();
-#else
 					bottom.Clicked += (s, e) => t.ViewContainer.ReportFailEvent();
 					top.Clicked += (s, e) => t.ViewContainer.ReportFailEvent();
-#endif
 				}
 				else
 				{

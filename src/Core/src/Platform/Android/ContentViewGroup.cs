@@ -12,7 +12,7 @@ using Rectangle = Microsoft.Maui.Graphics.Rect;
 
 namespace Microsoft.Maui.Platform
 {
-	public class ContentViewGroup : PlatformContentViewGroup, ICrossPlatformLayoutBacking, IVisualTreeElementProvidable, IHandleWindowInsets
+	public class ContentViewGroup : PlatformContentViewGroup, ICrossPlatformLayoutBacking, IVisualTreeElementProvidable, IHandleWindowInsets, ITouchInterceptingView
 	{
 		// When alpha < 1 and HasOverlappingRendering is true, Android renders into an
 		// offscreen buffer bounded by the view's own dimensions, clipping overflowing
@@ -26,6 +26,15 @@ namespace Microsoft.Maui.Platform
 		readonly Context _context;
 		bool _didSafeAreaEdgeConfigurationChange = true;
 		bool _isInsetListenerSet;
+		IOnTouchListener? _touchListener;
+
+		bool ITouchInterceptingView.TouchEventNotReallyHandled
+		{
+			get => TouchEventNotReallyHandled;
+			set => TouchEventNotReallyHandled = value;
+		}
+
+		internal bool TouchEventNotReallyHandled { get; set; }
 
 		public ContentViewGroup(Context context) : base(context)
 		{
@@ -78,6 +87,25 @@ namespace Microsoft.Maui.Platform
 		public ICrossPlatformLayout? CrossPlatformLayout
 		{
 			get; set;
+		}
+
+		public override void SetOnTouchListener(IOnTouchListener? listener)
+		{
+			_touchListener = listener;
+			base.SetOnTouchListener(listener);
+		}
+
+		public override bool OnTouchEvent(MotionEvent? e) =>
+			base.OnTouchEvent(e) ||
+			TouchEventInterceptor.OnTouchEvent(this, e);
+
+		public override bool DispatchTouchEvent(MotionEvent? e)
+		{
+			if (!TouchEventInterceptor.PrepareDispatch(this))
+				return false;
+
+			var handled = base.DispatchTouchEvent(e);
+			return TouchEventInterceptor.CompleteDispatch(this, e, handled, _touchListener);
 		}
 
 		Graphics.Size CrossPlatformMeasure(double widthConstraint, double heightConstraint)
