@@ -171,15 +171,10 @@ namespace Microsoft.Maui.Controls
 
 			var title = GetCurrentTitle();
 
-			if (TitleView != null)
-			{
-				if (!IsShellTitleSetByUser())
-					_shell.SetValueFromRenderer(Shell.TitleProperty, title);  // only when TitleView exists
-				Title = String.Empty;
-				return;
-			}
+			if (!_shell.IsTitleSetByUser())
+				_shell.SetValueFromRenderer(Page.TitleProperty, title);
 
-			Title = title;
+			Title = TitleView != null ? String.Empty : title;
 		}
 
 		string GetCurrentTitle()
@@ -197,19 +192,6 @@ namespace Microsoft.Maui.Controls
 			}
 
 			return String.Empty;
-		}
-
-		bool IsShellTitleSetByUser()
-		{
-			var titleContext = _shell.GetContext(Shell.TitleProperty);
-			if (titleContext == null)
-				return false;
-
-			if (titleContext.Bindings.Count > 0)
-				return true;
-
-			var specificity = titleContext.Values.GetSpecificity();
-			return specificity != SetterSpecificity.DefaultValue && specificity != SetterSpecificity.FromHandler;
 		}
 	}
 }

@@ -397,6 +397,21 @@ namespace Microsoft.Maui.Controls
 		/// <param name="value">The View to be displayed in the navigation bar.</param>
 		public static void SetTitleView(BindableObject obj, View value) => obj.SetValue(TitleViewProperty, value);
 
+		internal bool IsTitleSetByUser()
+		{
+			if (GetIsBound(TitleProperty))
+				return true;
+
+			var context = GetContext(TitleProperty);
+			if (context is null)
+				return false;
+
+			var specificity = context.Values.GetSpecificity();
+			return specificity != SetterSpecificity.DefaultValue && specificity != SetterSpecificity.FromHandler;
+		}
+
+		internal string GetUserSetTitle() => IsTitleSetByUser() ? Title : null;
+
 		static void OnFlyoutBehaviorChanged(BindableObject bindable, object oldValue, object newValue)
 		{
 			var element = (Element)bindable;
