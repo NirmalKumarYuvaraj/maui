@@ -193,6 +193,9 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			_cells[context] = cell;
 			cell.TableView = tableView;
 			cell.IndexPath = indexPath;
+#if MACCATALYST
+			cell.FocusGroupIdentifier = $"Microsoft.Maui.Shell.Flyout.{indexPath.Section}.{indexPath.Row}";
+#endif
 			cell.ViewMeasureInvalidated += OnViewMeasureInvalidated;
 
 			return cell;

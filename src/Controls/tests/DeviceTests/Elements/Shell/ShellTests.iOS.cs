@@ -647,6 +647,40 @@ namespace Microsoft.Maui.DeviceTests
 			});
 		}
 
+#if MACCATALYST
+		[Fact(DisplayName = "Shell Flyout Items Have List Semantics And Support Keyboard Focus")]
+		public async Task ShellFlyoutItemsHaveListSemanticsAndSupportKeyboardFocus()
+		{
+			SetupBuilder();
+			var shell = await CreateShellAsync(shell =>
+			{
+				shell.Items.Add(new ContentPage() { Title = "Dashboard" });
+				shell.Items.Add(new ContentPage() { Title = "Projects" });
+				shell.Items.Add(new ContentPage() { Title = "Manage Meta" });
+			});
+
+			await CreateHandlerAndAddToWindow<ShellRenderer>(shell, async handler =>
+			{
+				await OpenFlyout(handler);
+
+				var tableViewController = handler.ViewController
+					.ChildViewControllers
+					.OfType<ShellFlyoutContentRenderer>()
+					.First()
+					.ChildViewControllers
+					.OfType<ShellTableViewController>()
+					.First();
+
+				Assert.Equal(UIAccessibilityContainerType.List, tableViewController.TableView.GetAccessibilityContainerType());
+
+				var cells = tableViewController.TableView.VisibleCells.OfType<UIContainerCell>().ToArray();
+				Assert.Equal(3, cells.Length);
+				Assert.All(cells, cell => Assert.True(cell.CanBecomeFocused));
+				Assert.Equal(cells.Length, cells.Select(cell => cell.FocusGroupIdentifier).Distinct().Count());
+			});
+		}
+#endif
+
 		class ModalShellPage : ContentPage
 		{
 			public ModalShellPage()

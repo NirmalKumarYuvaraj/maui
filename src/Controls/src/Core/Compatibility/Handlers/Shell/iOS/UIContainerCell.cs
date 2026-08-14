@@ -62,6 +62,10 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 		{
 		}
 
+#if MACCATALYST
+		public override bool CanBecomeFocused => true;
+#endif
+
 		void MeasureInvalidated(object sender, System.EventArgs e)
 		{
 			if (View == null || TableView == null)
