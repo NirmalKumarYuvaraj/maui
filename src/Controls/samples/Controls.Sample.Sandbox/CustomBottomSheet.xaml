@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Maui.Controls.Sample.CustomBottomSheet">
+    <ContentView.ControlTemplate>
+        <ControlTemplate>
+            <Grid RowDefinitions="*,Auto"
+                  SafeAreaEdges="None">
+                <Grid Grid.Row="0"
+                        BackgroundColor="Black"
+                        Opacity="0.5">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnCloseClicked"></TapGestureRecognizer>
+                    </Grid.GestureRecognizers>
+                </Grid>
+                <Grid Grid.Row="1"
+                        BackgroundColor="Black"
+                        Opacity="0.5"/>
+                <Border Grid.Row="1"
+                        SafeAreaEdges="None"
+                        x:Name="Border"
+                        StrokeShape="RoundRectangle 24, 24, 0, 0"
+                        Background="Black"
+                        IsVisible="False">
+                    <Grid RowDefinitions="48, Auto">
+                        <Button Grid.Row="0"
+                                HeightRequest="48"
+                                Text="Close"
+                                Clicked="OnCloseClicked"/>
+                        <ContentPresenter Grid.Row="1"/>
+                    </Grid>
+                </Border>
+            </Grid>
+        </ControlTemplate>
+    </ContentView.ControlTemplate>
+</ContentView>
