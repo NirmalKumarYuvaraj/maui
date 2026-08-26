@@ -7,6 +7,7 @@ using Android.Content.Res;
 using Android.Graphics.Drawables;
 using AndroidX.Core.View;
 using Google.Android.Material.AppBar;
+using Google.Android.Material.Shape;
 using Microsoft.Maui;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Platform;
@@ -219,15 +220,39 @@ namespace Microsoft.Maui.Controls.Platform
 
 			if (background is SolidColorBrush { Color: not null } solidColorBrush)
 			{
-				appBarLayout.Background = originalBackground.CreateDrawable() ?? new ColorDrawable(AGraphics.Color.Transparent);
-				ViewCompat.SetBackgroundTintMode(appBarLayout, AGraphics.PorterDuff.Mode.Src);
-				ViewCompat.SetBackgroundTintList(appBarLayout, ColorStateList.ValueOf(solidColorBrush.Color.ToPlatform()));
+				if (RuntimeFeature.IsMaterial3Enabled && appBarLayout.Background is MaterialShapeDrawable materialShapeDrawable)
+				{
+					var platformColor = solidColorBrush.Color.ToPlatform();
+					materialShapeDrawable.FillColor = ColorStateList.ValueOf(platformColor);
+					appBarLayout.SetLiftOnScrollColor(ColorStateList.ValueOf(LightenColor(solidColorBrush.Color, 0.3f).ToPlatform()));
+				}
+				else
+				{
+					appBarLayout.Background = originalBackground.CreateDrawable() ?? new ColorDrawable(AGraphics.Color.Transparent);
+					ViewCompat.SetBackgroundTintMode(appBarLayout, AGraphics.PorterDuff.Mode.Src);
+					ViewCompat.SetBackgroundTintList(appBarLayout, ColorStateList.ValueOf(solidColorBrush.Color.ToPlatform()));
+				}
+
 				return;
 			}
 
-			ViewCompat.SetBackgroundTintMode(appBarLayout, null);
-			ViewCompat.SetBackgroundTintList(appBarLayout, null);
-			appBarLayout.UpdateBackground(background);
+			if (!RuntimeFeature.IsMaterial3Enabled)
+			{
+				ViewCompat.SetBackgroundTintMode(appBarLayout, null);
+				ViewCompat.SetBackgroundTintList(appBarLayout, null);
+				appBarLayout.UpdateBackground(background);
+			}
+		}
+
+		static Color LightenColor(Color color, float factor)
+		{
+			factor = Math.Clamp(factor, 0f, 1f);
+
+			return new Color(
+				color.Red + ((1 - color.Red) * factor),
+				color.Green + ((1 - color.Green) * factor),
+				color.Blue + ((1 - color.Blue) * factor),
+				color.Alpha);
 		}
 
 		static Color? GetChromeColor(Brush? background, ChromeEdge edge)
