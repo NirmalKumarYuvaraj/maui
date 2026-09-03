@@ -11,6 +11,7 @@ public static class MauiProgram
 			.UseMauiApp<App>()
 			.ConfigureFonts(fonts =>
 			{
+				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
 				fonts.AddFont("Dokdo-Regular.ttf", "Dokdo");
 				fonts.AddFont("LobsterTwo-Regular.ttf", "Lobster Two");
 				fonts.AddFont("LobsterTwo-Bold.ttf", "Lobster Two Bold");
