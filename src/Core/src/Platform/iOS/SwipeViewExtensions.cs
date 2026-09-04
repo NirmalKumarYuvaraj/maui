@@ -17,13 +17,21 @@ namespace Microsoft.Maui.Platform
 
 			if (swipeDirection.IsHorizontalSwipe())
 			{
-				if (swipeItem is ISwipeItemMenuItem)
+				if (swipeItem is ISwipeItemMenuItem menuItem)
 				{
-					return new Size(
-						items.Mode == SwipeMode.Execute
-							? contentWidth / items.Count
-							: SwipeItemWidth,
+					if (items.Mode == SwipeMode.Execute && menuItem.Handler?.PlatformView is UIView platformView)
+					{
+						var desiredSize = platformView.SizeThatFits(contentView.Bounds.Size);
+						var executeSize = new Size(
+							desiredSize.Width > 0 ? desiredSize.Width : SwipeItemWidth,
+							contentHeight);
+						return executeSize;
+					}
+
+					var result = new Size(
+						SwipeItemWidth,
 						contentHeight);
+					return result;
 				}
 
 				if (swipeItem is ISwipeItemView horizontalSwipeItemView)
@@ -33,8 +41,12 @@ namespace Microsoft.Maui.Platform
 					double swipeItemWidth = swipeItemViewSizeRequest.Width > 0
 						? swipeItemViewSizeRequest.Width
 						: SwipeItemWidth;
-
-					return new Size(swipeItemWidth, contentHeight);
+					double swipeItemHeight = items.Mode == SwipeMode.Execute && swipeItemViewSizeRequest.Height > 0
+						? swipeItemViewSizeRequest.Height
+						: contentHeight;
+					var result = new Size(swipeItemWidth, swipeItemHeight);
+					var result = new Size(swipeItemWidth, swipeItemHeight);
+					return result;
 				}
 			}
 			else
@@ -42,18 +54,23 @@ namespace Microsoft.Maui.Platform
 				if (swipeItem is ISwipeItemMenuItem)
 				{
 					var swipeItemHeight = GetSwipeItemHeight(swipeView, swipeDirection, contentView);
-					return new Size(contentWidth / items.Count, swipeItemHeight);
+					var result = new Size(contentWidth / items.Count, swipeItemHeight);
+					return result;
 				}
 
 				if (swipeItem is ISwipeItemView verticalSwipeItemView)
 				{
 					var swipeItemViewSizeRequest = verticalSwipeItemView.Measure(double.PositiveInfinity, double.PositiveInfinity);
 
+					double swipeItemWidth = items.Mode == SwipeMode.Execute && swipeItemViewSizeRequest.Width > 0
+						? swipeItemViewSizeRequest.Width
+						: contentWidth / items.Count;
 					double swipeItemHeight = swipeItemViewSizeRequest.Height > 0
 						? swipeItemViewSizeRequest.Height
 						: contentHeight;
 
-					return new Size(contentWidth / items.Count, swipeItemHeight);
+					var result = new Size(swipeItemWidth, swipeItemHeight);
+					return result;
 				}
 			}
 

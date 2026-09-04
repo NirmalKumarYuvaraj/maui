@@ -82,9 +82,7 @@ namespace Microsoft.Maui.Platform
 				_contentView.Frame = Bounds;
 
 			if (_isOpen)
-			{
 				Swipe(animated: false);
-			}
 		}
 
 		public override void TouchesEnded(NSSet touches, UIEvent? evt)
@@ -352,6 +350,23 @@ namespace Microsoft.Maui.Platform
 				if (!child.Hidden)
 				{
 					var item = items[i];
+					var button = child as UIButton;
+
+					if (button != null)
+					{
+						if (items.Mode == SwipeMode.Execute && IsHorizontalSwipe())
+						{
+							// Give the image mapper a stable frame before measuring. The mapper
+							// sizes icons from the current button frame, so measuring from an
+							// empty or previously measured frame produces a different width on
+							// the first open than on subsequent opens.
+							button.Frame = new CGRect(0, 0, SwipeViewExtensions.SwipeItemWidth, _contentView.Frame.Height);
+						}
+
+						UpdateSwipeItemInsets(button);
+						UpdateSwipeItemContentAlignment(button);
+					}
+
 					var swipeItemSize = Element.GetSwipeItemSize(item, _contentView, _swipeDirection);
 
 					float swipeItemHeight = (float)swipeItemSize.Height;
@@ -373,17 +388,27 @@ namespace Microsoft.Maui.Platform
 							break;
 					}
 
-					if (child is UIButton button)
-					{
-						UpdateSwipeItemInsets(button);
-					}
-
 					previousWidth += swipeItemWidth;
 				}
 
 				i++;
 				_swipeItemsRect.Add(child.Frame);
 			}
+
+			if (items.Mode == SwipeMode.Execute && IsHorizontalSwipe())
+			{
+				_actionView.Frame = new CGRect(
+					_actionView.Frame.X,
+					_actionView.Frame.Y,
+					previousWidth,
+					_actionView.Frame.Height);
+			}
+		}
+
+		static void UpdateSwipeItemContentAlignment(UIButton button)
+		{
+			button.HorizontalAlignment = UIControlContentHorizontalAlignment.Center;
+			button.VerticalAlignment = UIControlContentVerticalAlignment.Center;
 		}
 
 		List<UIView> GetNativeSwipeItems()
@@ -610,6 +635,7 @@ namespace Microsoft.Maui.Platform
 							_contentView.Frame = new CGRect(_originalBounds.X, _originalBounds.Y + offset, _originalBounds.Width, _originalBounds.Height);
 							break;
 					}
+
 				}
 
 				if (animated)
@@ -652,6 +678,7 @@ namespace Microsoft.Maui.Platform
 							_actionView.Frame = new CGRect(actionBounds.X, -actionSize + Math.Abs(offset), actionBounds.Width, actionBounds.Height);
 							break;
 					}
+
 				}, () => { });
 			}
 		}
@@ -816,7 +843,7 @@ namespace Microsoft.Maui.Platform
 					() =>
 					{
 						_swipeOffset = Math.Abs(GetSwipeOpenDistance());
-						
+
 						// If the user swiped left or up, we need a negative offset to move content in the correct direction on the screen.
 						if (_swipeDirection == SwipeDirection.Left || _swipeDirection == SwipeDirection.Up)
 							_swipeOffset = -_swipeOffset;
@@ -945,13 +972,8 @@ namespace Microsoft.Maui.Platform
 
 			float swipeItemsHeight = 0;
 			float swipeItemsWidth = 0;
-			bool useSwipeItemsSize = false;
-
 			foreach (var swipeItem in swipeItems)
 			{
-				if (swipeItem is ISwipeItemView)
-					useSwipeItemsSize = true;
-
 				if (GetIsVisible(swipeItem))
 				{
 					var swipeItemSize = Element.GetSwipeItemSize(swipeItem, _contentView, _swipeDirection);
@@ -960,22 +982,10 @@ namespace Microsoft.Maui.Platform
 				}
 			}
 
-			if (useSwipeItemsSize)
-			{
-				var isHorizontalSwipe = IsHorizontalSwipe();
-
-				return isHorizontalSwipe ? swipeItemsWidth : swipeItemsHeight;
-			}
-			else
-			{
-				if (_contentView != null)
-				{
-					var contentWidth = _contentView.Frame.Width;
-					var contentWidthSwipeThreshold = contentWidth * 0.8f;
-
-					return contentWidthSwipeThreshold;
-				}
-			}
+			var isHorizontalSwipe = IsHorizontalSwipe();
+			var result = isHorizontalSwipe ? swipeItemsWidth : swipeItemsHeight;
+			if (result > 0)
+				return result;
 
 			return SwipeViewExtensions.SwipeThreshold;
 		}

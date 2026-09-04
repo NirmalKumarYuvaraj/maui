@@ -2,4 +2,27 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Maui.Controls.Sample.MainPage"
              xmlns:local="clr-namespace:Maui.Controls.Sample">
+
+    <Grid RowDefinitions="Auto,*">
+        <HorizontalStackLayout Grid.Row="0"
+                               Spacing="10">
+            <Label
+                Text="Swipe the below label to see the action."/>
+        </HorizontalStackLayout>
+
+        <SwipeView Grid.Row="1"
+                   Threshold="80">
+            <SwipeView.LeftItems>
+                <SwipeItems Mode="Execute"
+                            SwipeBehaviorOnInvoked="RemainOpen">
+                    <SwipeItem Text="Back"
+                               BackgroundColor="Yellow"
+                               IconImageSource="ic_fluent_arrow_circle_left_24_filled.png"/>
+                </SwipeItems>
+            </SwipeView.LeftItems>
+            <Label Padding="10"
+                   Background="AliceBlue"
+                   Text="Swipe me"/>
+        </SwipeView>
+    </Grid>
 </ContentPage>
