@@ -39,6 +39,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 		bool _needsArrange;
 		Size _measuredSize;
 		Size _cachedConstraints;
+		int _measureFirstItemGeneration = -1;
 
 		// Indicates the cell is being used as a supplementary view (group header/footer)
 		internal bool isSupplementaryView = false;
@@ -109,42 +110,30 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 				if (_measureInvalidated || _cachedConstraints != constraints)
 				{
-					// Only use the cached first-item measurement for actual item cells (not headers/footers)
-					if (!isSupplementaryView)
+					var collectionViewHandler = isSupplementaryView ? null : CollectionViewHandler;
+
+					if (collectionViewHandler is not null &&
+						collectionViewHandler.TryGetMeasureFirstItemSize(
+							constraints, out var itemSize, out var generation))
 					{
-						var cachedSize = GetCachedFirstItemSizeFromHandler();
-						if (cachedSize != CGSize.Empty)
+						if (_measureFirstItemGeneration != generation)
 						{
-							_measuredSize = cachedSize.ToSize();
-							// For MeasureFirstItem, non-first cells reuse the cached first-item size.
-							// Mirroring CV1 (Items/TemplatedCell.cs): when ConstrainedSize is set, CV1
-							// calls NO virtualView.Measure() from PreferredLayoutAttributesFittingAttributes.
-							// We do the same — only call Measure when the layout constraints actually change
-							// (fresh cell: _cachedConstraints==default, or rotation/resize: new width/height).
-							// Checking the full Size (both width and height) handles both orientations:
-							//   - Vertical list:   constraints=(w, ∞) — width change drives the check.
-							//   - Horizontal list: constraints=(∞, h) — height change drives the check.
-							// Recycled cells at the same constraints skip Measure entirely, eliminating
-							// the per-scroll MeasureOverride invocation that PR #29496 introduced.
-							// The Measure return value is intentionally discarded; _measuredSize comes
-							// from the cache, not from this call.
-							if (_cachedConstraints != constraints)
-							{
-								virtualView.Measure(constraints.Width, constraints.Height);
-							}
+							virtualView.Measure(constraints.Width, constraints.Height);
 						}
-						else
-						{
-							_measuredSize = virtualView.Measure(constraints.Width, constraints.Height);
-							// If this is the first item being measured, cache it for MeasureFirstItem strategy
-							SetCachedFirstItemSizeToHandler(_measuredSize.ToCGSize());
-						}
+
+						_measuredSize = itemSize;
+						_measureFirstItemGeneration = generation;
 					}
 					else
 					{
-						// For headers/footers, always measure directly without using or updating the first-item cache
 						_measuredSize = virtualView.Measure(constraints.Width, constraints.Height);
+						if (collectionViewHandler is not null)
+						{
+							_measureFirstItemGeneration =
+								collectionViewHandler.SetMeasureFirstItemSize(constraints, _measuredSize);
+						}
 					}
+
 					_cachedConstraints = constraints;
 					_needsArrange = true;
 				}
@@ -171,22 +160,6 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 				? new Size(preferredAttributes.Size.Width, double.PositiveInfinity)
 				: new Size(double.PositiveInfinity, preferredAttributes.Size.Height);
 			return constraints;
-		}
-
-		/// <summary>
-		/// Gets the cached first item size from the handler for MeasureFirstItem optimization.
-		/// </summary>
-		private CGSize GetCachedFirstItemSizeFromHandler()
-		{
-			return CollectionViewHandler?.GetCachedFirstItemSize() ?? CGSize.Empty;
-		}
-
-		/// <summary>
-		/// Sets the cached first item size to the handler for MeasureFirstItem optimization.
-		/// </summary>
-		private void SetCachedFirstItemSizeToHandler(CGSize size)
-		{
-			CollectionViewHandler?.SetCachedFirstItemSize(size);
 		}
 
 		public override void LayoutSubviews()

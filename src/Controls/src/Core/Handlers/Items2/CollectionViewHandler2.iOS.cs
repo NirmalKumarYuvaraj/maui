@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using Foundation;
 using Microsoft.Maui.Handlers;
+using Microsoft.Maui.Graphics;
 using ObjCRuntime;
 using UIKit;
 
@@ -34,8 +35,9 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 	public partial class CollectionViewHandler2
 	{
-		// Cache for MeasureFirstItem optimization
-		CoreGraphics.CGSize _firstItemMeasuredSize = CoreGraphics.CGSize.Empty;
+		Size? _measureFirstItemSize;
+		Size _measureFirstItemConstraints;
+		int _measureFirstItemGeneration;
 
 		public CollectionViewHandler2() : base(Mapper)
 		{
@@ -47,28 +49,45 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 		}
 
-		/// <summary>
-		/// Gets the cached first item measured size for MeasureFirstItem optimization.
-		/// Returns CGSize.Empty if not cached or not using MeasureFirstItem strategy.
-		/// </summary>
-		internal CoreGraphics.CGSize GetCachedFirstItemSize()
+		internal bool TryGetMeasureFirstItemSize(Size constraints, out Size size, out int generation)
 		{
-			if (VirtualView is CollectionView cv && cv.ItemSizingStrategy == ItemSizingStrategy.MeasureFirstItem)
+			if (VirtualView is CollectionView { ItemSizingStrategy: ItemSizingStrategy.MeasureFirstItem } &&
+				_measureFirstItemSize is Size cachedSize &&
+				_measureFirstItemConstraints == constraints)
 			{
-				return _firstItemMeasuredSize;
+				size = cachedSize;
+				generation = _measureFirstItemGeneration;
+				return true;
 			}
-			return CoreGraphics.CGSize.Empty;
+
+			if (_measureFirstItemSize is not null &&
+				_measureFirstItemConstraints != constraints)
+			{
+				ClearMeasureFirstItemSize();
+			}
+
+			size = default;
+			generation = _measureFirstItemGeneration;
+			return false;
 		}
 
-		/// <summary>
-		/// Sets the cached first item measured size for MeasureFirstItem optimization.
-		/// </summary>
-		internal void SetCachedFirstItemSize(CoreGraphics.CGSize size)
+		internal int SetMeasureFirstItemSize(Size constraints, Size size)
 		{
-			if (VirtualView is CollectionView cv && cv.ItemSizingStrategy == ItemSizingStrategy.MeasureFirstItem)
+			if (VirtualView is CollectionView { ItemSizingStrategy: ItemSizingStrategy.MeasureFirstItem } &&
+				_measureFirstItemSize is null)
 			{
-				_firstItemMeasuredSize = size;
+				_measureFirstItemConstraints = constraints;
+				_measureFirstItemSize = size;
 			}
+
+			return _measureFirstItemGeneration;
+		}
+
+		internal void ClearMeasureFirstItemSize()
+		{
+			_measureFirstItemConstraints = default;
+			_measureFirstItemSize = null;
+			_measureFirstItemGeneration++;
 		}
 
 		public static PropertyMapper<CollectionView, CollectionViewHandler2> Mapper = new(ItemsViewMapper)
@@ -224,6 +243,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 		public static void MapItemSizingStrategy(CollectionViewHandler2 handler, StructuredItemsView itemsView)
 		{
+			handler.ClearMeasureFirstItemSize();
 			handler.UpdateLayout();
 		}
 

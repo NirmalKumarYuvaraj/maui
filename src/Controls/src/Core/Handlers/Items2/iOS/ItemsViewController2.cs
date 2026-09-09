@@ -273,12 +273,6 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 		internal void ReloadData()
 		{
-			// Reset cached first item size when reloading data
-			if (ItemsView.Handler is CollectionViewHandler2 handler)
-			{
-				handler.SetCachedFirstItemSize(CoreGraphics.CGSize.Empty);
-			}
-
 			CollectionView.ReloadData();
 		}
 
@@ -286,6 +280,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 		{
 			ItemsSource?.Dispose();
 			ItemsSource = new Items.EmptySource();
+			ClearMeasureFirstItemSize();
 			ReloadData();
 		}
 
@@ -321,6 +316,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 			ItemsSource?.Dispose();
 			ItemsSource = CreateItemsViewSource();
 
+			ClearMeasureFirstItemSize();
 			ReloadData();
 			CollectionView.CollectionViewLayout.InvalidateLayout();
 
@@ -334,6 +330,14 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 			}
 
 			(ItemsView as IView)?.InvalidateMeasure();
+		}
+
+		void ClearMeasureFirstItemSize()
+		{
+			if (ItemsView.Handler is CollectionViewHandler2 handler)
+			{
+				handler.ClearMeasureFirstItemSize();
+			}
 		}
 
 		public virtual void UpdateFlowDirection()

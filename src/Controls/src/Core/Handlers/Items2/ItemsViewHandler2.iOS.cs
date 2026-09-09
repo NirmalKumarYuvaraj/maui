@@ -93,6 +93,11 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 		public static void MapItemTemplate(ItemsViewHandler2<TItemsView> handler, ItemsView itemsView)
 		{
+			if (handler is CollectionViewHandler2 collectionViewHandler)
+			{
+				collectionViewHandler.ClearMeasureFirstItemSize();
+			}
+
 			handler.UpdateLayout();
 		}
 
