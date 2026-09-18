@@ -346,9 +346,10 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 
 			_disposed = true;
 
-			Element.PropertyChanged -= OnElementPropertyChanged;
-			Element.SizeChanged -= OnElementSizeChanged;
-			((IShellController)Element).RemoveAppearanceObserver(this);
+			var element = Element;
+			element.PropertyChanged -= OnElementPropertyChanged;
+			element.SizeChanged -= OnElementSizeChanged;
+			((IShellController)element).RemoveAppearanceObserver(this);
 
 			if (_flyoutView is ShellFlyoutRenderer sfr)
 				sfr.Disconnect();
@@ -362,9 +363,11 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 
 			_currentView = null;
 
-			Element = null;
+			if (ReferenceEquals(element.Handler, this))
+				element.Handler = null;
 
-			_disposed = true;
+			Element = null;
+			_mauiContext = null;
 		}
 	}
 }
