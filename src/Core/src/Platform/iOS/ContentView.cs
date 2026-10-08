@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using CoreAnimation;
 using CoreGraphics;
 using Microsoft.Maui.Graphics;
@@ -12,8 +12,8 @@ namespace Microsoft.Maui.Platform
 		WeakReference<IBorderStroke>? _clip;
 		CAShapeLayer? _contentMask;
 
-		// When the BorderHandler sets the content UIView, it tags it with this so we can 
-		// verify we're using the correct subview for masking (and any other purposes)
+		// The BorderHandler tags its stable content container with this so the border mask
+		// remains independent of transforms applied to the child view.
 		internal const nint ContentTag = 0x63D2A0;
 
 		public ContentView()
@@ -73,18 +73,19 @@ namespace Microsoft.Maui.Platform
 		void UpdateClip()
 		{
 			var content = PlatformContent;
+			var clip = Clip;
+			var bounds = Bounds;
 
-			if (Clip is null || Bounds == CGRect.Empty || content == null || content.Frame == CGRect.Empty)
+			if (clip is null || bounds == CGRect.Empty || content is null || content.Frame == CGRect.Empty)
 			{
 				RemoveContentMask();
 				return;
 			}
 
+			var contentFrame = content.Frame;
 			_contentMask ??= new StaticCAShapeLayer();
 
-			var bounds = Bounds;
-
-			var strokeThickness = (float)Clip.StrokeThickness;
+			var strokeThickness = (float)clip.StrokeThickness;
 
 			// We need to inset the content clipping by the width of the stroke on both sides
 			// (top and bottom, left and right), so we remove it twice from the total width/height 
@@ -95,10 +96,9 @@ namespace Microsoft.Maui.Platform
 			var clipBounds = new RectF(0, 0, clipWidth, clipHeight);
 			_contentMask.Path = GetClipPath(clipBounds, strokeThickness);
 
-			// Since the mask is on the content's CALayer, it's anchored to the content. But we need it to be
-			// relative to _this_ container. So we need to compute an adjusted position for it.
+			// Since the mask is on the content container's CALayer, it's anchored to the container.
+			// Compute its position relative to this border.
 
-			var contentFrame = content.Frame;
 			var contentOffsetX = contentFrame.X;
 			var contentOffsetY = contentFrame.Y;
 
