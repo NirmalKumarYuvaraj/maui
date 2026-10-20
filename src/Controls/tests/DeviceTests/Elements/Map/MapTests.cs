@@ -24,6 +24,35 @@ namespace Microsoft.Maui.DeviceTests
 			}
 		};
 
+		[Fact]
+		public async Task AppendingElementsPreservesExistingNativeOverlays()
+		{
+			var map = new Map();
+			var first = CreatePolygon();
+			map.MapElements.Add(first);
+			var handler = await CreateHandlerAsync<Microsoft.Maui.Maps.Handlers.MapHandler>(map);
+
+			await InvokeOnMainThreadAsync(() =>
+			{
+				var firstOverlay = first.MapElementId;
+				Assert.NotNull(firstOverlay);
+
+				for (int i = 0; i < 100; i++)
+				{
+					map.MapElements.Add(CreatePolygon());
+					Assert.Same(firstOverlay, first.MapElementId);
+				}
+
+				Assert.Equal(101, handler.PlatformView.Overlays.Length);
+				Assert.All(map.MapElements, element => Assert.NotNull(element.MapElementId));
+
+				map.MapElements.Clear();
+
+				Assert.Null(first.MapElementId);
+				Assert.Empty(handler.PlatformView.Overlays);
+			});
+		}
+
 		// Regression test for https://github.com/dotnet/maui/issues/30097
 		[Fact]
 		public async Task ClearMapElementsResetsMapElementId()

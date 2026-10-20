@@ -10,6 +10,7 @@ using PlatformView = Tizen.NUI.BaseComponents.View;
 using PlatformView = System.Object;
 #endif
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -44,6 +45,11 @@ namespace Microsoft.Maui.Maps.Handlers
 		/// </summary>
 		public static CommandMapper<IMap, IMapHandler> CommandMapper = new(ViewCommandMapper)
 		{
+			[nameof(IMap.Elements)] = (handler, map, args) =>
+			{
+				if (handler is MapHandler mapHandler && args is IList elements)
+					mapHandler.AppendMapElements(elements);
+			},
 			[nameof(IMap.MoveToRegion)] = MapMoveToRegion,
 			[nameof(IMap.ShowInfoWindow)] = MapShowInfoWindow,
 			[nameof(IMap.HideInfoWindow)] = MapHideInfoWindow,
@@ -71,6 +77,8 @@ namespace Microsoft.Maui.Maps.Handlers
 		IMap IMapHandler.VirtualView => VirtualView;
 
 		PlatformView IMapHandler.PlatformView => PlatformView;
+
+		partial void AppendMapElements(IList elements);
 
 		/// <summary>
 		/// Maps the <see cref="IMapHandler.UpdateMapElement"/> command to the platform-specific implementation.

@@ -99,6 +99,8 @@ namespace Microsoft.Maui.Maps.Handlers
 			handler.PlatformView.AddElements((IList)map.Elements);
 		}
 
+		partial void AppendMapElements(IList elements) => PlatformView.AddElements(elements);
+
 		public static void MapMoveToRegion(IMapHandler handler, IMap map, object? arg)
 		{
 			if (arg is MoveToRegionRequest request && request.Region != null)

@@ -40,7 +40,6 @@ namespace Microsoft.Maui.Maps.Handlers
 		MapSpan? _lastMoveToRegion;
 		List<Marker>? _markers;
 		IList? _pins;
-		IList? _elements;
 		List<APolyline>? _polylines;
 		List<APolygon>? _polygons;
 		List<ACircle>? _circles;
@@ -134,7 +133,6 @@ namespace Microsoft.Maui.Maps.Handlers
 
 			_markers = null;
 			_pins = null;
-			_elements = null;
 			_polylines = null;
 			_polygons = null;
 			_circles = null;
@@ -597,8 +595,8 @@ namespace Microsoft.Maui.Maps.Handlers
 				MoveToRegion(_lastMoveToRegion, false);
 				if (_pins != null)
 					AddPins(_pins);
-				if (_elements != null)
-					AddMapElements(_elements);
+				ClearMapElements();
+				AddMapElements((IList)virtualView.Elements);
 				_init = false;
 			}
 
@@ -1268,10 +1266,10 @@ namespace Microsoft.Maui.Maps.Handlers
 			}
 		}
 
+		partial void AppendMapElements(IList elements) => AddMapElements(elements);
+
 		void AddMapElements(IList mapElements)
 		{
-			_elements = mapElements;
-
 			if (Map == null || MauiContext == null)
 				return;
 
@@ -1293,7 +1291,6 @@ namespace Microsoft.Maui.Maps.Handlers
 					AddCircle(circle);
 				}
 			}
-			_elements = null;
 		}
 
 		void AddPolyline(IGeoPathMapElement polyline)

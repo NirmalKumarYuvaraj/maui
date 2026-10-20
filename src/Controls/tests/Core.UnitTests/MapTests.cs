@@ -1316,6 +1316,64 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 		}
 
 		[Fact]
+		public void AppendingMapElementsDoesNotResynchronizeExistingElements()
+		{
+			var map = new Map();
+			var handler = new UpdateValueTrackingHandlerStub();
+			map.Handler = handler;
+			handler.UpdatedProperties.Clear();
+			handler.InvokedCommands.Clear();
+
+			for (int i = 0; i < 1000; i++)
+			{
+				var circle = new Circle();
+				map.MapElements.Add(circle);
+
+				var command = handler.InvokedCommands[i];
+				Assert.Equal(nameof(IMap.Elements), command.Command);
+				Assert.Same(circle, Assert.Single(Assert.IsAssignableFrom<IList>(command.Args).Cast<object>()));
+			}
+
+			Assert.Equal(1000, handler.InvokedCommands.Count);
+			Assert.DoesNotContain(nameof(IMap.Elements), handler.UpdatedProperties);
+		}
+
+		[Theory]
+		[InlineData("Insert")]
+		[InlineData("Remove")]
+		[InlineData("Replace")]
+		[InlineData("Clear")]
+		public void OtherMapElementCollectionChangesResynchronizeElements(string action)
+		{
+			var map = new Map();
+			map.MapElements.Add(new Circle());
+			map.MapElements.Add(new Circle());
+			var handler = new UpdateValueTrackingHandlerStub();
+			map.Handler = handler;
+			handler.UpdatedProperties.Clear();
+			handler.InvokedCommands.Clear();
+
+			switch (action)
+			{
+				case "Insert":
+					map.MapElements.Insert(0, new Circle());
+					break;
+				case "Remove":
+					map.MapElements.RemoveAt(0);
+					break;
+				case "Replace":
+					map.MapElements[0] = new Circle();
+					break;
+				case "Clear":
+					map.MapElements.Clear();
+					break;
+			}
+
+			Assert.Single(handler.UpdatedProperties, nameof(IMap.Elements));
+			Assert.Empty(handler.InvokedCommands);
+		}
+
+		[Fact]
 		public void SettingItemsSourceUpdatesPinsOnce()
 		{
 			// The pins mapper rebuilds every native marker, so one update per created pin was quadratic.
@@ -1737,11 +1795,12 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 	class UpdateValueTrackingHandlerStub : IViewHandler
 	{
 		public List<string> UpdatedProperties { get; } = new();
+		public List<(string Command, object? Args)> InvokedCommands { get; } = new();
 
 		public void SetMauiContext(IMauiContext mauiContext) { }
 		public void SetVirtualView(IElement view) { }
 		public void UpdateValue(string property) => UpdatedProperties.Add(property);
-		public void Invoke(string command, object? args = null) { }
+		public void Invoke(string command, object? args = null) => InvokedCommands.Add((command, args));
 		public void DisconnectHandler() { }
 		public object? PlatformView => null;
 		public IElement? VirtualView { get; set; }

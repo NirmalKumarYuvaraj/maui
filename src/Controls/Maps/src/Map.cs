@@ -497,7 +497,17 @@ namespace Microsoft.Maui.Controls.Maps
 
 		void MapElementsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
 		{
-			Handler?.UpdateValue(nameof(IMap.Elements));
+			// Append only the new overlays; other changes rebuild to preserve native drawing order.
+			if (e.Action == NotifyCollectionChangedAction.Add &&
+				e.NewItems is not null &&
+				e.NewStartingIndex == _mapElements.Count - e.NewItems.Count)
+			{
+				Handler?.Invoke(nameof(IMap.Elements), e.NewItems);
+			}
+			else
+			{
+				Handler?.UpdateValue(nameof(IMap.Elements));
+			}
 			if (e.NewItems is not null)
 			{
 				foreach (MapElement item in e.NewItems)

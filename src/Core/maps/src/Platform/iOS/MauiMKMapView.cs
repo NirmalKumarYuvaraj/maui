@@ -23,6 +23,7 @@ namespace Microsoft.Maui.Maps.Platform
 
 		UILongPressGestureRecognizer? _mapLongClickedGestureRecognizer;
 		HashSet<IMapElement>? _trackedMapElements;
+		readonly Dictionary<IntPtr, IMapElement> _mapElementsByOverlay = new();
 		const int MaxIconCacheSize = 64;
 		readonly IconCache<UIImage> _iconCache = new(MaxIconCacheSize, image => image.Dispose());
 		WeakReference<IMap>? _clusterImageOwner;
@@ -554,6 +555,8 @@ namespace Microsoft.Maui.Maps.Platform
 
 		internal void ClearMapElements()
 		{
+			_mapElementsByOverlay.Clear();
+
 			// Clear MapElementId from tracked elements (not Handler.VirtualView.Elements,
 			// which returns an empty snapshot after ObservableCollection.Clear())
 			if (_trackedMapElements != null)
@@ -618,6 +621,7 @@ namespace Microsoft.Maui.Maps.Platform
 				if (overlay != null)
 				{
 					element.MapElementId = overlay;
+					_mapElementsByOverlay[overlay.Handle] = element;
 					AddOverlay(overlay);
 				}
 			}
@@ -628,7 +632,10 @@ namespace Microsoft.Maui.Maps.Platform
 			foreach (IMapElement element in elements)
 			{
 				if (element.MapElementId is IMKOverlay overlay)
+				{
+					_mapElementsByOverlay.Remove(overlay.Handle);
 					RemoveOverlay(overlay);
+				}
 
 				_trackedMapElements?.Remove(element);
 				element.MapElementId = null;
@@ -819,17 +826,7 @@ namespace Microsoft.Maui.Maps.Platform
 		T? GetMapElement<T>(IMKOverlay mkPolyline) where T : MKOverlayRenderer
 		{
 			_handlerRef.TryGetTarget(out IMapHandler? handler);
-			var map = handler?.VirtualView;
-			IMapElement mapElement = default!;
-			for (int i = 0; i < map?.Elements.Count; i++)
-			{
-				var element = map.Elements[i];
-				if (ReferenceEquals(element.MapElementId, mkPolyline))
-				{
-					mapElement = element;
-					break;
-				}
-			}
+			_mapElementsByOverlay.TryGetValue(mkPolyline.Handle, out var mapElement);
 			//Make sure we Disconnect old handler we don't want to reuse that one
 			mapElement?.Handler?.DisconnectHandler();
 			return mapElement?.ToHandler(handler?.MauiContext!).PlatformView as T;
