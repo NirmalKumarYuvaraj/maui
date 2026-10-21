@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using Android.Views;
 using Android.Widget;
 using Microsoft.Maui.Handlers;
@@ -10,6 +11,82 @@ namespace Microsoft.Maui.DeviceTests
 {
 	public partial class ViewHandlerTests
 	{
+		[Theory]
+		[InlineData(MotionEventActions.Up)]
+		[InlineData(MotionEventActions.Cancel)]
+		public async Task ContainerTouchPreservesAncestorRecipientAndCoordinates(MotionEventActions finalAction)
+		{
+			await InvokeOnMainThreadAsync(() =>
+			{
+				using var root = new FrameLayout(MauiContext.Context);
+				using var parent = new FrameLayout(MauiContext.Context);
+				using var child = new LayoutViewGroup(MauiContext.Context);
+				root.AddView(parent);
+				parent.AddView(child);
+				parent.Layout(0, 0, 200, 200);
+				child.Layout(20, 30, 120, 130);
+				child.PivotX = 0;
+				child.PivotY = 0;
+				child.ScaleX = 2;
+				child.ScaleY = 3;
+				parent.ScrollTo(3, 4);
+
+				var actions = new List<MotionEventActions>();
+				var rootEventCount = 0;
+				ContainerTouchHandler.SetGestureHandler(root, e =>
+				{
+					rootEventCount++;
+					return true;
+				});
+				ContainerTouchHandler.SetGestureHandler(parent, e =>
+				{
+					actions.Add(e.ActionMasked);
+					Assert.Equal(37f, e.GetX(), 1);
+					Assert.Equal(56f, e.GetY(), 1);
+					return e.ActionMasked == MotionEventActions.Down;
+				});
+
+				try
+				{
+					var time = global::Android.OS.SystemClock.UptimeMillis();
+					foreach (var action in new[] { MotionEventActions.Down, MotionEventActions.Move, finalAction })
+					{
+						using var e = MotionEvent.Obtain(time, time, action, 10, 10, 0);
+						try
+						{
+							Assert.True(child.OnTouchEvent(e));
+							Assert.Equal(10f, e.GetX());
+							Assert.Equal(10f, e.GetY());
+						}
+						finally
+						{
+							e.Recycle();
+						}
+					}
+
+					Assert.Equal(new[] { MotionEventActions.Down, MotionEventActions.Move, finalAction }, actions);
+					Assert.Equal(0, rootEventCount);
+
+					actions.Clear();
+					using var afterGesture = MotionEvent.Obtain(time, time, MotionEventActions.Move, 10, 10, 0);
+					try
+					{
+						Assert.True(child.OnTouchEvent(afterGesture));
+						Assert.Empty(actions);
+					}
+					finally
+					{
+						afterGesture.Recycle();
+					}
+				}
+				finally
+				{
+					ContainerTouchHandler.SetGestureHandler(parent, null);
+					ContainerTouchHandler.SetGestureHandler(root, null);
+				}
+			});
+		}
+
 		[Fact]
 		public async Task ChildIsVisibleIfWrapperIsVisible()
 		{

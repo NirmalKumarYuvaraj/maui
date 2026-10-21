@@ -221,6 +221,7 @@ namespace Microsoft.Maui.Controls.Platform
 			// Always unsubscribe first to avoid duplicates
 			ClearRecyclerViewTouchListener(platformView);
 			platformView.Touch -= OnPlatformViewTouched;
+			Microsoft.Maui.Platform.ContainerTouchHandler.SetGestureHandler(platformView, null);
 			platformView.KeyPress -= OnKeyPress;
 
 
@@ -240,6 +241,7 @@ namespace Microsoft.Maui.Controls.Platform
 				else
 				{
 					platformView.Touch += OnPlatformViewTouched;
+					Microsoft.Maui.Platform.ContainerTouchHandler.SetGestureHandler(platformView, OnTouchEvent);
 				}
 
 				// If we have a TapGestureRecognizer or LongPressGestureRecognizer, we need to handle key presses
@@ -317,6 +319,7 @@ namespace Microsoft.Maui.Controls.Platform
 				_focusableDefaultValue = null;
 				ClearRecyclerViewTouchListener(platformView);
 				platformView.Touch -= OnPlatformViewTouched;
+				Microsoft.Maui.Platform.ContainerTouchHandler.SetGestureHandler(platformView, null);
 				platformView.KeyPress -= OnKeyPress;
 			}
 

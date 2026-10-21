@@ -181,6 +181,7 @@ override Microsoft.Maui.Handlers.TimePickerHandler2.ConnectHandler(Microsoft.Mau
 override Microsoft.Maui.Handlers.TimePickerHandler2.CreatePlatformView() -> Microsoft.Maui.Platform.MauiMaterialTimePicker!
 override Microsoft.Maui.Handlers.TimePickerHandler2.DisconnectHandler(Microsoft.Maui.Platform.MauiMaterialTimePicker! platformView) -> void
 override Microsoft.Maui.Platform.ContentViewGroup.HasOverlappingRendering.get -> bool
+override Microsoft.Maui.Platform.ContentViewGroup.OnTouchEvent(Android.Views.MotionEvent? e) -> bool
 override Microsoft.Maui.Platform.LayoutViewGroup.HasOverlappingRendering.get -> bool
 override Microsoft.Maui.Platform.MaterialActivityIndicator.OnMeasure(int widthMeasureSpec, int heightMeasureSpec) -> void
 override Microsoft.Maui.Platform.MauiDrawerLayout.Dispose(bool disposing) -> void

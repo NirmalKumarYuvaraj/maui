@@ -24,6 +24,7 @@ namespace Microsoft.Maui.Platform
 
 		IBorderStroke? _clip;
 		readonly Context _context;
+		readonly ContainerTouchHandler _touchHandler = new();
 		bool _didSafeAreaEdgeConfigurationChange = true;
 		bool _isInsetListenerSet;
 
@@ -68,6 +69,7 @@ namespace Microsoft.Maui.Platform
 
 		protected override void OnDetachedFromWindow()
 		{
+			_touchHandler.Reset();
 			base.OnDetachedFromWindow();
 			if (_isInsetListenerSet)
 				MauiWindowInsetListenerExtensions.RemoveMauiWindowInsetListener(this, _context);
@@ -78,6 +80,15 @@ namespace Microsoft.Maui.Platform
 		public ICrossPlatformLayout? CrossPlatformLayout
 		{
 			get; set;
+		}
+
+		/// <inheritdoc/>
+		public override bool OnTouchEvent(MotionEvent? e)
+		{
+			if (CrossPlatformLayout is IView { InputTransparent: true })
+				return false;
+
+			return base.OnTouchEvent(e) || _touchHandler.OnTouchEvent(this, e);
 		}
 
 		Graphics.Size CrossPlatformMeasure(double widthConstraint, double heightConstraint)

@@ -25,6 +25,7 @@ namespace Microsoft.Maui.Platform
 
 		readonly ARect _clipRect = new();
 		readonly Context _context;
+		readonly ContainerTouchHandler _touchHandler = new();
 		bool _didSafeAreaEdgeConfigurationChange = true;
 		bool _isInsetListenerSet;
 
@@ -65,6 +66,7 @@ namespace Microsoft.Maui.Platform
 
 		protected override void OnDetachedFromWindow()
 		{
+			_touchHandler.Reset();
 			base.OnDetachedFromWindow();
 			if (_isInsetListenerSet)
 				MauiWindowInsetListenerExtensions.RemoveMauiWindowInsetListener(this, _context);
@@ -236,7 +238,7 @@ namespace Microsoft.Maui.Platform
 				return false;
 			}
 
-			return base.OnTouchEvent(e);
+			return base.OnTouchEvent(e) || _touchHandler.OnTouchEvent(this, e);
 		}
 
 		IVisualTreeElement? IVisualTreeElementProvidable.GetElement()
