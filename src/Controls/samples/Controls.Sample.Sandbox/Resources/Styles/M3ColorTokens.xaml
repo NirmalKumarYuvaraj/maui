@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+    <!-- Relevant tokens from the palette attached to dotnet/maui#39432. -->
+    <Color x:Key="MdPrimary">#6750A4</Color>
+    <Color x:Key="MdOnPrimary">#FFFFFF</Color>
+    <Color x:Key="MdPrimaryDark">#D0BCFF</Color>
+    <Color x:Key="MdOnPrimaryDark">#381E72</Color>
+    <Color x:Key="MdSecondary">#625B71</Color>
+    <Color x:Key="MdSecondaryDark">#CCC2DC</Color>
+    <Color x:Key="MdOnSecondaryContainer">#4A4458</Color>
+    <Color x:Key="MdOnSecondaryContainerDark">#E8DEF8</Color>
+    <Color x:Key="MdSurface">#FEF7FF</Color>
+    <Color x:Key="MdSurfaceDark">#141218</Color>
+    <Color x:Key="MdOnSurface">#1D1B20</Color>
+    <Color x:Key="MdOnSurfaceDark">#E6E0E9</Color>
+    <Color x:Key="MdOnSurfaceVariant">#49454F</Color>
+    <Color x:Key="MdOnSurfaceVariantDark">#CAC4D0</Color>
+    <Color x:Key="MdSurfaceContainer">#F3EDF7</Color>
+    <Color x:Key="MdSurfaceContainerDark">#211F26</Color>
+    <Color x:Key="MdSurfaceContainerLowest">#FFFFFF</Color>
+    <Color x:Key="MdSurfaceContainerLowestDark">#0F0D13</Color>
+    <Color x:Key="MdOutline">#79747E</Color>
+    <Color x:Key="MdOutlineDark">#938F99</Color>
+</ResourceDictionary>

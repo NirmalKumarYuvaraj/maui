@@ -4,8 +4,10 @@ using Android.Text;
 using Android.Views;
 using Android.Views.InputMethods;
 using Google.Android.Material.TextField;
+using Microsoft.Maui.ApplicationModel;
 using static Android.Views.View;
 using static Android.Widget.TextView;
+using AColor = Android.Graphics.Color;
 
 namespace Microsoft.Maui.Handlers;
 
@@ -42,8 +44,16 @@ public class EntryHandler2 : ViewHandler<IEntry, MauiMaterialTextInputLayout>
 	public static CommandMapper<IEntry, EntryHandler2> CommandMapper =
 	  new(ViewCommandMapper)
 	  {
-		  [nameof(IEntry.Focus)] = MapFocus
+		  [nameof(IEntry.Focus)] = MapFocus,
+		  [nameof(MapThemeChanged)] = MapThemeChanged,
 	  };
+
+	private static void MapThemeChanged(EntryHandler2 handler, IEntry entry, object? arg3)
+	{
+		// update the theme for the entry
+		var platformView = handler.PlatformView;
+		handler.PlatformView?.BoxStrokeColor = MaterialColorTokens.GetThemeAttrColor(platformView, Resource.Attribute.colorPrimary, arg3 as AppTheme?);
+	}
 
 	public EntryHandler2() : base(Mapper, CommandMapper)
 	{

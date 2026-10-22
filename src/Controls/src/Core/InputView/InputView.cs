@@ -96,6 +96,12 @@ namespace Microsoft.Maui.Controls
 		{
 			OnPropertyChanged(nameof(PlaceholderColor));
 			OnPropertyChanged(nameof(TextColor));
+#if ANDROID
+			if(OperatingSystem.IsAndroid() && RuntimeFeature.IsMaterial3Enabled)
+			{
+				Handler?.Invoke("MapThemeChanged", e);
+			}
+#endif
 		}
 
 		/// <summary>Gets or sets the text content of this input view. This is a bindable property.</summary>

@@ -22,7 +22,7 @@ namespace Microsoft.Maui.Controls
 		/// </summary>
 		/// <value>The string "On".</value>
 		public const string SwitchOnVisualState = "On";
-		
+
 		/// <summary>
 		/// The visual state name for when the switch is in the off position.
 		/// </summary>
@@ -163,6 +163,34 @@ namespace Microsoft.Maui.Controls
 		private protected override string GetDebuggerDisplay()
 		{
 			return $"{base.GetDebuggerDisplay()}, IsToggled = {IsToggled}";
+		}
+
+		private protected override void OnHandlerChangingCore(HandlerChangingEventArgs args)
+		{
+			base.OnHandlerChangingCore(args);
+
+			if (Application.Current is null)
+			{
+				return;
+			}
+
+			if (args.NewHandler is null || args.OldHandler is not null)
+				Application.Current.RequestedThemeChanged -= OnRequestedThemeChanged;
+
+			if (args.NewHandler is not null && args.OldHandler is null)
+			{
+				Application.Current.RequestedThemeChanged += OnRequestedThemeChanged;
+			}
+		}
+
+		void OnRequestedThemeChanged(object sender, AppThemeChangedEventArgs e)
+		{
+#if ANDROID
+			if(OperatingSystem.IsAndroid() && RuntimeFeature.IsMaterial3Enabled)
+			{
+				Handler?.Invoke("MapThemeChanged", e);
+			}
+#endif
 		}
 	}
 }
