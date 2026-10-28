@@ -266,7 +266,7 @@ namespace Microsoft.Maui.Controls.Platform
 				// Enable edge-to-edge on the modal's own Window so its system bars match the
 				// main window. The modal Dialog has a separate Window that does not inherit the
 				// activity's WindowCompat.EnableEdgeToEdge configuration, so it must be applied here.
-				WindowCompat.EnableEdgeToEdge(dialog.Window);
+				//WindowCompat.EnableEdgeToEdge(dialog.Window);
 
 				// EnableEdgeToEdge handles transparency/scrim but not bar icon colors; apply those
 				// from the app theme so the modal's status/navigation bar icons match the main window.

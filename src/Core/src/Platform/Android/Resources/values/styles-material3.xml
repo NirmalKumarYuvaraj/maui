@@ -3,6 +3,8 @@
     <!-- Material 3 Base Theme (Automatically switches between light/dark) -->
     <style name="Maui.Material3.Theme.Base" parent="Theme.Material3.DayNight">
         <item name="maui_splash">false</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="bottomNavigationViewStyle">@style/Widget.Material3.BottomNavigationView</item>
         <item name="materialButtonStyle">@style/MauiMaterialButton</item>
     </style>
