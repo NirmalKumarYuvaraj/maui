@@ -30,7 +30,8 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				Microsoft.Maui.Platform.LayerExtensions.RemoveBackgroundLayer(tabBar);
 				tabBar.BackgroundColor = _defaultBackgroundColor;
 				tabBar.StandardAppearance = _defaultStandardAppearance;
-				tabBar.ScrollEdgeAppearance = _defaultScrollEdgeAppearance;
+				// UIKit uses a transparent background when the scroll-edge appearance is null.
+				tabBar.ScrollEdgeAppearance = _defaultScrollEdgeAppearance ?? _defaultStandardAppearance;
 			}
 
 			tabBar.BarTintColor = _defaultBarTint;
