@@ -330,8 +330,7 @@ namespace Microsoft.Maui.Controls.Handlers
             // Track the current section
             _shellSection = newSection;
 
-            // Remove before adding to guard against duplicate observers from re-entrant calls
-            // (SwitchToShellItem triggers SwitchToSection twice for the same section).
+            // Remove before adding to guard against duplicate observers from re-entrant calls.
             ((IShellSectionController)newSection).RemoveDisplayedPageObserver(this);
             ((IShellSectionController)newSection).AddDisplayedPageObserver(this, UpdateDisplayedPage);
         }
@@ -349,9 +348,10 @@ namespace Microsoft.Maui.Controls.Handlers
                 return;
             }
 
-            // Set flag to preserve fragment-level resources during disconnect/connect cycle.
-            // SetVirtualView triggers DisconnectHandler → ConnectHandler. Without this flag,
-            // DisconnectHandler would destroy toolbar, adapter, and fragment references.
+            // SetVirtualView reuses the platform view without reconnecting the handler.
+            // Transfer item subscriptions explicitly while retaining the shared native views.
+            NotifyTopTabsForSectionSwitch(_shellSection, null);
+            DisconnectShellItem();
             _preserveFragmentResources = true;
 
             // Suppress MapCurrentItem → SwitchToSection during SetVirtualView.
@@ -363,6 +363,7 @@ namespace Microsoft.Maui.Controls.Handlers
             try
             {
                 SetVirtualView(newItem);
+                ConnectShellItem();
             }
             finally
             {
@@ -398,16 +399,10 @@ namespace Microsoft.Maui.Controls.Handlers
             // Re-register appearance observer with new ShellItem
             RegisterAppearanceObserver();
 
-            // Reset _displayedPage so the final SwitchToSection → AddDisplayedPageObserver →
-            // UpdateDisplayedPage runs fully (not early-returning due to same page reference).
-            // During SetVirtualView above, MapCurrentItem fired and set _displayedPage, but at
-            // that point the appearance observer was removed — so the toolbar update was lost.
-            _displayedPage = null;
-
             // Switch to the new item's current section
             if (newItem.CurrentItem is not null)
             {
-                SwitchToSection(newItem.CurrentItem, animate: false);
+                OnSectionChanged(newItem.CurrentItem, animate: false);
             }
         }
 
@@ -741,7 +736,7 @@ namespace Microsoft.Maui.Controls.Handlers
         /// </summary>
         public static void MapCurrentItem(ShellItemHandler handler, ShellItem shellItem)
         {
-            if (handler is null || shellItem is null)
+            if (handler is null || shellItem is null || handler._switchingShellItem)
             {
                 return;
             }
@@ -756,12 +751,7 @@ namespace Microsoft.Maui.Controls.Handlers
         {
             base.ConnectHandler(platformView);
 
-            // Subscribe to ShellItem property changes to detect CurrentItem changes from navigation
-            if (VirtualView is not null)
-            {
-                VirtualView.PropertyChanged += OnShellItemPropertyChanged;
-                ((IShellItemController)VirtualView).ItemsCollectionChanged += OnShellItemsChanged;
-            }
+            ConnectShellItem();
 
             // Initialize the Shell context early. The bottom navigation appearance tracker
             // is created with the deferred TabbedViewManager when tabs are actually needed.
@@ -773,6 +763,15 @@ namespace Microsoft.Maui.Controls.Handlers
             // Registering here causes the initial OnAppearanceChanged callback to be lost
             // because the views aren't ready. The old ShellItemRenderer registered in
             // OnCreateView() AFTER creating all views — we match that pattern.
+        }
+
+        void ConnectShellItem()
+        {
+            if (VirtualView is not null)
+            {
+                VirtualView.PropertyChanged += OnShellItemPropertyChanged;
+                ((IShellItemController)VirtualView).ItemsCollectionChanged += OnShellItemsChanged;
+            }
         }
 
         void OnShellItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -848,11 +847,7 @@ namespace Microsoft.Maui.Controls.Handlers
             }
         }
 
-        /// <summary>
-        /// Disconnects the handler from the platform view.
-        /// Comprehensive cleanup of resources
-        /// </summary>
-        protected override void DisconnectHandler(ViewPager2 platformView)
+        void DisconnectShellItem()
         {
             if (VirtualView is not null)
             {
@@ -879,6 +874,15 @@ namespace Microsoft.Maui.Controls.Handlers
             // Dispose per-item appearance tracker; tab setup or rebuild recreates it as needed.
             _appearanceTracker?.Dispose();
             _appearanceTracker = null;
+        }
+
+        /// <summary>
+        /// Disconnects the handler from the platform view.
+        /// Comprehensive cleanup of resources
+        /// </summary>
+        protected override void DisconnectHandler(ViewPager2 platformView)
+        {
+            DisconnectShellItem();
 
             // Unregister page change callback
             if (_pageChangeCallback is not null && _viewPager is not null)

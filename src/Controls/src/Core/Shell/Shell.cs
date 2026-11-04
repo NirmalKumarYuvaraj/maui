@@ -1033,6 +1033,36 @@ namespace Microsoft.Maui.Controls
 		Task IShellController.OnFlyoutItemSelectedAsync(Element element) =>
 			OnFlyoutItemSelectedAsync(element, true);
 
+#if ANDROID
+		Platform.ShellFlyoutNavigationRequest _flyoutNavigationRequest;
+
+		async Task NavigateAfterFlyoutClosedAsync(Platform.ShellFlyoutNavigationRequest request, Element element)
+		{
+			var handler = Handler;
+			try
+			{
+				if (!await request.CloseAsync() ||
+					request.IsCancelled ||
+					_flyoutNavigationRequest != request ||
+					Handler != handler ||
+					element.FindParentOfType<Shell>() != this)
+				{
+					return;
+				}
+
+				_flyoutNavigationRequest = null;
+				request.Dispose();
+				await OnFlyoutItemSelectedAsync(element, false);
+			}
+			finally
+			{
+				request.Dispose();
+				if (_flyoutNavigationRequest == request)
+					_flyoutNavigationRequest = null;
+			}
+		}
+#endif
+
 		Task OnFlyoutItemSelectedAsync(Element element, bool platformInitiated)
 		{
 			ShellItem shellItem = null;
@@ -1063,6 +1093,22 @@ namespace Microsoft.Maui.Controls
 
 			if (shellItem == null || !shellItem.IsEnabled)
 				return Task.CompletedTask;
+
+#if ANDROID
+			if (platformInitiated)
+			{
+				_flyoutNavigationRequest?.Dispose();
+				_flyoutNavigationRequest = null;
+
+				if (GetEffectiveFlyoutBehavior() == FlyoutBehavior.Flyout &&
+					Handler is Platform.Compatibility.IShellContext shellContext &&
+					Platform.ShellFlyoutNavigationRequest.TryCreate(this, shellContext.CurrentDrawerLayout) is { } request)
+				{
+					_flyoutNavigationRequest = request;
+					return NavigateAfterFlyoutClosedAsync(request, element);
+				}
+			}
+#endif
 
 			shellSection = shellSection ?? shellItem.CurrentItem;
 			shellContent = shellContent ?? shellSection?.CurrentItem;

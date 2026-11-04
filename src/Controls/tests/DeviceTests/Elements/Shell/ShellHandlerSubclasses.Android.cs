@@ -3,6 +3,7 @@ using Android.Graphics.Drawables;
 using AndroidX.AppCompat.Graphics.Drawable;
 using AndroidX.CoordinatorLayout.Widget;
 using AndroidX.DrawerLayout.Widget;
+using AndroidX.RecyclerView.Widget;
 using Google.Android.Material.AppBar;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Handlers;
@@ -272,6 +273,150 @@ namespace Microsoft.Maui.DeviceTests
 				var background = Assert.IsType<ColorChangeRevealDrawable>(itemHandler.BottomNavigationView.Background);
 				Assert.Equal(expectedTabBackground.ToPlatform(), background.EndColor);
 			});
+		}
+
+		[Fact]
+		public async Task SwitchingShellItemsTransfersSubscriptionsWithoutDuplicatingAppearanceObservers()
+		{
+			SetupBuilder();
+
+			var firstPage = new ContentPage();
+			var secondPage = new ContentPage();
+			var firstItem = new FlyoutItem
+			{
+				Items =
+				{
+					new ShellSection
+					{
+						Items =
+						{
+							new ShellContent { Content = firstPage },
+							new ShellContent { Content = new ContentPage() }
+						}
+					}
+				}
+			};
+			var secondItem = new FlyoutItem
+			{
+				Items = { new ShellSection { Items = { new ShellContent { Content = secondPage } } } }
+			};
+			var shell = await CreateShellAsync(shell =>
+			{
+				shell.Items.Add(firstItem);
+				shell.Items.Add(secondItem);
+			});
+
+			await CreateHandlerAndAddToWindow(shell, async () =>
+			{
+				await OnLoadedAsync(firstPage);
+				var itemHandler = Assert.IsType<ShellItemHandler>(firstItem.Handler);
+
+				for (int i = 0; i < 3; i++)
+				{
+					var nextItem = i % 2 == 0 ? secondItem : firstItem;
+					shell.CurrentItem = nextItem;
+					await OnLoadedAsync(i % 2 == 0 ? secondPage : firstPage);
+					Assert.Same(itemHandler, nextItem.Handler);
+				}
+
+				var shellController = (IShellController)shell;
+				Assert.True(shellController.RemoveAppearanceObserver(itemHandler));
+				Assert.False(shellController.RemoveAppearanceObserver(itemHandler));
+				itemHandler.RegisterAppearanceObserver();
+
+				var topTabs = ((AView)shell.Handler.PlatformView).FindViewById(Resource.Id.navigationlayout_toptabs);
+				Assert.Equal(AViewStates.Gone, topTabs.Visibility);
+				Assert.Null(itemHandler.BottomNavigationView);
+
+				var adapter = itemHandler._adapter;
+				using var observer = new AdapterChangeObserver();
+				adapter.RegisterAdapterDataObserver(observer);
+				try
+				{
+					firstItem.Items.Add(new ShellSection
+					{
+						Items = { new ShellContent { Content = new ContentPage() } }
+					});
+					Assert.Equal(0, observer.ChangeCount);
+
+					secondItem.Items.Add(new ShellSection
+					{
+						Items = { new ShellContent { Content = new ContentPage() } }
+					});
+					Assert.True(observer.ChangeCount > 0);
+					Assert.NotNull(itemHandler.BottomNavigationView);
+				}
+				finally
+				{
+					adapter.UnregisterAdapterDataObserver(observer);
+				}
+			});
+		}
+
+		[Fact]
+		public async Task SwitchingShellItemsChangesSectionOnlyAfterUpdatingTheAdapter()
+		{
+			EnsureHandlerCreated(builder => builder.ConfigureMauiHandlers(handlers =>
+			{
+				SetupShellHandlers(handlers);
+				handlers.AddHandler<Shell, NativeShellHandler>();
+				handlers.AddHandler<ShellItem>(_ => new SectionSwitchTrackingShellItemHandler());
+				handlers.AddHandler<ShellSection, ShellSectionHandler>();
+			}));
+
+			var firstPage = new ContentPage();
+			var secondPage = new ContentPage();
+			var firstItem = new FlyoutItem
+			{
+				Items = { new ShellSection { Items = { new ShellContent { Content = firstPage } } } }
+			};
+			var secondItem = new FlyoutItem
+			{
+				Items =
+				{
+					new ShellSection { Items = { new ShellContent { Content = secondPage } } },
+					new ShellSection { Items = { new ShellContent { Content = new ContentPage() } } }
+				}
+			};
+			var shell = await CreateShellAsync(shell =>
+			{
+				shell.Items.Add(firstItem);
+				shell.Items.Add(secondItem);
+			});
+
+			await CreateHandlerAndAddToWindow(shell, async () =>
+			{
+				await OnLoadedAsync(firstPage);
+				var itemHandler = Assert.IsType<SectionSwitchTrackingShellItemHandler>(firstItem.Handler);
+
+				shell.CurrentItem = secondItem;
+				await OnLoadedAsync(secondPage);
+
+				Assert.Same(itemHandler, secondItem.Handler);
+				Assert.Same(secondItem.CurrentItem, itemHandler.LastSection);
+				Assert.Equal(secondItem.Items.Count, itemHandler.AdapterItemCountWhenSectionChanged);
+			});
+		}
+
+		sealed class AdapterChangeObserver : RecyclerView.AdapterDataObserver
+		{
+			public int ChangeCount { get; private set; }
+
+			public override void OnChanged() => ChangeCount++;
+		}
+
+		sealed class SectionSwitchTrackingShellItemHandler : ShellItemHandler
+		{
+			public ShellSection LastSection { get; private set; }
+
+			public int? AdapterItemCountWhenSectionChanged { get; private set; }
+
+			protected override void OnSectionChanged(ShellSection shellSection, bool animate)
+			{
+				LastSection = shellSection;
+				AdapterItemCountWhenSectionChanged = _adapter?.ItemCount;
+				base.OnSectionChanged(shellSection, animate);
+			}
 		}
 
 		protected override void SetupBuilder()
