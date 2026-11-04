@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using CoreGraphics;
 using Foundation;
 using Microsoft.Maui.Graphics;
@@ -71,6 +73,45 @@ namespace Microsoft.Maui.Platform
 		/// </summary>
 		bool _appliesSafeAreaAdjustments;
 
+		[Conditional("DEBUG")]
+		void LogSafeArea(string reason)
+		{
+			Debug.WriteLine(new StringBuilder("[MauiView.SafeArea] ")
+				.Append(reason)
+				.Append(" Handle=").Append(Handle)
+				.Append(" Type=").Append(GetType().Name)
+				.Append(" ViewType=").Append(View?.GetType().Name)
+				.Append(" SuperviewHandle=").Append(Superview?.Handle)
+				.Append(" WindowHandle=").Append(Window?.Handle)
+				.Append(" Frame=").Append(Frame)
+				.Append(" Bounds=").Append(Bounds)
+				.Append(" Scale=").Append(this.GetEffectiveDisplayScale())
+				.Append(" RawInsets=").Append(SafeAreaInsets)
+				.Append(" ResolvedSafeArea=").Append(_safeArea)
+				.Append(" CellOverride=").Append(CellSafeAreaOverride)
+				.Append(" Regions[L,T,R,B]=").Append(GetSafeAreaRegionForEdge(0)).Append(',').Append(GetSafeAreaRegionForEdge(1)).Append(',').Append(GetSafeAreaRegionForEdge(2)).Append(',').Append(GetSafeAreaRegionForEdge(3))
+				.Append(" BlockedCacheValid=").Append(_blockedEdgesCacheValid)
+				.Append(" Blocked[L,T,R,B]=").Append(_blockedEdgesCache[0]).Append(',').Append(_blockedEdgesCache[1]).Append(',').Append(_blockedEdgesCache[2]).Append(',').Append(_blockedEdgesCache[3])
+				.Append(" AppliesAdjustments=").Append(_appliesSafeAreaAdjustments)
+				.Append(" ScrollViewDescendant=").Append(_scrollViewDescendant)
+				.Append(" Invalidated=").Append(_safeAreaInvalidated)
+				.Append(" KeyboardShowing=").Append(_isKeyboardShowing)
+				.Append(" KeyboardFrame=").Append(_keyboardFrame)
+				.Append(" KeyboardSubscribed=").Append(_keyboardWillShowObserver != null || _keyboardWillHideObserver != null)
+				.ToString());
+		}
+
+		[Conditional("DEBUG")]
+		void LogSafeAreaEdge(int edge, double source, bool blocked, double result, string reason)
+		{
+			Debug.WriteLine(new StringBuilder("[MauiView.SafeArea] GetSafeAreaForEdge Handle=")
+				.Append(Handle).Append(" Edge[L=0,T=1,R=2,B=3]=").Append(edge)
+				.Append(" Region=").Append(GetSafeAreaRegionForEdge(edge))
+				.Append(" Source=").Append(source).Append(" BlockedByParent=").Append(blocked)
+				.Append(" Result=").Append(result).Append(" Reason=").Append(reason)
+				.ToString());
+		}
+
 		/// <summary>
 		/// Safe area override injected by CollectionView cells.
 		/// UICollectionView bypasses MAUI's arrange chain, so cells cannot use <see cref="_safeArea"/>.
@@ -103,11 +144,13 @@ namespace Microsoft.Maui.Platform
 				mauiView.CellSafeAreaOverride = insets != UIEdgeInsets.Zero
 					? insets.ToSafeAreaInsets()
 					: SafeAreaPadding.Empty;
+				mauiView.LogSafeArea("ApplyCellSafeAreaOverride: computed cell padding");
 			}
 			else if (mauiView is not null && !mauiView.CellSafeAreaOverride.IsEmpty)
 			{
 				// Clear stale override from a previous template that used safe area edges.
 				mauiView.CellSafeAreaOverride = SafeAreaPadding.Empty;
+				mauiView.LogSafeArea("ApplyCellSafeAreaOverride: cleared stale padding");
 			}
 		}
 
@@ -120,11 +163,19 @@ namespace Microsoft.Maui.Platform
 		{
 			var window = cell.Window;
 			if (window is null)
+			{
+				Debug.WriteLine(new StringBuilder("[MauiView.SafeArea] ComputeCellSafeAreaInsets: no window; returning zero CellHandle=")
+					.Append(cell.Handle).ToString());
 				return UIEdgeInsets.Zero;
+			}
 
 			var windowSA = window.SafeAreaInsets;
 			if (windowSA == UIEdgeInsets.Zero)
+			{
+				Debug.WriteLine(new StringBuilder("[MauiView.SafeArea] ComputeCellSafeAreaInsets: window safe area is zero CellHandle=")
+					.Append(cell.Handle).ToString());
 				return UIEdgeInsets.Zero;
+			}
 
 			var leftRegion = safeView.GetSafeAreaRegionForEdge(0);
 			var topRegion = safeView.GetSafeAreaRegionForEdge(1);
@@ -137,7 +188,11 @@ namespace Microsoft.Maui.Platform
 				&& rightRegion == bottomRegion;
 
 			if (allSameRegion)
+			{
+				Debug.WriteLine(new StringBuilder("[MauiView.SafeArea] ComputeCellSafeAreaInsets: uniform regions handled by parent layout CellHandle=")
+					.Append(cell.Handle).Append(" Region=").Append(leftRegion).ToString());
 				return UIEdgeInsets.Zero;
+			}
 
 			// Only apply insets for Container edges; SoftInput-only edges are excluded.
 			var cellInWindow = cell.ConvertRectToView(cell.Bounds, window);
@@ -152,7 +207,14 @@ namespace Microsoft.Maui.Platform
 			nfloat bottom = SafeAreaEdges.IsContainer(bottomRegion) && windowSA.Bottom > 0
 				? (nfloat)Math.Max(0, (double)(cellInWindow.Bottom - (windowBounds.Height - windowSA.Bottom))) : 0;
 
-			return new UIEdgeInsets(top, left, bottom, right);
+			var result = new UIEdgeInsets(top, left, bottom, right);
+			Debug.WriteLine(new StringBuilder("[MauiView.SafeArea] ComputeCellSafeAreaInsets CellHandle=")
+				.Append(cell.Handle).Append(" WindowHandle=").Append(window.Handle)
+				.Append(" WindowInsets=").Append(windowSA).Append(" WindowBounds=").Append(windowBounds)
+				.Append(" CellInWindow=").Append(cellInWindow)
+				.Append(" Regions[L,T,R,B]=").Append(leftRegion).Append(',').Append(topRegion).Append(',').Append(rightRegion).Append(',').Append(bottomRegion)
+				.Append(" Result=").Append(result).ToString());
+			return result;
 		}
 
 		// Indicates whether this view should respond to safe area insets.
@@ -237,6 +299,7 @@ namespace Microsoft.Maui.Platform
 			// For more details and implementation specifics, see MauiScrollView.cs, which contains the logic for safe area management
 			// within scroll views and explains how this interacts with the overall layout system.
 			_scrollViewDescendant = this.GetParentOfType<UIScrollView>() is not null;
+			LogSafeArea("RespondsToSafeArea: resolved scroll ancestor");
 			return !_scrollViewDescendant.Value;
 		}
 
@@ -252,6 +315,7 @@ namespace Microsoft.Maui.Platform
 			// Edge-to-edge content - no safe area padding
 			if (safeAreaRegion == SafeAreaRegions.None)
 			{
+				LogSafeAreaEdge(edge, originalSafeArea, isEdgeBlockedByParent, 0, "region None");
 				return 0;
 			}
 
@@ -262,6 +326,7 @@ namespace Microsoft.Maui.Platform
 				// When keyboard is hidden, return 0 to avoid showing home indicator padding
 				if (!_isKeyboardShowing)
 				{
+					LogSafeAreaEdge(edge, originalSafeArea, isEdgeBlockedByParent, 0, "SoftInput-only with keyboard hidden");
 					return 0;
 				}
 			}
@@ -272,6 +337,7 @@ namespace Microsoft.Maui.Platform
 			// independently, so a parent handling only Top never blocks a child that handles Bottom (#28986).
 			if (isEdgeBlockedByParent)
 			{
+				LogSafeAreaEdge(edge, originalSafeArea, isEdgeBlockedByParent, 0, "ancestor owns edge");
 				return 0;
 			}
 
@@ -282,6 +348,7 @@ namespace Microsoft.Maui.Platform
 			// - SoftInput: Always pad for keyboard/soft input
 			// - Container: Content flows under keyboard but stays out of bars/notch
 			// - Any combination of the above flags
+			LogSafeAreaEdge(edge, originalSafeArea, isEdgeBlockedByParent, originalSafeArea, "using source inset");
 			return originalSafeArea;
 		}
 
@@ -324,7 +391,12 @@ namespace Microsoft.Maui.Platform
 			}
 
 			ValidateSafeArea();
-			return _safeArea.InsetRect(bounds);
+			var adjustedBounds = _safeArea.InsetRect(bounds);
+			Debug.WriteLine(new StringBuilder("[MauiView.SafeArea] AdjustForSafeArea Handle=")
+				.Append(Handle).Append(" InputBounds=").Append(bounds).Append(" ResultBounds=").Append(adjustedBounds)
+				.Append(" KeyboardAutoScrollIgnore=").Append(KeyboardAutoManagerScroll.ShouldIgnoreSafeAreaAdjustment)
+				.ToString());
+			return adjustedBounds;
 		}
 
 		bool ShouldSubscribeToKeyboardNotifications()
@@ -361,6 +433,7 @@ namespace Microsoft.Maui.Platform
 				UIKeyboard.WillHideNotification,
 				OnKeyboardWillHide);
 			_keyboardWillHideObserver = new WeakReference<NSObject>(hideObserver);
+			LogSafeArea("SubscribeToKeyboardNotifications: observers registered");
 
 			// When switching to SoftInput while keyboard is already open, iOS may not
 			// emit a new WillShow. Rehydrate from global keyboard tracking.
@@ -370,12 +443,16 @@ namespace Microsoft.Maui.Platform
 			{
 				_keyboardFrame = KeyboardAutoManagerScroll.KeyboardFrame;
 				_isKeyboardShowing = true;
+				LogSafeArea("SubscribeToKeyboardNotifications: restored visible keyboard state");
 				this.InvalidateSafeAreaWithDescendants();
 			}
 		}
 
 		void UnsubscribeFromKeyboardNotifications()
 		{
+			if (_keyboardWillShowObserver != null || _keyboardWillHideObserver != null)
+				LogSafeArea("UnsubscribeFromKeyboardNotifications: removing observers");
+
 			if (_keyboardWillShowObserver?.TryGetTarget(out var showObserver) == true)
 			{
 				NSNotificationCenter.DefaultCenter.RemoveObserver(showObserver);
@@ -419,7 +496,12 @@ namespace Microsoft.Maui.Platform
 			{
 				_keyboardFrame = keyboardFrame.Value;
 				_isKeyboardShowing = true;
+				LogSafeArea("OnKeyboardWillShow: invalidating view and descendants");
 				this.InvalidateSafeAreaWithDescendants();
+			}
+			else
+			{
+				LogSafeArea("OnKeyboardWillShow: notification has no keyboard frame");
 			}
 		}
 
@@ -429,6 +511,7 @@ namespace Microsoft.Maui.Platform
 		{
 			_keyboardFrame = CGRect.Empty;
 			_isKeyboardShowing = false;
+			LogSafeArea("ClearKeyboardState: invalidating view and descendants");
 			this.InvalidateSafeAreaWithDescendants();
 		}
 
@@ -444,6 +527,7 @@ namespace Microsoft.Maui.Platform
 		SafeAreaPadding GetAdjustedSafeAreaInsets()
 		{
 			var baseSafeArea = SafeAreaInsets.ToSafeAreaInsets();
+			LogSafeArea("GetAdjustedSafeAreaInsets: starting from raw insets");
 
 			// Check if keyboard-aware safe area adjustments are needed
 			if (View.UsesSafeAreaEdges() && _isKeyboardShowing)
@@ -470,6 +554,10 @@ namespace Microsoft.Maui.Platform
 					{
 						var windowFrame = window.Frame;
 						var keyboardIntersection = CGRect.Intersect(_keyboardFrame, windowFrame);
+						Debug.WriteLine(new StringBuilder("[MauiView.SafeArea] KeyboardIntersection Handle=")
+							.Append(Handle).Append(" WindowFrame=").Append(windowFrame)
+							.Append(" KeyboardFrame=").Append(_keyboardFrame).Append(" Intersection=").Append(keyboardIntersection)
+							.ToString());
 
 						// If keyboard is visible and intersects with window
 						if (!keyboardIntersection.IsEmpty)
@@ -492,9 +580,26 @@ namespace Microsoft.Maui.Platform
 								var overlap = inputBottomY > keyboardTopY ? (inputBottomY - keyboardTopY) : 0.0;
 
 								var adjustedBottom = (overlap > 0) ? overlap : baseSafeArea.Bottom;
+								Debug.WriteLine(new StringBuilder("[MauiView.SafeArea] KeyboardOverlap Handle=")
+									.Append(Handle).Append(" ViewBottomY=").Append(inputBottomY)
+									.Append(" KeyboardTopY=").Append(keyboardTopY).Append(" Overlap=").Append(overlap)
+									.Append(" OriginalBottom=").Append(baseSafeArea.Bottom).Append(" AdjustedBottom=").Append(adjustedBottom)
+									.ToString());
 								baseSafeArea = new SafeAreaPadding(baseSafeArea.Left, baseSafeArea.Right, baseSafeArea.Top, adjustedBottom);
 							}
+							else
+							{
+								LogSafeArea("GetAdjustedSafeAreaInsets: keyboard adjustment skipped; bottom excludes SoftInput or ancestor handles it");
+							}
 						}
+						else
+						{
+							LogSafeArea("GetAdjustedSafeAreaInsets: keyboard does not intersect window");
+						}
+					}
+					else
+					{
+						LogSafeArea("GetAdjustedSafeAreaInsets: keyboard adjustment skipped; no window or empty keyboard frame");
 					}
 				}
 			}
@@ -504,6 +609,7 @@ namespace Microsoft.Maui.Platform
 				// Single ancestor walk resolves all 4 edges at once, cached until invalidated
 				// (see SafeAreaInsetsExtensions.ResolveParentBlockedEdges) to avoid re-walking on every layout pass.
 				var blockedEdges = this.ResolveParentBlockedEdges(_blockedEdgesCache, ref _blockedEdgesCacheValid);
+				LogSafeArea("GetAdjustedSafeAreaInsets: resolved parent-blocked edges");
 
 				// Apply safe area selectively per edge based on SafeAreaRegions
 				var left = GetSafeAreaForEdge(baseSafeArea.Left, 0, blockedEdges[0]);
@@ -517,10 +623,12 @@ namespace Microsoft.Maui.Platform
 			// Fallback to legacy ISafeAreaView behavior
 			if (View is ISafeAreaView sav)
 			{
+				LogSafeArea(sav.IgnoreSafeArea ? "GetAdjustedSafeAreaInsets: legacy IgnoreSafeArea; returning empty" : "GetAdjustedSafeAreaInsets: legacy view; using base insets");
 				return sav.IgnoreSafeArea ? SafeAreaPadding.Empty : baseSafeArea;
 			}
 
 			// Non-safe-area views pass through to parent
+			LogSafeArea("GetAdjustedSafeAreaInsets: no safe area support; returning empty");
 			return SafeAreaPadding.Empty;
 		}
 
@@ -533,9 +641,13 @@ namespace Microsoft.Maui.Platform
 		/// </summary>
 		internal static bool IsSoftInputHandledByParent(UIView view)
 		{
-			return view.FindParent(x => x is MauiView mv
+			var parent = view.FindParent(x => x is MauiView mv
 				&& mv.View.UsesSafeAreaEdges()
-				&& SafeAreaEdges.IsSoftInput(mv.GetSafeAreaRegionForEdge(3))) is not null;
+				&& SafeAreaEdges.IsSoftInput(mv.GetSafeAreaRegionForEdge(3)));
+			Debug.WriteLine(new StringBuilder("[MauiView.SafeArea] IsSoftInputHandledByParent Handle=")
+				.Append(view.Handle).Append(" HandlingParentHandle=").Append(parent?.Handle)
+				.Append(" Result=").Append(parent is not null).ToString());
+			return parent is not null;
 		}
 
 
@@ -622,6 +734,8 @@ namespace Microsoft.Maui.Platform
 		/// <returns>The desired size of the view</returns>
 		Size CrossPlatformMeasure(double widthConstraint, double heightConstraint)
 		{
+			Debug.WriteLine(new StringBuilder("[MauiView.SafeArea] CrossPlatformMeasure: input Handle=")
+				.Append(Handle).Append(" Width=").Append(widthConstraint).Append(" Height=").Append(heightConstraint).ToString());
 			var effectiveSafeArea = _appliesSafeAreaAdjustments ? _safeArea
 				: !CellSafeAreaOverride.IsEmpty ? CellSafeAreaOverride
 				: SafeAreaPadding.Empty;
@@ -641,6 +755,10 @@ namespace Microsoft.Maui.Platform
 				crossPlatformSize = new Size(crossPlatformSize.Width + effectiveSafeArea.HorizontalThickness, crossPlatformSize.Height + effectiveSafeArea.VerticalThickness);
 			}
 
+			Debug.WriteLine(new StringBuilder("[MauiView.SafeArea] CrossPlatformMeasure: result Handle=")
+				.Append(Handle).Append(" EffectiveSafeArea=").Append(effectiveSafeArea)
+				.Append(" ContentWidthConstraint=").Append(widthConstraint).Append(" ContentHeightConstraint=").Append(heightConstraint)
+				.Append(" PaddedSize=").Append(crossPlatformSize).ToString());
 			return crossPlatformSize;
 		}
 
@@ -651,6 +769,7 @@ namespace Microsoft.Maui.Platform
 		/// <param name="bounds">The bounds rectangle to arrange within</param>
 		void CrossPlatformArrange(CGRect bounds)
 		{
+			LogSafeArea("CrossPlatformArrange: starting");
 			if (_appliesSafeAreaAdjustments)
 			{
 				bounds = AdjustForSafeArea(bounds);
@@ -660,6 +779,8 @@ namespace Microsoft.Maui.Platform
 				bounds = CellSafeAreaOverride.InsetRect(bounds);
 			}
 
+			Debug.WriteLine(new StringBuilder("[MauiView.SafeArea] CrossPlatformArrange: adjusted bounds Handle=")
+				.Append(Handle).Append(" ResultBounds=").Append(bounds).ToString());
 			CrossPlatformLayout?.CrossPlatformArrange(bounds.ToRectangle());
 		}
 
@@ -713,6 +834,7 @@ namespace Microsoft.Maui.Platform
 
 			if (_crossPlatformLayoutReference == null)
 			{
+				LogSafeArea("LayoutSubviews: no cross-platform layout; skipping safe area validation");
 				return;
 			}
 
@@ -725,6 +847,7 @@ namespace Microsoft.Maui.Platform
 				// to let ancestors adjust to the measured size.
 				if (this.IsFinalMeasureHandledBySuperView())
 				{
+					LogSafeArea("LayoutSubviews: safe area changed; arranging before requesting ancestor measure and second pass");
 					//This arrangement step is essential for communicating the correct coordinate space to native iOS views before scheduling the second layout pass.
 					//This ensures the native view is aware of the correct bounds and can adjust its layout accordingly.
 					CrossPlatformArrange(Bounds.ToRectangle());
@@ -772,6 +895,7 @@ namespace Microsoft.Maui.Platform
 			// If nothing changed, we don't need to do anything
 			if (!_safeAreaInvalidated)
 			{
+				LogSafeArea("ValidateSafeArea: using cached result");
 				return true;
 			}
 
@@ -785,6 +909,7 @@ namespace Microsoft.Maui.Platform
 			}
 
 			var oldSafeArea = _safeArea;
+			LogSafeArea("ValidateSafeArea: recalculating");
 			_safeArea = GetAdjustedSafeAreaInsets();
 
 			// Parent-edge blocking is now resolved per-edge inline while computing _safeArea above
@@ -796,8 +921,14 @@ namespace Microsoft.Maui.Platform
 			// Return whether the way safe area interacts with our view has changed.
 			// Compare at device-pixel resolution to filter sub-pixel noise from animations
 			// that would otherwise trigger infinite layout invalidation cycles (#32586, #33934).
-			return oldApplyingSafeAreaAdjustments == _appliesSafeAreaAdjustments &&
+			var unchanged = oldApplyingSafeAreaAdjustments == _appliesSafeAreaAdjustments &&
 				   (oldSafeArea.EqualsAtPixelLevel(_safeArea, this.GetEffectiveDisplayScale()) || !_appliesSafeAreaAdjustments);
+			Debug.WriteLine(new StringBuilder("[MauiView.SafeArea] ValidateSafeArea: result Handle=")
+				.Append(Handle).Append(" OldSafeArea=").Append(oldSafeArea).Append(" NewSafeArea=").Append(_safeArea)
+				.Append(" OldAppliesAdjustments=").Append(oldApplyingSafeAreaAdjustments)
+				.Append(" NewAppliesAdjustments=").Append(_appliesSafeAreaAdjustments)
+				.Append(" LayoutUnchanged=").Append(unchanged).ToString());
+			return unchanged;
 		}
 
 		/// <summary>
@@ -842,6 +973,7 @@ namespace Microsoft.Maui.Platform
 		bool IPlatformMeasureInvalidationController.InvalidateMeasure(bool isPropagating)
 		{
 			_safeAreaInvalidated = true;
+			LogSafeArea(isPropagating ? "InvalidateMeasure: propagated" : "InvalidateMeasure: local");
 			InvalidateConstraintsCache();
 			SetNeedsLayout();
 
@@ -892,6 +1024,7 @@ namespace Microsoft.Maui.Platform
 		{
 			_safeAreaInvalidated = true;
 			_blockedEdgesCacheValid = false;
+			LogSafeArea("SafeAreaInsetsDidChange: invalidated safe area and parent-blocked cache");
 			base.SafeAreaInsetsDidChange();
 		}
 
@@ -902,6 +1035,7 @@ namespace Microsoft.Maui.Platform
 		{
 			_safeAreaInvalidated = true;
 			_blockedEdgesCacheValid = false;
+			LogSafeArea("InvalidateSafeArea: invalidated safe area and parent-blocked cache");
 			SetNeedsLayout();
 		}
 
@@ -939,6 +1073,7 @@ namespace Microsoft.Maui.Platform
 
 			// Safe area may have changed when moving to a different window
 			_safeAreaInvalidated = true;
+			LogSafeArea("MovedToWindow: reset ancestor caches and invalidated safe area");
 
 			// If we were marked to invalidate ancestors when moved to window, do so now
 			if (_invalidateParentWhenMovedToWindow)

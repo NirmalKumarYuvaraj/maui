@@ -94,7 +94,7 @@ namespace Microsoft.Maui.TestCases.Tests
 					config.SetProperty("Headless", bool.Parse(Environment.GetEnvironmentVariable("HEADLESS") ?? "false"));
 					break;
 				case TestDevice.iOS:
-					string udid = Environment.GetEnvironmentVariable("DEVICE_UDID") ?? "";
+					string udid = Environment.GetEnvironmentVariable("DEVICE_UDID") ?? "ADE4F7A7-ED50-4650-A284-C8F03436796C";
 					if (!string.IsNullOrEmpty(udid))
 					{
 						config.SetProperty("Udid", udid);
@@ -391,7 +391,7 @@ namespace Microsoft.Maui.TestCases.Tests
 
 					case TestDevice.Windows:
 						environmentName = "windows";
-						
+
 						// Check if the Windows CV1 handler is selected via TEST_CONFIGURATION_ARGS.
 						// This uses a separate snapshot directory for visual regression testing
 						var testConfigurationArgs = Environment.GetEnvironmentVariable("TEST_CONFIGURATION_ARGS") ?? "";

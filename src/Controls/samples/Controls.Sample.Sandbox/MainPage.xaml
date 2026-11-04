@@ -1,3 +1,11 @@
 ﻿<ContentPage x:Class="Maui.Controls.Sample.MainPage"
              xmlns:local="clr-namespace:Maui.Controls.Sample">
+
+    <ScrollView>
+        <VerticalStackLayout>
+            <Label Text="1. Tap on the editor below to open the mobile keyboard and attempt to enter some text."/>
+            <Label Text="2. The test fails if the keyboard layout does not match the screenshot in AzDo or if you can't enter any text."/>
+            <Editor Keyboard="Chat"/>
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>
