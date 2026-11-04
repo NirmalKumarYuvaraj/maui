@@ -3,20 +3,32 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     x:Class="Maui.Controls.Sample.SandboxShell"
     xmlns:local="clr-namespace:Maui.Controls.Sample"
-    x:Name="shell">
-    <TabBar Shell.TabBarForegroundColor="Green"
-        Shell.TabBarUnselectedColor="Red">
-        <Tab Title="MainPage1" Icon="groceries.png">
-            <ShellContent Icon="groceries.png"
-            Title="Home"
-            ContentTemplate="{DataTemplate local:MainPage}"
-            Route="MainPage" />
-        </Tab>
-        <Tab Title="MainPage2" Icon="dotnet_bot.png">
-            <ShellContent Icon="dotnet_bot.png"
-            Title="Home"
-            ContentTemplate="{DataTemplate local:MainPage}"
-            Route="MainPage2" />
-        </Tab>
+    x:Name="shell"
+    FlyoutBehavior="Disabled"
+    Shell.NavBarIsVisible="False"
+    Shell.BackgroundColor="#000000"
+    Shell.ForegroundColor="#FFFFFF"
+    Shell.TabBarBackgroundColor="#000000"
+    Shell.TabBarForegroundColor="#FFFFFF"
+    Shell.TabBarTitleColor="#FFFFFF"
+    Shell.TabBarUnselectedColor="#A0A0A0">
+
+    <TabBar>
+        <ShellContent Title="Home"
+                      Route="home"
+                      Icon="dotnet_bot.png"
+                      ContentTemplate="{DataTemplate local:HomePage}"/>
+        <ShellContent Title="Draws"
+                      Route="draws"
+                      Icon="groceries.png"
+                      ContentTemplate="{DataTemplate local:DrawsPage}"/>
+        <ShellContent Title="Investments"
+                      Route="investments"
+                      Icon="shopping_cart.png"
+                      ContentTemplate="{DataTemplate local:InvestmentsPage}"/>
+        <ShellContent Title="Holders"
+                      Route="holders"
+                      Icon="dotnet_bot.png"
+                      ContentTemplate="{DataTemplate local:HoldersPage}"/>
     </TabBar>
 </Shell>

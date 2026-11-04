@@ -12,6 +12,7 @@ using Microsoft.Maui.Controls.Diagnostics;
 using Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;
 using Microsoft.Maui.Diagnostics;
 using Microsoft.Maui.Graphics;
+using Microsoft.Maui.Platform;
 using ObjCRuntime;
 using UIKit;
 
@@ -64,6 +65,8 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 		IShellTabBarAppearanceTracker _appearanceTracker;
 		ShellSection _currentSection;
 		Page _displayedPage;
+		[UnconditionalSuppressMessage("Memory", "MEM0002", Justification = "The original native background is retained for restoration and cleared in Dispose.")]
+		UIColor _defaultContentBackgroundColor;
 		bool _disposed;
 		bool _disconnected;
 		ShellItem _shellItem;
@@ -163,6 +166,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 		public override void ViewDidLoad()
 		{
 			base.ViewDidLoad();
+			_defaultContentBackgroundColor = View.BackgroundColor;
 			RegisterTabBar();
 
 			ShouldSelectViewController = (tabController, viewController) =>
@@ -350,6 +354,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				_shellItem = null;
 				_currentSection = null;
 				_displayedPage = null;
+				_defaultContentBackgroundColor = null;
 			}
 
 			base.Dispose(disposing);
@@ -797,6 +802,23 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				UpdateLargeTitles();
 				UpdateNavBarHidden();
 			}
+
+			UpdateContentBackground(View, _displayedPage, _defaultContentBackgroundColor);
+		}
+
+		internal static void UpdateContentBackground(UIView view, IView page, UIColor defaultBackgroundColor)
+		{
+			if (!OperatingSystem.IsIOSVersionAtLeast(18) && !OperatingSystem.IsMacCatalystVersionAtLeast(18))
+				return;
+
+			var background = page?.Background;
+			// Duplicating a translucent page background would change its composited opacity.
+			if (page?.Opacity < 1 || background.IsNullOrEmpty() || background.IsTransparent)
+				background = null;
+
+			// UIKit's tab cross-fade exposes this backing view between the two pages.
+			view.BackgroundColor = defaultBackgroundColor;
+			view.UpdateBackground(background);
 		}
 
 		[UnconditionalSuppressMessage("Memory", "MEM0003", Justification = "The displayed page PropertyChanged subscription is removed in Disconnect and when the displayed page changes.")]
@@ -804,6 +826,10 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 		{
 			if (e.PropertyName == Shell.TabBarIsVisibleProperty.PropertyName)
 				UpdateTabBarHidden();
+			else if (e.PropertyName == VisualElement.BackgroundColorProperty.PropertyName ||
+				e.PropertyName == VisualElement.BackgroundProperty.PropertyName ||
+				e.PropertyName == VisualElement.OpacityProperty.PropertyName)
+				UpdateContentBackground(View, _displayedPage, _defaultContentBackgroundColor);
 		}
 
 
