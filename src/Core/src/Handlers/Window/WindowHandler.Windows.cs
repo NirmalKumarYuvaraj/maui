@@ -170,7 +170,7 @@ namespace Microsoft.Maui.Handlers
 			if (titleBar is null)
 				return;
 
-			var titleBarRects = window.TitleBarDragRectangles;
+			var titleBarRects = titleBar.ExtendsContentIntoTitleBar ? window.TitleBarDragRectangles : null;
 
 			if (titleBarRects is null)
 			{

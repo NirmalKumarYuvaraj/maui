@@ -135,6 +135,7 @@ namespace Microsoft.Maui.Platform
 
 			WindowTitleMargin = margin;
 			UpdateRootNavigationViewMargins(topMargin);
+			UpdateTitleBarContentSize();
 			this.RefreshThemeResources();
 		}
 

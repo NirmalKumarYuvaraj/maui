@@ -4,12 +4,74 @@ using Microsoft.Maui.Controls;
 using Microsoft.Maui.DeviceTests.Stubs;
 using Windows.Graphics;
 using Xunit;
+using static Microsoft.Maui.DeviceTests.AssertHelpers;
 using WVisibility = Microsoft.UI.Xaml.Visibility;
 
 namespace Microsoft.Maui.DeviceTests
 {
 	public partial class WindowHandlerTests : CoreHandlerTestBase
 	{
+		[Theory]
+		[InlineData(true)]
+		[InlineData(false)]
+		public async Task NativeTitleBarDoesNotReserveCustomTitleBarSpace(bool setInCreated)
+		{
+			var window = new Window(new ContentPage());
+			if (setInCreated)
+			{
+				window.Created += (_, _) =>
+				{
+					var platformWindow = (Microsoft.UI.Xaml.Window)window.Handler.PlatformView;
+					platformWindow.GetAppWindow().TitleBar.ExtendsContentIntoTitleBar = false;
+				};
+			}
+
+			await RunWindowTest(window, async handler =>
+			{
+				var titleBar = handler.PlatformView.GetAppWindow().TitleBar;
+				var root = Assert.IsType<WindowRootView>(handler.MauiContext.GetNavigationRootManager().RootView);
+
+				if (!setInCreated)
+					titleBar.ExtendsContentIntoTitleBar = false;
+
+				await AssertEventually(() => root.WindowTitleBarContentControlVisibility == WVisibility.Collapsed);
+				Assert.Equal(0d, root.WindowTitleBarContentControlMinHeight);
+				Assert.Null(titleBar.ButtonBackgroundColor);
+				Assert.Null(titleBar.ButtonInactiveBackgroundColor);
+
+				titleBar.ExtendsContentIntoTitleBar = true;
+
+				await AssertEventually(() => root.WindowTitleBarContentControlVisibility == WVisibility.Visible);
+				Assert.True(root.WindowTitleBarContentControlMinHeight > 0);
+				Assert.Equal(Microsoft.UI.Colors.Transparent, titleBar.ButtonBackgroundColor);
+				Assert.Equal(Microsoft.UI.Colors.Transparent, titleBar.ButtonInactiveBackgroundColor);
+			});
+		}
+
+		[Fact]
+		public async Task NativeTitleBarPreservesExplicitCaptionButtonColors()
+		{
+			var window = new Window(new ContentPage());
+			window.Created += (_, _) =>
+			{
+				var platformWindow = (Microsoft.UI.Xaml.Window)window.Handler.PlatformView;
+				var titleBar = platformWindow.GetAppWindow().TitleBar;
+				titleBar.ExtendsContentIntoTitleBar = false;
+				titleBar.ButtonBackgroundColor = Microsoft.UI.Colors.Red;
+				titleBar.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Blue;
+			};
+
+			await RunWindowTest(window, async handler =>
+			{
+				var titleBar = handler.PlatformView.GetAppWindow().TitleBar;
+				var root = Assert.IsType<WindowRootView>(handler.MauiContext.GetNavigationRootManager().RootView);
+
+				await AssertEventually(() => root.WindowTitleBarContentControlVisibility == WVisibility.Collapsed);
+				Assert.Equal(Microsoft.UI.Colors.Red, titleBar.ButtonBackgroundColor);
+				Assert.Equal(Microsoft.UI.Colors.Blue, titleBar.ButtonInactiveBackgroundColor);
+			});
+		}
+
 		[Fact(DisplayName = "Back Button Not Visible With No Navigation Page")]
 		public async Task BackButtonNotVisibleWithBasicView()
 		{

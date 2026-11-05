@@ -9,6 +9,7 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml.Media;
 using Windows.Graphics;
 using ViewManagement = Windows.UI.ViewManagement;
+using WColor = Windows.UI.Color;
 
 namespace Microsoft.Maui
 {
@@ -18,15 +19,24 @@ namespace Microsoft.Maui
 		static readonly SizeInt32 DefaultMaximumSize = new SizeInt32(int.MaxValue, int.MaxValue);
 
 		readonly WindowMessageManager _windowManager;
+		readonly UI.Dispatching.DispatcherQueueHandler _updateTitleBar;
 
 		IntPtr _windowIcon;
 		bool _enableResumeEvent;
 		bool _isActivated;
+		bool _isClosed;
+		bool _extendsContentIntoTitleBar = true;
+		bool _titleBarUpdatePending;
+		WColor? _buttonBackgroundColor;
+		WColor? _buttonInactiveBackgroundColor;
 		ViewManagement.UISettings _viewSettings;
+
+		internal event EventHandler? TitleBarChanged;
 
 		public MauiWinUIWindow()
 		{
 			_windowManager = WindowMessageManager.Get(this);
+			_updateTitleBar = UpdateTitleBar;
 			_viewSettings = new ViewManagement.UISettings();
 
 			Activated += OnActivated;
@@ -42,6 +52,8 @@ namespace Microsoft.Maui
 
 				if (titleBar is not null)
 				{
+					_buttonBackgroundColor = titleBar.ButtonBackgroundColor;
+					_buttonInactiveBackgroundColor = titleBar.ButtonInactiveBackgroundColor;
 					titleBar.ExtendsContentIntoTitleBar = true;
 				}
 
@@ -60,6 +72,8 @@ namespace Microsoft.Maui
 
 		protected virtual void OnActivated(object sender, UI.Xaml.WindowActivatedEventArgs args)
 		{
+			UpdateTitleBar();
+
 			if (args.WindowActivationState != UI.Xaml.WindowActivationState.Deactivated)
 			{
 				// We have to track isActivated calls because WinUI will call OnActivated Twice
@@ -99,12 +113,14 @@ namespace Microsoft.Maui
 
 		void OnClosedPrivate(object sender, UI.Xaml.WindowEventArgs args)
 		{
+			_isClosed = true;
 			OnClosed(sender, args);
 
 			Activated -= OnActivated;
 			Closed -= OnClosedPrivate;
 			VisibilityChanged -= OnVisibilityChanged;
 			_viewSettings.ColorValuesChanged -= ViewSettingsColorValuesChanged;
+			TitleBarChanged = null;
 
 			if (_windowIcon != IntPtr.Zero)
 			{
@@ -186,6 +202,11 @@ namespace Microsoft.Maui
 						}
 					}
 				}
+				else if (e.MessageId == PlatformMethods.MessageIds.WM_NCCALCSIZE && !_isClosed && !_titleBarUpdatePending)
+				{
+					// Read the title-bar state after the native frame change has completed.
+					_titleBarUpdatePending = DispatcherQueue.TryEnqueue(_updateTitleBar);
+				}
 
 				Services?.InvokeLifecycleEvents<WindowsLifecycle.OnPlatformMessage>(
 					m => m.Invoke(this, new WindowsPlatformMessageEventArgs(e.Hwnd, e.MessageId, e.WParam, e.LParam)));
@@ -221,13 +242,47 @@ namespace Microsoft.Maui
 			DispatcherQueue.TryEnqueue(SetTileBarButtonColors);
 		}
 
+		void UpdateTitleBar()
+		{
+			_titleBarUpdatePending = false;
+			if (_isClosed || !AppWindowTitleBar.IsCustomizationSupported())
+				return;
+
+			var titleBar = this.GetAppWindow()?.TitleBar;
+			if (titleBar is null)
+				return;
+
+			var extendsContentIntoTitleBar = titleBar.ExtendsContentIntoTitleBar;
+			if (_extendsContentIntoTitleBar == extendsContentIntoTitleBar)
+				return;
+
+			_extendsContentIntoTitleBar = extendsContentIntoTitleBar;
+			if (extendsContentIntoTitleBar)
+			{
+				_buttonBackgroundColor = titleBar.ButtonBackgroundColor;
+				_buttonInactiveBackgroundColor = titleBar.ButtonInactiveBackgroundColor;
+				SetTileBarButtonColors();
+			}
+			else
+			{
+				// Restore only MAUI's overrides, preserving colors explicitly set by the app.
+				if (titleBar.ButtonBackgroundColor == Colors.Transparent)
+					titleBar.ButtonBackgroundColor = _buttonBackgroundColor;
+				if (titleBar.ButtonInactiveBackgroundColor == Colors.Transparent)
+					titleBar.ButtonInactiveBackgroundColor = _buttonInactiveBackgroundColor;
+			}
+
+			TitleBarChanged?.Invoke(this, EventArgs.Empty);
+			Window?.Handler?.UpdateValue(nameof(IWindow.TitleBarDragRectangles));
+		}
+
 		void SetTileBarButtonColors()
 		{
-			if (AppWindowTitleBar.IsCustomizationSupported())
+			if (!_isClosed && AppWindowTitleBar.IsCustomizationSupported())
 			{
 				var titleBar = this.GetAppWindow()?.TitleBar;
 
-				if (titleBar is null)
+				if (titleBar is null || !titleBar.ExtendsContentIntoTitleBar)
 				{
 					return;
 				}

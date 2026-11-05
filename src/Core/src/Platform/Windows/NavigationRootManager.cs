@@ -10,6 +10,7 @@ namespace Microsoft.Maui.Platform
 		readonly WeakReference<Window> _platformWindow;
 		WindowRootView _rootView;
 		bool _disconnected = true;
+		bool _isTitleBarVisible = true;
 		internal event EventHandler? OnApplyTemplateFinished;
 
 		public NavigationRootManager(Window platformWindow)
@@ -22,7 +23,7 @@ namespace Microsoft.Maui.Platform
 			var titleBar = platformWindow.GetAppWindow()?.TitleBar;
 			if (titleBar is not null)
 			{
-				SetTitleBarVisibility(titleBar.ExtendsContentIntoTitleBar);
+				SetTitleBarVisibility(true);
 			}
 		}
 
@@ -32,6 +33,10 @@ namespace Microsoft.Maui.Platform
 			if (platformWindow is null)
 				return;
 
+			_isTitleBarVisible = isVisible;
+			var titleBar = platformWindow.GetAppWindow()?.TitleBar;
+			isVisible &= titleBar?.ExtendsContentIntoTitleBar == true;
+
 			// https://learn.microsoft.com/en-us/windows/apps/design/basics/titlebar-design
 			// Standard title bar height is 32px
 			// This should always get set by the code after but
@@ -40,7 +45,6 @@ namespace Microsoft.Maui.Platform
 			var titlebarMargins = new UI.Xaml.Thickness(0, 0, 0, 0);
 			if (isVisible && UI.Windowing.AppWindowTitleBar.IsCustomizationSupported())
 			{
-				var titleBar = platformWindow.GetAppWindow()?.TitleBar;
 				if (titleBar is not null)
 				{
 					var density = platformWindow.GetDisplayDensity();
@@ -55,6 +59,12 @@ namespace Microsoft.Maui.Platform
 					isVisible,
 					titlebarMargins
 				);
+		}
+
+		void OnTitleBarChanged(object? sender, EventArgs e)
+		{
+			if (!_disconnected)
+				SetTitleBarVisibility(_isTitleBarVisible);
 		}
 
 		void WindowRootViewOnWindowTitleBarContentSizeChanged(object? sender, EventArgs e)
@@ -130,7 +140,10 @@ namespace Microsoft.Maui.Platform
 			if (_disconnected && _platformWindow.TryGetTarget(out var platformWindow))
 			{
 				platformWindow.Activated += OnWindowActivated;
+				if (platformWindow is MauiWinUIWindow mauiWindow)
+					mauiWindow.TitleBarChanged += OnTitleBarChanged;
 				_disconnected = false;
+				SetTitleBarVisibility(_isTitleBarVisible);
 			}
 
 			_rootView.OnWindowTitleBarContentSizeChanged += WindowRootViewOnWindowTitleBarContentSizeChanged;
@@ -143,6 +156,8 @@ namespace Microsoft.Maui.Platform
 			if (_platformWindow.TryGetTarget(out var platformWindow))
 			{
 				platformWindow.Activated -= OnWindowActivated;
+				if (platformWindow is MauiWinUIWindow mauiWindow)
+					mauiWindow.TitleBarChanged -= OnTitleBarChanged;
 			}
 
 			SetToolbar(null);
