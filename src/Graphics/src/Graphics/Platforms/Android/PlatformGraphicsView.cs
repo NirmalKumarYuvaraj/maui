@@ -94,28 +94,33 @@ namespace Microsoft.Maui.Graphics.Platform
 			var dirtyRect = new RectF(0, 0, _width, _height);
 
 			// Save the canvas state and clip to view bounds to prevent drawing outside
-			androidCanvas.Save();
+			int save = androidCanvas.Save();
 			androidCanvas.ClipRect(0, 0, _width, _height);
 
-			_canvas.Canvas = androidCanvas;
-			if (_backgroundColor != null)
+			try
 			{
-				_canvas.FillColor = _backgroundColor;
-				_canvas.FillRectangle(dirtyRect);
-				_canvas.FillColor = Colors.White;
+				_canvas.BeginDraw(androidCanvas, _width, _height);
+				if (_backgroundColor != null)
+				{
+					_canvas.FillColor = _backgroundColor;
+					_canvas.FillRectangle(dirtyRect);
+					_canvas.FillColor = Colors.White;
+				}
+
+				_scalingCanvas.ResetState();
+				// Use adjusted scale factors that map rounded logical dp dimensions
+				// back to exact pixel dimensions, avoiding both fractional dp values
+				// and sub-pixel gaps at view edges.
+				_scalingCanvas.Scale(_adjustedScaleX, _adjustedScaleY);
+				dirtyRect.Width = _logicalWidth;
+				dirtyRect.Height = _logicalHeight;
+				_drawable.Draw(_scalingCanvas, dirtyRect);
 			}
-
-			_scalingCanvas.ResetState();
-			// Use adjusted scale factors that map rounded logical dp dimensions
-			// back to exact pixel dimensions, avoiding both fractional dp values
-			// and sub-pixel gaps at view edges.
-			_scalingCanvas.Scale(_adjustedScaleX, _adjustedScaleY);
-			dirtyRect.Width = _logicalWidth;
-			dirtyRect.Height = _logicalHeight;
-			_drawable.Draw(_scalingCanvas, dirtyRect);
-
-			androidCanvas.Restore();
-			_canvas.Canvas = null;
+			finally
+			{
+				_canvas.Canvas = null;
+				androidCanvas.RestoreToCount(save);
+			}
 		}
 
 		protected override void OnSizeChanged(int width, int height, int oldWidth, int oldHeight)

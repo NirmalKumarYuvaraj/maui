@@ -7,6 +7,7 @@ namespace Microsoft.Maui.Graphics.Platform
 	public class PlatformCanvasState : CanvasState, IBlurrableCanvas
 	{
 		public float Alpha { get; set; } = 1;
+		internal BlendMode BlendMode { get; set; }
 		private global::Android.Graphics.Paint _fillPaint;
 		private global::Android.Graphics.Paint _strokePaint;
 		private IFont _font;
@@ -35,6 +36,7 @@ namespace Microsoft.Maui.Graphics.Platform
 		public PlatformCanvasState(PlatformCanvasState prototype) : base(prototype)
 		{
 			Alpha = prototype.Alpha;
+			BlendMode = prototype.BlendMode;
 			_strokeColor = prototype._strokeColor;
 			_fillColor = prototype._fillColor;
 			_fontColor = prototype._fontColor;
@@ -240,6 +242,7 @@ namespace Microsoft.Maui.Graphics.Platform
 					_typefaceInvalid = false;
 				}
 
+				PlatformBlendModes.Apply(_fontPaint, BlendMode);
 				return _fontPaint;
 			}
 
@@ -300,6 +303,7 @@ namespace Microsoft.Maui.Graphics.Platform
 				var a = (int)(_strokeColor.Alpha * 255f * Alpha);
 
 				paint.SetARGB(a, r, g, b);
+				PlatformBlendModes.Apply(paint, BlendMode);
 				return paint;
 			}
 		}
@@ -316,6 +320,7 @@ namespace Microsoft.Maui.Graphics.Platform
 				var a = (int)(_fillColor.Alpha * 255f * Alpha);
 
 				paint.SetARGB(a, r, g, b);
+				PlatformBlendModes.Apply(paint, BlendMode);
 				return paint;
 			}
 		}
@@ -388,7 +393,7 @@ namespace Microsoft.Maui.Graphics.Platform
 		public global::Android.Graphics.Paint GetImagePaint(float sx, float sy)
 		{
 			var imagePaint = GetShadowPaint(sx, sy);
-			if (imagePaint == null && Alpha < 1)
+			if (imagePaint == null && (Alpha < 1 || BlendMode != BlendMode.Normal))
 			{
 				imagePaint = new global::Android.Graphics.Paint();
 				imagePaint.SetARGB(255, 0, 0, 0);
@@ -397,6 +402,8 @@ namespace Microsoft.Maui.Graphics.Platform
 				imagePaint.Alpha = (int)(Alpha * 255f);
 			}
 
+			if (imagePaint != null)
+				PlatformBlendModes.Apply(imagePaint, BlendMode);
 			return imagePaint;
 		}
 
@@ -423,6 +430,7 @@ namespace Microsoft.Maui.Graphics.Platform
 			_font = null;
 			_fontSize = 10f;
 			Alpha = 1;
+			BlendMode = BlendMode.Normal;
 			_scaleX = 1;
 			_scaleY = 1;
 		}

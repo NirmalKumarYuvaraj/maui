@@ -5,12 +5,14 @@ using Android.Graphics;
 using Android.Text;
 using Microsoft.Maui.Graphics.Platform.Text;
 using Microsoft.Maui.Graphics.Text;
+using APaint = Android.Graphics.Paint;
 
 namespace Microsoft.Maui.Graphics.Platform
 {
 	public class PlatformCanvas : AbstractCanvas<PlatformCanvasState>, IBlurrableCanvas
 	{
 		private Canvas _canvas;
+		private PlatformBlendRenderer _blendRenderer;
 		private Shader _shader;
 
 		private readonly Matrix _shaderMatrix = new Matrix();
@@ -28,6 +30,8 @@ namespace Microsoft.Maui.Graphics.Platform
 
 		public override void Dispose()
 		{
+			_blendRenderer?.Dispose();
+			_blendRenderer = null;
 			_stateService.Dispose();
 			base.Dispose();
 		}
@@ -37,10 +41,27 @@ namespace Microsoft.Maui.Graphics.Platform
 			get => _canvas;
 			set
 			{
+				_blendRenderer?.Dispose();
+				_blendRenderer = null;
 				_canvas = null;
 				ResetState();
 				_canvas = value;
+				if (value != null)
+					_blendRenderer = new PlatformBlendRenderer(value);
 			}
+		}
+
+		internal void SetBitmap(Bitmap bitmap)
+		{
+			_blendRenderer?.Dispose();
+			_blendRenderer = new PlatformBlendRenderer(_canvas, bitmap);
+		}
+
+		internal void BeginDraw(Canvas canvas, int width, int height)
+		{
+			Canvas = canvas;
+			_blendRenderer.Dispose();
+			_blendRenderer = new PlatformBlendRenderer(canvas, deferred: true, width: width, height: height);
 		}
 
 		public override bool Antialias
@@ -102,102 +123,51 @@ namespace Microsoft.Maui.Graphics.Platform
 		{
 			set
 			{
-				/* todo: implement this
-				CGBlendMode vBlendMode = CGBlendMode.Normal;
-
-				switch (value)
-				{
-					case BlendMode.Clear:
-						vBlendMode = CGBlendMode.Clear;
-						break;
-					case BlendMode.Color:
-						vBlendMode = CGBlendMode.Color;
-						break;
-					case BlendMode.ColorBurn:
-						vBlendMode = CGBlendMode.ColorBurn;
-						break;
-					case BlendMode.ColorDodge:
-						vBlendMode = CGBlendMode.ColorDodge;
-						break;
-					case BlendMode.Copy:
-						vBlendMode = CGBlendMode.Copy;
-						break;
-					case BlendMode.Darken:
-						vBlendMode = CGBlendMode.Darken;
-						break;
-					case BlendMode.DestinationAtop:
-						vBlendMode = CGBlendMode.DestinationAtop;
-						break;
-					case BlendMode.DestinationIn:
-						vBlendMode = CGBlendMode.DestinationIn;
-						break;
-					case BlendMode.DestinationOut:
-						vBlendMode = CGBlendMode.DestinationOut;
-						break;
-					case BlendMode.DestinationOver:
-						vBlendMode = CGBlendMode.DestinationOver;
-						break;
-					case BlendMode.Difference:
-						vBlendMode = CGBlendMode.Difference;
-						break;
-					case BlendMode.Exclusion:
-						vBlendMode = CGBlendMode.Exclusion;
-						break;
-					case BlendMode.HardLight:
-						vBlendMode = CGBlendMode.HardLight;
-						break;
-					case BlendMode.Hue:
-						vBlendMode = CGBlendMode.Hue;
-						break;
-					case BlendMode.Lighten:
-						vBlendMode = CGBlendMode.Lighten;
-						break;
-					case BlendMode.Luminosity:
-						vBlendMode = CGBlendMode.Luminosity;
-						break;
-					case BlendMode.Multiply:
-						vBlendMode = CGBlendMode.Multiply;
-						break;
-					case BlendMode.Normal:
-						vBlendMode = CGBlendMode.Normal;
-						break;
-					case BlendMode.Overlay:
-						vBlendMode = CGBlendMode.Overlay;
-						break;
-					case BlendMode.PlusDarker:
-						vBlendMode = CGBlendMode.PlusDarker;
-						break;
-					case BlendMode.PlusLighter:
-						vBlendMode = CGBlendMode.PlusLighter;
-						break;
-					case BlendMode.Saturation:
-						vBlendMode = CGBlendMode.Saturation;
-						break;
-					case BlendMode.Screen:
-						vBlendMode = CGBlendMode.Screen;
-						break;
-					case BlendMode.SoftLight:
-						vBlendMode = CGBlendMode.SoftLight;
-						break;
-					case BlendMode.SourceAtop:
-						vBlendMode = CGBlendMode.SourceAtop;
-						break;
-					case BlendMode.SourceIn:
-						vBlendMode = CGBlendMode.SourceIn;
-						break;
-					case BlendMode.SourceOut:
-						vBlendMode = CGBlendMode.SourceOut;
-						break;
-					case BlendMode.XOR:
-						vBlendMode = CGBlendMode.XOR;
-						break;
-				}
-
-				canvas.SetBlendMode(vBlendMode);*/
-
-				//CurrentState.FillPaint.SetXfermode(new
+				if ((uint)value > (uint)BlendMode.PlusLighter)
+					throw new ArgumentOutOfRangeException(nameof(value));
+				CurrentState.BlendMode = value;
 			}
 		}
+
+		void DrawLayout(StaticLayout layout)
+		{
+			_blendRenderer.Draw(canvas => layout.Draw(canvas), CurrentState.BlendMode, canvas =>
+			{
+				var paint = layout.Paint;
+				using var previous = paint.ColorFilter;
+				using var coverage = new ColorMatrixColorFilter(new float[]
+				{
+					0, 0, 0, 0, 255,
+					0, 0, 0, 0, 255,
+					0, 0, 0, 0, 255,
+					0, 0, 0, 0, 255
+				});
+				paint.SetColorFilter(coverage);
+				try
+				{
+					layout.Draw(canvas);
+				}
+				finally
+				{
+					paint.SetColorFilter(previous);
+				}
+			});
+		}
+
+		void Draw(Action<Canvas, APaint> draw, APaint paint, Action<Canvas, APaint> drawCoverage = null)
+		{
+			_blendRenderer.Draw(canvas => draw(canvas, paint), CurrentState.BlendMode, canvas =>
+			{
+				using var coveragePaint = new APaint(paint);
+				coveragePaint.Color = global::Android.Graphics.Color.White;
+				coveragePaint.SetShader(null);
+				coveragePaint.SetColorFilter(null);
+				PlatformBlendModes.Apply(coveragePaint, BlendMode.Normal);
+				(drawCoverage ?? draw)(canvas, coveragePaint);
+			});
+		}
+
+		void ChangeCanvasState(Action<Canvas> change) => _blendRenderer.ChangeState(change);
 
 		protected override void PlatformSetStrokeDashPattern(float[] strokePattern, float strokeDashOffset, float strokeSize)
 		{
@@ -360,7 +330,7 @@ namespace Microsoft.Maui.Graphics.Platform
 			var platformPath = new Path();
 			platformPath.MoveTo(x1, y1);
 			platformPath.LineTo(x2, y2);
-			_canvas.DrawPath(platformPath, CurrentState.StrokePaintWithAlpha);
+			Draw((canvas, paint) => canvas.DrawPath(platformPath, paint), CurrentState.StrokePaintWithAlpha);
 			platformPath.Dispose();
 		}
 
@@ -404,12 +374,12 @@ namespace Microsoft.Maui.Graphics.Platform
 				var platformPath = new Path();
 				platformPath.AddArc(rect, startAngle, sweep);
 				platformPath.Close();
-				_canvas.DrawPath(platformPath, CurrentState.StrokePaintWithAlpha);
+				Draw((canvas, paint) => canvas.DrawPath(platformPath, paint), CurrentState.StrokePaintWithAlpha);
 				platformPath.Dispose();
 			}
 			else
 			{
-				_canvas.DrawArc(rect, startAngle, sweep, false, CurrentState.StrokePaintWithAlpha);
+				Draw((canvas, paint) => canvas.DrawArc(rect, startAngle, sweep, false, paint), CurrentState.StrokePaintWithAlpha);
 			}
 
 			rect.Dispose();
@@ -443,7 +413,7 @@ namespace Microsoft.Maui.Graphics.Platform
 				sweep *= -1;
 			}
 
-			_canvas.DrawArc(rect, startAngle, sweep, false, CurrentState.FillPaintWithAlpha);
+			Draw((canvas, paint) => canvas.DrawArc(rect, startAngle, sweep, false, paint), CurrentState.FillPaintWithAlpha);
 			rect.Dispose();
 		}
 
@@ -460,7 +430,7 @@ namespace Microsoft.Maui.Graphics.Platform
 			rectWidth = width;
 			rectHeight = height;
 
-			_canvas.DrawRect(rectX, rectY, rectX + rectWidth, rectY + rectHeight, CurrentState.StrokePaintWithAlpha);
+			Draw((canvas, paint) => canvas.DrawRect(rectX, rectY, rectX + rectWidth, rectY + rectHeight, paint), CurrentState.StrokePaintWithAlpha);
 		}
 
 		public override void FillRectangle(float x, float y, float width, float height)
@@ -470,7 +440,7 @@ namespace Microsoft.Maui.Graphics.Platform
 			var rectWidth = width;
 			var rectHeight = height;
 
-			_canvas.DrawRect(rectX, rectY, rectX + rectWidth, rectY + rectHeight, CurrentState.FillPaintWithAlpha);
+			Draw((canvas, paint) => canvas.DrawRect(rectX, rectY, rectX + rectWidth, rectY + rectHeight, paint), CurrentState.FillPaintWithAlpha);
 		}
 
 		protected override void PlatformDrawRoundedRectangle(
@@ -490,7 +460,7 @@ namespace Microsoft.Maui.Graphics.Platform
 			var radius = aCornerRadius;
 
 			var rect = new global::Android.Graphics.RectF(rectX, rectY, rectX + rectWidth, rectY + rectHeight);
-			_canvas.DrawRoundRect(rect, radius, radius, CurrentState.StrokePaintWithAlpha);
+			Draw((canvas, paint) => canvas.DrawRoundRect(rect, radius, radius, paint), CurrentState.StrokePaintWithAlpha);
 			rect.Dispose();
 		}
 
@@ -503,7 +473,7 @@ namespace Microsoft.Maui.Graphics.Platform
 			var radius = aCornerRadius;
 
 			var rect = new global::Android.Graphics.RectF(rectX, rectY, rectX + rectWidth, rectY + rectHeight);
-			_canvas.DrawRoundRect(rect, radius, radius, CurrentState.FillPaintWithAlpha);
+			Draw((canvas, paint) => canvas.DrawRoundRect(rect, radius, radius, paint), CurrentState.FillPaintWithAlpha);
 			rect.Dispose();
 		}
 
@@ -518,7 +488,7 @@ namespace Microsoft.Maui.Graphics.Platform
 			var rectHeight = height;
 
 			var rect = new global::Android.Graphics.RectF(rectX, rectY, rectX + rectWidth, rectY + rectHeight);
-			_canvas.DrawOval(rect, CurrentState.StrokePaintWithAlpha);
+			Draw((canvas, paint) => canvas.DrawOval(rect, paint), CurrentState.StrokePaintWithAlpha);
 			rect.Dispose();
 		}
 
@@ -533,14 +503,14 @@ namespace Microsoft.Maui.Graphics.Platform
 			var rectHeight = height;
 
 			var rect = new global::Android.Graphics.RectF(rectX, rectY, rectX + rectWidth, rectY + rectHeight);
-			_canvas.DrawOval(rect, CurrentState.FillPaintWithAlpha);
+			Draw((canvas, paint) => canvas.DrawOval(rect, paint), CurrentState.FillPaintWithAlpha);
 			rect.Dispose();
 		}
 
 		public override void SubtractFromClip(float x, float y, float width, float height)
 		{
 #pragma warning disable CS0618, CA1416, CA1422 // clipRect(Region.Op) method deprecated in API 26 https://developer.android.com/reference/android/graphics/Canvas#clipRect(float,%20float,%20float,%20float,%20android.graphics.Region.Op)
-			_canvas.ClipRect(x, y, x + width, y + height, Region.Op.Difference);
+			ChangeCanvasState(canvas => canvas.ClipRect(x, y, x + width, y + height, Region.Op.Difference));
 #pragma warning restore CS0618, CA1416, CA1422 // clipRect(Region.Op) method deprecated
 		}
 
@@ -554,11 +524,11 @@ namespace Microsoft.Maui.Graphics.Platform
 				using var strokedOutline = new Path();
 				CurrentState.StrokePaintWithAlpha.GetFillPath(platformPath, strokedOutline);
 				// FillPaintWithAlpha already has the gradient shader from SetFillPaint
-				_canvas.DrawPath(strokedOutline, CurrentState.FillPaintWithAlpha);
+				Draw((canvas, paint) => canvas.DrawPath(strokedOutline, paint), CurrentState.FillPaintWithAlpha);
 			}
 			else
 			{
-				_canvas.DrawPath(platformPath, CurrentState.StrokePaintWithAlpha);
+				Draw((canvas, paint) => canvas.DrawPath(platformPath, paint), CurrentState.StrokePaintWithAlpha);
 			}
 
 			platformPath.Dispose();
@@ -568,19 +538,20 @@ namespace Microsoft.Maui.Graphics.Platform
 		{
 			var platformPath = path.AsAndroidPath();
 			platformPath.SetFillType(windingMode == WindingMode.NonZero ? Path.FillType.Winding : Path.FillType.EvenOdd);
-			_canvas.ClipPath(platformPath);
+			_blendRenderer.ClipPath(platformPath);
+			platformPath.Dispose();
 		}
 
 		public override void ClipRectangle(float x, float y, float width, float height)
 		{
-			_canvas.ClipRect(x, y, x + width, y + height);
+			ChangeCanvasState(canvas => canvas.ClipRect(x, y, x + width, y + height));
 		}
 
 		public override void FillPath(PathF path, WindingMode windingMode)
 		{
 			var platformPath = path.AsAndroidPath();
 			platformPath.SetFillType(windingMode == WindingMode.NonZero ? Path.FillType.Winding : Path.FillType.EvenOdd);
-			_canvas.DrawPath(platformPath, CurrentState.FillPaintWithAlpha);
+			Draw((canvas, paint) => canvas.DrawPath(platformPath, paint), CurrentState.FillPaintWithAlpha);
 			platformPath.Dispose();
 		}
 
@@ -613,11 +584,13 @@ namespace Microsoft.Maui.Graphics.Platform
 			if (value == null)
 				return;
 
-			_canvas.Save();
-			_canvas.Translate(x, y - CurrentState.ScaledFontSize);
+			ChangeCanvasState(canvas => canvas.Save());
+			float top = y - CurrentState.ScaledFontSize;
+			ChangeCanvasState(canvas => canvas.Translate(x, top));
 			StaticLayout layout = TextLayoutUtils.CreateLayout(value, CurrentState.FontPaint, 512, Layout.Alignment.AlignNormal);
-			layout.Draw(_canvas);
-			_canvas.Restore();
+			DrawLayout(layout);
+			layout.Dispose();
+			ChangeCanvasState(canvas => canvas.Restore());
 		}
 
 		public override void DrawString(
@@ -634,7 +607,7 @@ namespace Microsoft.Maui.Graphics.Platform
 			if (value == null || value.Length == 0 || width == 0 || height == 0)
 				return;
 
-			_canvas.Save();
+			ChangeCanvasState(canvas => canvas.Save());
 
 			var alignment = Layout.Alignment.AlignNormal;
 			if (horizAlignment == HorizontalAlignment.Center)
@@ -648,22 +621,23 @@ namespace Microsoft.Maui.Graphics.Platform
 
 			var layout = TextLayoutUtils.CreateLayout(value, CurrentState.FontPaint, (int)width, alignment);
 			var offset = layout.GetOffsetsToDrawText(x, y, width, height, horizAlignment, vertAlignment);
-			_canvas.Translate(offset.Width, offset.Height);
-			layout.Draw(_canvas);
-			_canvas.Restore();
+			ChangeCanvasState(canvas => canvas.Translate(offset.Width, offset.Height));
+			DrawLayout(layout);
+			layout.Dispose();
+			ChangeCanvasState(canvas => canvas.Restore());
 		}
 
 		public override void DrawText(IAttributedText value, float x, float y, float width, float height)
 		{
-			_canvas.Save();
+			ChangeCanvasState(canvas => canvas.Save());
 			var span = value.AsSpannableString();
 			var layout = TextLayoutUtils.CreateLayoutForSpannedString(span, CurrentState.FontPaint, (int)width, Layout.Alignment.AlignNormal);
 			var offset = layout.GetOffsetsToDrawText(x, y, width, height, HorizontalAlignment.Left, VerticalAlignment.Top);
-			_canvas.Translate(offset.Width, offset.Height);
-			layout.Draw(_canvas);
+			ChangeCanvasState(canvas => canvas.Translate(offset.Width, offset.Height));
+			DrawLayout(layout);
 			layout.Dispose();
 			span.Dispose();
-			_canvas.Restore();
+			ChangeCanvasState(canvas => canvas.Restore());
 		}
 
 		public override void ResetState()
@@ -686,7 +660,7 @@ namespace Microsoft.Maui.Graphics.Platform
 
 		protected override void StateRestored(PlatformCanvasState state)
 		{
-			_canvas?.Restore();
+			_blendRenderer?.ChangeState(canvas => canvas.Restore());
 		}
 
 		public override void SetShadow(SizeF offset, float blur, Color color)
@@ -709,38 +683,44 @@ namespace Microsoft.Maui.Graphics.Platform
 
 		protected override void PlatformRotate(float degrees, float radians, float x, float y)
 		{
-			_canvas.Rotate(degrees, x, y);
+			ChangeCanvasState(canvas => canvas.Rotate(degrees, x, y));
 		}
 
 		protected override void PlatformRotate(float degrees, float radians)
 		{
-			_canvas.Rotate(degrees);
+			ChangeCanvasState(canvas => canvas.Rotate(degrees));
 		}
 
 		protected override void PlatformScale(float xFactor, float yFactor)
 		{
 			CurrentState.SetScale(Math.Abs(xFactor), Math.Abs(yFactor));
 			if (xFactor < 0 || yFactor < 0)
-				_canvas.Scale(xFactor < 0 ? -1 : 1, yFactor < 0 ? -1 : 1);
+				ChangeCanvasState(canvas => canvas.Scale(xFactor < 0 ? -1 : 1, yFactor < 0 ? -1 : 1));
 		}
 
 		protected override void PlatformTranslate(float tx, float ty)
 		{
-			_canvas.Translate(tx * CurrentState.ScaleX, ty * CurrentState.ScaleY);
+			float x = tx * CurrentState.ScaleX;
+			float y = ty * CurrentState.ScaleY;
+			ChangeCanvasState(canvas => canvas.Translate(x, y));
 		}
 
 		protected override void PlatformConcatenateTransform(Matrix3x2 transform)
 		{
+			ChangeCanvasState(canvas =>
+			{
 #pragma warning disable CS0618 // getMatrix() method deprecated in API 16 https://developer.android.com/reference/android/graphics/Canvas#getMatrix()
-			var matrix = new Matrix(_canvas.Matrix);
-#pragma warning restore CS0618 // getMatrix() method deprecated
-			matrix.PostConcat(transform.AsMatrix());
-			_canvas.Matrix = matrix;
+				using var matrix = new Matrix(canvas.Matrix);
+#pragma warning restore CS0618
+				using var addition = transform.AsMatrix();
+				matrix.PostConcat(addition);
+				canvas.Matrix = matrix;
+			});
 		}
 
 		public override void SaveState()
 		{
-			_canvas.Save();
+			ChangeCanvasState(canvas => canvas.Save());
 			base.SaveState();
 		}
 
@@ -761,7 +741,7 @@ namespace Microsoft.Maui.Graphics.Platform
 					var scaleX = CurrentState.ScaleX < 0 ? -1 : 1;
 					var scaleY = CurrentState.ScaleY < 0 ? -1 : 1;
 
-					_canvas.Save();
+					ChangeCanvasState(canvas => canvas.Save());
 					//canvas.Scale (scaleX, scaleY);
 					var srcRect = new global::Android.Graphics.Rect(0, 0, bitmap.Width, bitmap.Height);
 
@@ -777,9 +757,12 @@ namespace Microsoft.Maui.Graphics.Platform
 
 					var destRect = new global::Android.Graphics.RectF(rx1, ry1, rx2, ry2);
 					var paint = CurrentState.GetImagePaint(1, 1);
-					_canvas.DrawBitmap(bitmap, srcRect, destRect, paint);
+					Draw((canvas, imagePaint) => canvas.DrawBitmap(bitmap, srcRect, destRect, imagePaint), paint,
+						(canvas, coveragePaint) => canvas.DrawRect(destRect, coveragePaint));
 					paint?.Dispose();
-					_canvas.Restore();
+					srcRect.Dispose();
+					destRect.Dispose();
+					ChangeCanvasState(canvas => canvas.Restore());
 				}
 			}
 		}

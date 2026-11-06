@@ -7,6 +7,7 @@
 
 	<ItemGroup>
 		<Compile Include="..\..\src\Graphics\Matrix3x2Extensions.cs" Link="Matrix3x2Extensions.cs" />
+		<Compile Include="..\..\src\Graphics\Platforms\Android\BlendModeCompositor.cs" Link="BlendModeCompositor.cs" />
 	</ItemGroup>
 
 	<ItemGroup>

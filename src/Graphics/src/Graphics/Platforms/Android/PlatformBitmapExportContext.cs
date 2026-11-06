@@ -8,6 +8,7 @@ namespace Microsoft.Maui.Graphics.Platform
 		private Bitmap _bitmap;
 		private Canvas _androidCanvas;
 		private readonly ScalingCanvas _canvas;
+		private readonly PlatformCanvas _platformCanvas;
 		private readonly bool _disposeBitmap;
 
 		public PlatformBitmapExportContext(int width, int height, float displayScale = 1, int dpi = 72, bool disposeBitmap = true, bool transparent = true) : base(width, height, dpi)
@@ -24,6 +25,8 @@ namespace Microsoft.Maui.Graphics.Platform
 			{
 				Canvas = _androidCanvas,
 			};
+			_platformCanvas = platformCanvas;
+			platformCanvas.SetBitmap(_bitmap);
 			_canvas = new ScalingCanvas(platformCanvas)
 			{
 				DisplayScale = displayScale
@@ -41,6 +44,7 @@ namespace Microsoft.Maui.Graphics.Platform
 
 		public override void Dispose()
 		{
+			_platformCanvas.Dispose();
 			_androidCanvas?.Dispose();
 			_androidCanvas = null;
 
