@@ -18,5 +18,11 @@ namespace Microsoft.Maui.Platform
 		protected MauiNavHostFragment(nint javaReference, JniHandleOwnership transfer) : base(javaReference, transfer)
 		{
 		}
+
+		public override void OnResume()
+		{
+			base.OnResume();
+			StackNavigationManager?.ResumeNavigation();
+		}
 	}
 }

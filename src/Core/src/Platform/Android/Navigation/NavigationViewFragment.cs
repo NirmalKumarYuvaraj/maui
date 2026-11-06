@@ -13,6 +13,8 @@ namespace Microsoft.Maui.Platform
 		AView? _currentView;
 		FragmentContainerView? _fragmentContainerView;
 		StackNavigationManager? _navigationManager;
+		internal int ConnectionGeneration { get; private set; }
+		internal IView? PresentedPage { get; private set; }
 
 		FragmentContainerView FragmentContainerView =>
 			_fragmentContainerView ?? throw new InvalidOperationException($"FragmentContainerView cannot be null here");
@@ -42,6 +44,8 @@ namespace Microsoft.Maui.Platform
 				return null!;
 
 			_fragmentContainerView ??= container as FragmentContainerView;
+			ConnectionGeneration = NavigationManager.ConnectionGeneration;
+			PresentedPage = NavigationManager.CurrentPage;
 
 			// When shuffling around the back stack sometimes we'll need a page to detach and then reattach.
 			// This mainly happens when users are removing or inserting pages. If we only have one page
@@ -58,10 +62,18 @@ namespace Microsoft.Maui.Platform
 			// Then we can try some other approaches like just modifying the navbar ourselves to include a back button
 			// Even if there's only one page on the stack
 
-			_currentView =
-				NavigationManager
-					.CurrentPage
-					.ToPlatform(NavigationManager.MauiContext, RequireContext(), inflater, ChildFragmentManager);
+			try
+			{
+				_currentView =
+					NavigationManager
+						.CurrentPage
+						.ToPlatform(NavigationManager.MauiContext, RequireContext(), inflater, ChildFragmentManager);
+			}
+			catch (Exception exception)
+			{
+				NavigationManager.NavigationFailed(exception);
+				throw;
+			}
 
 			// This shouldn't typically happen, but if a previous animation hasn't finished from a navigation that was interrupted
 			// the opacity of the view will be set to 0. This will reset it to 1.
@@ -80,22 +92,28 @@ namespace Microsoft.Maui.Platform
 				return;
 			}
 
-			if (_currentView.Parent == null)
+			if (_currentView.Parent != FragmentContainerView)
 			{
-				// Re-add the view to the container if Android removed it
-				// see comment inside OnCreateView for more information
+				// A shared Shell section page may have been displayed by another content host.
+				_currentView.RemoveFromParent();
 				FragmentContainerView.AddView(_currentView);
 			}
 
 			base.OnResume();
 		}
 
-		public override void OnDestroy()
+		public override void OnDestroyView()
 		{
 			_currentView = null;
 			_fragmentContainerView = null;
-			_navigationManager = null;
+			PresentedPage = null;
 
+			base.OnDestroyView();
+		}
+
+		public override void OnDestroy()
+		{
+			_navigationManager = null;
 			base.OnDestroy();
 		}
 

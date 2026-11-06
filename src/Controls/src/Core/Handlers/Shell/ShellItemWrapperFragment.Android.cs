@@ -19,7 +19,6 @@ namespace Microsoft.Maui.Controls.Handlers
     {
         readonly ShellItemHandler? _handler;
         CoordinatorLayout? _rootLayout;
-        ShellBackPressedCallback? _backPressedCallback;
 
         // Default constructor required by Android's FragmentManager for fragment restoration.
         // Without this, FragmentManager.instantiate() crashes on process-death restoration.
@@ -72,10 +71,6 @@ namespace Microsoft.Maui.Controls.Handlers
             {
                 return;
             }
-
-            // Setup back button handling
-            _backPressedCallback = new ShellBackPressedCallback(_handler, this);
-            RequireActivity().OnBackPressedDispatcher.AddCallback(ViewLifecycleOwner, _backPressedCallback);
 
             // Setup the shared toolbar
             _handler.SetupToolbar();
@@ -198,10 +193,6 @@ namespace Microsoft.Maui.Controls.Handlers
 
             _rootLayout = null;
 
-            // _backPressedCallback is auto-removed by ViewLifecycleOwner when the view is destroyed.
-            // Null here for symmetry — OnViewCreated recreates it.
-            _backPressedCallback = null;
-
             base.OnDestroyView();
         }
 
@@ -209,54 +200,10 @@ namespace Microsoft.Maui.Controls.Handlers
         {
             if (disposing)
             {
-                if (_backPressedCallback is not null)
-                {
-                    _backPressedCallback.Remove();
-                    _backPressedCallback.Dispose();
-                    _backPressedCallback = null;
-                }
-
                 _rootLayout = null;
             }
             base.Dispose(disposing);
         }
 
-        /// <summary>
-        /// Custom OnBackPressedCallback for Shell navigation
-        /// </summary>
-        sealed class ShellBackPressedCallback : AndroidX.Activity.OnBackPressedCallback
-        {
-            readonly ShellItemHandler _handler;
-            readonly Fragment _fragment;
-
-            public ShellBackPressedCallback(ShellItemHandler handler, Fragment fragment) : base(true)
-            {
-                _handler = handler;
-                _fragment = fragment;
-            }
-
-            public override void HandleOnBackPressed()
-            {
-                // Route through Shell's full back navigation pipeline.
-                // Shell.SendBackButtonPressed() handles:
-                //   - BackButtonBehavior.Command execution
-                //   - Page.OnBackButtonPressed() overrides
-                //   - Navigation stack pops (via Shell.OnBackButtonPressed)
-                //   - Modal stack dismissal
-                //   - ShellNavigatingEventArgs cancellation
-                // This matches the old renderer behavior where the lifecycle chain
-                // (Activity → Window → Shell) naturally invoked the full pipeline.
-                if (!_handler.OnBackButtonPressed())
-                {
-                    // Shell didn't handle it (at root, no stack to pop, not cancelled).
-                    // Forward to system by temporarily disabling this callback so the
-                    // dispatcher falls through to the next handler in the chain
-                    // (e.g., the Activity's default that finishes the app).
-                    this.Enabled = false;
-                    _fragment.RequireActivity().OnBackPressedDispatcher.OnBackPressed();
-                    this.Enabled = true;
-                }
-            }
-        }
     }
 }

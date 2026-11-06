@@ -85,12 +85,14 @@ namespace Microsoft.Maui
 			if (services is null)
 				return false;
 
-			// Early exit after the first match — avoids iterating all registered delegates unnecessarily.
 			bool hasAnyHandler = false;
 			foreach (var handler in services.GetLifecycleEventDelegates<AndroidLifecycle.OnBackPressed>())
 			{
 				hasAnyHandler = true;
-				break;
+				// App lifecycle interception can consume back even at the root. Do not invoke
+				// delegates while choosing the gesture target; dispatch them only at commit.
+				if (handler != (AndroidLifecycle.OnBackPressed)AppHostBuilderExtensions.HandleWindowBackButtonPressed)
+					return true;
 			}
 
 			if (!hasAnyHandler)

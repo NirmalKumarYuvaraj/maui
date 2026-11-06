@@ -44,13 +44,57 @@ namespace Microsoft.Maui.Controls
 		public Task GoToAsync(ShellNavigationParameters shellNavigationParameters) =>
 			GoToAsync(shellNavigationParameters, null);
 
-		internal async Task GoToAsync(
+		internal Task GoToAsync(
+			ShellNavigationParameters shellNavigationParameters,
+			ShellNavigationRequest navigationRequest)
+		{
+#if ANDROID
+			if (_shell.Handler is Handlers.ShellHandler handler)
+			{
+				var previousNavigation = _queuedNavigation;
+				var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+				_queuedNavigation = completion.Task;
+				return GoToQueuedAsync(previousNavigation, completion, handler, shellNavigationParameters, navigationRequest);
+			}
+#endif
+			return GoToCoreAsync(shellNavigationParameters, navigationRequest);
+		}
+
+#if ANDROID
+		Task _queuedNavigation = Task.CompletedTask;
+
+		async Task GoToQueuedAsync(
+			Task previousNavigation,
+			TaskCompletionSource<bool> completion,
+			IElementHandler handler,
+			ShellNavigationParameters parameters,
+			ShellNavigationRequest request)
+		{
+			try
+			{
+				await previousNavigation;
+				if (_shell.Handler != handler)
+					throw new OperationCanceledException("The Shell navigation handler was disconnected.");
+
+				await GoToCoreAsync(parameters, request);
+			}
+			finally
+			{
+				_accumulateNavigatedEvents = false;
+				completion.TrySetResult(true);
+			}
+		}
+#endif
+
+		async Task GoToCoreAsync(
 			ShellNavigationParameters shellNavigationParameters,
 			ShellNavigationRequest navigationRequest)
 		{
 			// check for any pending navigations that need to complete
 			if (_shell?.CurrentItem?.CurrentItem?.PendingNavigationTask != null)
 				await (_shell?.CurrentItem?.CurrentItem?.PendingNavigationTask ?? Task.CompletedTask);
+
+			shellNavigationParameters.NavigationStarting?.Invoke();
 
 			bool registeredPagePushingRoute = shellNavigationParameters.PagePushing is not null && navigationRequest is null;
 			string pagePushingRoute = null;

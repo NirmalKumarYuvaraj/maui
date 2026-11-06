@@ -43,6 +43,7 @@ namespace Microsoft.Maui.Controls.Handlers
             {
                 return new FrameLayout(inflater.Context!);
             }
+            _handler.SetParentFragment(this);
             if (_view is null)
             {
                 _view = _handler.PlatformView ?? _handler.ToPlatform();
@@ -68,13 +69,9 @@ namespace Microsoft.Maui.Controls.Handlers
         public override void OnResume()
         {
             base.OnResume();
+            _handler?.SetupViewPagerAdapter();
 
-            if (_handler is null || _handler.VirtualView is null)
-            {
-                return;
-            }
-
-            if (!_handler.IsCurrentlyActiveSection())
+            if (_handler is null || !_handler.IsCurrentlyActiveSection())
             {
                 return;
             }
@@ -87,7 +84,8 @@ namespace Microsoft.Maui.Controls.Handlers
                 return;
             }
 
-            var page = ((IShellContentController)currentContent).GetOrCreateContent();
+            var page = ((IShellSectionController)_handler.VirtualView).PresentedPage
+                ?? ((IShellContentController)currentContent).GetOrCreateContent();
 
             if (page is null)
             {
@@ -99,6 +97,13 @@ namespace Microsoft.Maui.Controls.Handlers
             toolbarTracker?.Page = page;
 
             ((IShellController)shell).AppearanceChanged(page, false);
+        }
+
+        public override void OnDestroyView()
+        {
+            _handler?.ReleaseViewResources();
+            _view = null;
+            base.OnDestroyView();
         }
 
         protected override void Dispose(bool disposing)

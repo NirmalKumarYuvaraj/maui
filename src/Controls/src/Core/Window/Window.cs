@@ -870,6 +870,9 @@ namespace Microsoft.Maui.Controls
 			switch (page)
 			{
 				case Shell shell:
+					if (Shell.GetEffectiveBackButtonBehavior(shell.CurrentPage ?? shell) is { IsEnabled: true, Command: not null })
+						return true;
+
 					if (CanConsumeBackNavigation(shell.CurrentPage))
 						return true;
 
@@ -882,7 +885,7 @@ namespace Microsoft.Maui.Controls
 					}
 
 					// Shell section nav stack depth (non-NavigationPage modern Shell shape).
-					return shell.CurrentItem?.CurrentItem?.Stack.Count > 1;
+					return shell.CurrentItem?.CurrentItem?.Stack.Count > 1 || shell.HasBackNavigationInterception;
 
 				case NavigationPage navigationPage:
 					if (CanConsumeBackNavigation(navigationPage.CurrentPage))

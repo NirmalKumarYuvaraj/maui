@@ -514,6 +514,9 @@ namespace Microsoft.Maui.Controls
 			return OnBackButtonPressed();
 		}
 
+		internal void OnBackButtonBehaviorChanged(object sender, PropertyChangedEventArgs e) =>
+			(this.Window as Window)?.NotifyNavigationStateChanged();
+
 		bool? _hasBackButtonPressedOverride;
 
 		internal bool HasBackButtonPressedOverride =>

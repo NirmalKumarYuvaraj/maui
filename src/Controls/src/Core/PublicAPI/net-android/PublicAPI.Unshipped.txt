@@ -1,1 +1,3 @@
-#nullable enable
+﻿#nullable enable
+override Microsoft.Maui.Controls.Handlers.ShellContentNavigationFragment.OnPause() -> void
+override Microsoft.Maui.Controls.Handlers.ShellSectionWrapperFragment.OnDestroyView() -> void

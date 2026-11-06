@@ -38,10 +38,6 @@ namespace Microsoft.Maui.Controls.Handlers
         // Current shell item renderer
         IShellItemRenderer? _currentShellItemRenderer;
 
-        // ShellItem handler — placed once in navigationlayout_content, reused
-        // across ShellItem switches via SwitchToShellItem() (no fragment replacement).
-        ShellItemHandler? _shellItemHandler;
-
         // Track flyout behavior for IShellContext
         FlyoutBehavior _currentBehavior = FlyoutBehavior.Flyout;
 
@@ -131,7 +127,6 @@ namespace Microsoft.Maui.Controls.Handlers
 
             _currentShellItemRenderer?.Dispose();
             _currentShellItemRenderer = null;
-            _shellItemHandler = null;
 
             if (_flyoutContentRenderer is IDisposable disposable)
             {
@@ -200,15 +195,6 @@ namespace Microsoft.Maui.Controls.Handlers
                 return;
             }
 
-            // Subsequent switches: reuse the permanent fragment, update handler data.
-            // No fragment transaction — the wrapper fragment stays in navigationlayout_content.
-            if (_shellItemHandler is not null)
-            {
-                _shellItemHandler.SwitchToShellItem(newItem);
-                return;
-            }
-
-            // First switch: create handler + fragment, add to layout
             _pendingFragment?.Dispose();
             _pendingFragment = null;
 
@@ -221,26 +207,28 @@ namespace Microsoft.Maui.Controls.Handlers
 
             var fragmentManager = MauiContext!.GetFragmentManager();
 
-            _currentShellItemRenderer = CreateShellItemRenderer(newItem);
-            _currentShellItemRenderer.ShellItem = newItem;
-
-            var fragment = _currentShellItemRenderer.Fragment;
-
-            // Store handler reference for future switches.
-            // After this fragment transaction, the wrapper fragment stays in
-            // navigationlayout_content — subsequent ShellItem switches update
-            // the handler's data instead of replacing the fragment.
-            if (_currentShellItemRenderer is ShellItemHandlerAdapter adapter)
-            {
-                _shellItemHandler = adapter.GetHandler();
-            }
-
             // Use RunOrWaitForResume for state-saved safety (same as FlyoutViewHandler),
             // but CommitNow() instead of Commit() because Shell's navigation flow requires
             // the fragment to be immediately in the hierarchy — page Appearing events
             // and NavigationRequested handlers fire synchronously after this returns.
             _pendingFragment = fragmentManager.RunOrWaitForResume(context, (fm) =>
             {
+                if (((IElementHandler)this).VirtualView is not Shell shell ||
+                    shell.CurrentItem != newItem || _navigationRoot is null)
+                {
+                    return;
+                }
+
+                if (_currentShellItemRenderer?.ShellItem == newItem)
+                {
+                    return;
+                }
+
+                // Resolve each destination, including factory registrations and renderer overrides.
+                // A fresh renderer avoids transferring a connected handler between item owners.
+                var renderer = CreateShellItemRenderer(newItem);
+                renderer.ShellItem = newItem;
+                var previousRenderer = _currentShellItemRenderer;
                 var transaction = fm.BeginTransaction();
 
                 if (animate)
@@ -249,9 +237,12 @@ namespace Microsoft.Maui.Controls.Handlers
                 }
 
                 transaction
-                    .Replace(Resource.Id.navigationlayout_content, fragment)
+                    .Replace(Resource.Id.navigationlayout_content, renderer.Fragment)
                     .SetReorderingAllowed(true)
                     .CommitNow();
+
+                _currentShellItemRenderer = renderer;
+                previousRenderer?.Dispose();
             });
         }
 
@@ -604,13 +595,25 @@ namespace Microsoft.Maui.Controls.Handlers
         {
             // Resolve the handler through the handler service to allow custom ShellItemHandler subclasses
             // registered for ShellItem to be used.
-            var handler = MauiContext!.Handlers.GetHandler(shellItem.GetType(), MauiContext) as ShellItemHandler
-                ?? new ShellItemHandler();
-            handler.SetMauiContext(MauiContext!);
+            var mauiContext = MauiContext ?? throw new InvalidOperationException("MauiContext cannot be null");
+            var resolvedHandler = mauiContext.Handlers.GetHandler(shellItem.GetType(), mauiContext);
+            if (resolvedHandler is not ShellItemHandler handler)
+            {
+                throw new InvalidOperationException($"The registered handler for {shellItem.GetType()} must derive from {nameof(ShellItemHandler)}.");
+            }
+            if (((IElementHandler)handler).VirtualView is IElement owner && owner != shellItem)
+            {
+                throw new InvalidOperationException("A ShellItem handler cannot be shared between different ShellItems.");
+            }
+            if (handler.MauiContext is not null && handler.MauiContext != mauiContext)
+            {
+                throw new InvalidOperationException("A ShellItem handler cannot be shared between different MauiContexts.");
+            }
+            handler.SetMauiContext(mauiContext);
             handler.SetVirtualView(shellItem);
 
             // Wrap it in an adapter to make it compatible with IShellItemRenderer
-            return new ShellItemHandlerAdapter(handler, MauiContext!);
+            return new ShellItemHandlerAdapter(handler, mauiContext);
         }
 
         protected virtual IShellFlyoutContentRenderer CreateShellFlyoutContentRenderer()

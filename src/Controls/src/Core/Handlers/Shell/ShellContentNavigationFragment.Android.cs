@@ -1,7 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading.Tasks;
 using Android.Content;
 using Android.OS;
 using Android.Views;
@@ -16,8 +16,7 @@ using LP = Android.Views.ViewGroup.LayoutParams;
 namespace Microsoft.Maui.Controls.Handlers
 {
     /// <summary>
-    /// Fragment that hosts a ShellContent page with its own StackNavigationManager.
-    /// This enables each content tab to have independent navigation.
+    /// Fragment that presents the managed ShellSection stack using its ShellContent as the root.
     /// </summary>
     public class ShellContentNavigationFragment : Fragment, IStackNavigation
     {
@@ -138,6 +137,24 @@ namespace Microsoft.Maui.Controls.Handlers
             }
         }
 
+        public override void OnPause()
+        {
+            if (!IsCurrentContent)
+                SuspendNavigation();
+            base.OnPause();
+        }
+
+        internal void SuspendNavigation()
+        {
+            if (_stackNavigationManager?.HasPendingNavigation != true && _pendingNavigationRequests.Count == 0)
+                return;
+
+            _stackNavigationManager?.Disconnect();
+            _stackNavigationManager = null;
+            _navigationViewAdapter = null;
+            CancelPendingNavigation();
+        }
+
         bool IsCurrentContent =>
             _shellContent?.Parent is ShellSection shellSection &&
             shellSection.IsVisibleSection &&
@@ -145,7 +162,13 @@ namespace Microsoft.Maui.Controls.Handlers
 
         internal void InitializeNavigation()
         {
-            if (_stackNavigationManager is not null || _navigationContainer is null || _shellContent is null || _mauiContext is null)
+            if (_stackNavigationManager is not null)
+            {
+                ReconcileNavigationStack();
+                return;
+            }
+
+            if (_navigationContainer is null || _shellContent is null || _mauiContext is null)
             {
                 return;
             }
@@ -171,16 +194,21 @@ namespace Microsoft.Maui.Controls.Handlers
                 ? new ShellStackNavigationManager(scopedContext, _handler)
                 : new StackNavigationManager(scopedContext);
 
-            // Create NavHostFragment
-            var navHostFragment = new MauiNavHostFragment()
+            if (ChildFragmentManager.FindFragmentById(_navigationContainerId) is MauiNavHostFragment retainedHost)
             {
-                StackNavigationManager = _stackNavigationManager
-            };
-
-            ChildFragmentManager
-                .BeginTransactionEx()
-                .AddEx(_navigationContainerId, navHostFragment)
-                .CommitNowAllowingStateLoss();
+                retainedHost.StackNavigationManager = _stackNavigationManager;
+            }
+            else
+            {
+                var navHostFragment = new MauiNavHostFragment()
+                {
+                    StackNavigationManager = _stackNavigationManager
+                };
+                ChildFragmentManager
+                    .BeginTransactionEx()
+                    .AddEx(_navigationContainerId, navHostFragment)
+                    .CommitNowAllowingStateLoss();
+            }
 
             if (_navigationContainer.IsAttachedToWindow)
             {
@@ -196,13 +224,16 @@ namespace Microsoft.Maui.Controls.Handlers
 
         void OnNavigationContainerAttached(object? sender, AView.ViewAttachedToWindowEventArgs e)
         {
+            if (sender != _navigationContainer || !IsAdded)
+                return;
+
             _navigationContainer?.ViewAttachedToWindow -= OnNavigationContainerAttached;
             ConnectAndInitialize();
         }
 
         void ConnectAndInitialize()
         {
-            if (_stackNavigationManager is null || _rootPage is null)
+            if (_stackNavigationManager is null || _stackNavigationManager.HasNavHost || _rootPage is null)
             {
                 return;
             }
@@ -235,36 +266,46 @@ namespace Microsoft.Maui.Controls.Handlers
                 _subscribedToNavigationRequested = true;
             }
 
-            // Build the initial stack from the ShellSection's current navigation stack.
-            // Pages may have been pushed (e.g., from OnNavigatedTo) before this fragment
-            // was created by ViewPager2. Those NavigationRequested events were lost because
-            // nobody was subscribed yet. Reconcile by reading the section's actual stack.
-            var initialStack = new List<IView> { _rootPage };
-            if (shellSection is not null && shellSection.CurrentItem == _shellContent)
+            var initialStack = _pendingNavigationRequests.Count == 0
+                ? BuildNavigationStack()
+                : new List<IView> { _rootPage };
+            _stackNavigationManager.RequestNavigation(new NavigationRequest(initialStack, false));
+
+            while (_pendingNavigationRequests.Count > 0)
             {
-                var sectionStack = shellSection.Stack;
-                for (int i = 1; i < sectionStack.Count; i++)
+                var pending = _pendingNavigationRequests.Dequeue();
+                _stackNavigationManager.RequestNavigation(pending.Request, pending.Completion);
+            }
+        }
+
+        void ReconcileNavigationStack()
+        {
+            if (!IsCurrentContent || _stackNavigationManager is not { HasNavHost: true })
+            {
+                return;
+            }
+
+            var requestedStack = BuildNavigationStack();
+            var currentStack = _stackNavigationManager.ActiveRequestedArgs?.NavigationStack
+                ?? _stackNavigationManager.NavigationStack;
+            if (currentStack.Count == requestedStack.Count)
+            {
+                int i = 0;
+                for (; i < currentStack.Count; i++)
                 {
-                    if (sectionStack[i] is not null)
+                    if (currentStack[i] != requestedStack[i])
                     {
-                        initialStack.Add(sectionStack[i]);
+                        break;
                     }
+                }
+
+                if (i == currentStack.Count)
+                {
+                    return;
                 }
             }
 
-            _stackNavigationManager.RequestNavigation(new NavigationRequest(initialStack, false));
-
-            // Intentionally clearing (not replaying) pending navigation requests.
-            //
-            // When HasNavHost is false, navigation requests are queued into _pendingNavigationRequests.
-            // However, ConnectAndInitialize() builds the initial navigation stack directly from
-            // shellSection.Stack (see above), which already includes any pages pushed while queued.
-            //
-            // Replaying the queue would cause duplicate page pushes because those pages are already
-            // in the stack. Additionally, queued requests have e.Task == null (the TCS is only created
-            // after the HasNavHost check at line ~1043), so there is no hanging Task to worry about —
-            // the caller (ShellSection.OnPushAsync) safely handles null Task.
-            _pendingNavigationRequests.Clear();
+            _stackNavigationManager.RequestNavigation(new NavigationRequest(requestedStack, false));
         }
 
         void OnNavigationRequested(object? sender, NavigationRequestedEventArgs e)
@@ -283,103 +324,43 @@ namespace Microsoft.Maui.Controls.Handlers
                 return;
             }
 
-            // Check if StackNavigationManager is ready (has NavHost)
+            var request = new NavigationRequest(BuildNavigationStack(), e.Animated);
+            var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            e.Task = completion.Task;
+
             if (!_stackNavigationManager.HasNavHost)
             {
-                // Queue the navigation request to be processed after initialization
-                _pendingNavigationRequests.Enqueue(e);
+                _pendingNavigationRequests.Enqueue((request, completion));
                 return;
             }
 
-            // Create a TaskCompletionSource to serialize navigation requests.
-            // ShellSection.OnPushAsync awaits e.Task — without this, multiple pushes
-            // fire in rapid succession and BuildNavigationStack reads stale NavigationStack,
-            // causing intermediate pages to be lost from the stack.
-            //
-            // Skip TCS when StackNavigationManager is already navigating (e.g., initial setup
-            // from ConnectAndInitialize). In that case, the push will be queued internally by
-            // StackNavigationManager and processed after the current navigation completes via
-            // ProcessNavigationQueue. Creating a TCS here would block Shell.GoToAsync because
-            // the initial navigation's NavigationFinished would complete the wrong TCS.
-            if (!_stackNavigationManager.IsNavigating)
-            {
-                var tcs = new System.Threading.Tasks.TaskCompletionSource<bool>();
-                _navigationTaskCompletionSource = tcs;
-                e.Task = tcs.Task;
-            }
-
-            var requestedStack = BuildNavigationStack(e);
-            if (requestedStack is not null && requestedStack.Count > 0)
-            {
-                // Update logical stack so subsequent rapid pushes build from the correct state
-                _logicalNavigationStack = requestedStack;
-                _stackNavigationManager.RequestNavigation(new NavigationRequest(requestedStack, e.Animated));
-            }
-            else
-            {
-                // Nothing to navigate — complete immediately
-                var pendingTcs = _navigationTaskCompletionSource;
-                _navigationTaskCompletionSource = null;
-                pendingTcs?.TrySetResult(true);
-            }
+            _stackNavigationManager.RequestNavigation(request, completion);
         }
 
-        System.Threading.Tasks.TaskCompletionSource<bool>? _navigationTaskCompletionSource;
-        readonly Queue<NavigationRequestedEventArgs> _pendingNavigationRequests = new Queue<NavigationRequestedEventArgs>();
+        readonly Queue<(NavigationRequest Request, TaskCompletionSource<bool> Completion)> _pendingNavigationRequests = new();
 
-        // Tracks the logical navigation stack including pending/queued pushes that haven't
-        // been applied yet. This prevents the 3+ rapid PushAsync bug where BuildNavigationStack
-        // reads stale NavigationStack and drops intermediate pages.
-        List<IView>? _logicalNavigationStack;
-
-        List<IView> BuildNavigationStack(NavigationRequestedEventArgs e)
+        List<IView> BuildNavigationStack()
         {
-            var currentStack = _logicalNavigationStack
-                ?? _stackNavigationManager?.NavigationStack?.ToList()
-                ?? new List<IView>();
-
-            switch (e.RequestType)
+            var stack = new List<IView>
             {
-                case NavigationRequestType.Push:
-                    var pushStack = new List<IView>(currentStack);
-                    if (e.Page is not null)
-                    {
-                        pushStack.Add(e.Page);
-                    }
-                    return pushStack;
+                _rootPage ?? throw new InvalidOperationException("ShellContent root page has not been initialized.")
+            };
 
-                case NavigationRequestType.Pop:
-                    if (currentStack.Count > 1)
+            // ShellSection applies each mutation before raising NavigationRequested.
+            // Its first entry is a root placeholder, resolved by the selected content.
+            if (_shellContent?.Parent is ShellSection section && section.CurrentItem == _shellContent)
+            {
+                var sectionStack = section.Stack;
+                for (int i = 1; i < sectionStack.Count; i++)
+                {
+                    if (sectionStack[i] is Page page)
                     {
-                        var popStack = new List<IView>(currentStack);
-                        popStack.RemoveAt(popStack.Count - 1);
-                        return popStack;
+                        stack.Add(page);
                     }
-                    return currentStack.ToList();
-
-                case NavigationRequestType.PopToRoot:
-                    if (currentStack.Count > 0)
-                    {
-                        return new List<IView> { currentStack[0] };
-                    }
-                    break;
-
-                case NavigationRequestType.Insert:
-                case NavigationRequestType.Remove:
-                    var section = _shellContent?.Parent as ShellSection;
-                    if (section is not null)
-                    {
-                        var resultStack = new List<IView>();
-                        foreach (var page in section.Stack)
-                        {
-                            resultStack.Add(page ?? _rootPage!);
-                        }
-                        return resultStack;
-                    }
-                    break;
+                }
             }
 
-            return currentStack.ToList();
+            return stack;
         }
 
         void IStackNavigation.RequestNavigation(NavigationRequest request)
@@ -399,19 +380,6 @@ namespace Microsoft.Maui.Controls.Handlers
         /// </summary>
         internal void OnNavigationFinished(IReadOnlyList<IView> newStack)
         {
-            // Sync logical stack with the actual completed state.
-            // If the manager is no longer navigating (queue drained), clear the override
-            // so BuildNavigationStack reads fresh NavigationStack next time.
-            if (_stackNavigationManager is null || !_stackNavigationManager.IsNavigating)
-            {
-                _logicalNavigationStack = null;
-            }
-
-            // Complete the pending navigation task so ShellSection.OnPushAsync can proceed
-            var tcs = _navigationTaskCompletionSource;
-            _navigationTaskCompletionSource = null;
-            tcs?.TrySetResult(true);
-
             if (!IsVisible || _handler is null)
             {
                 return;
@@ -524,6 +492,8 @@ namespace Microsoft.Maui.Controls.Handlers
             // leaving HasNavHost == false and navigation requests queued forever.
             _navigationContainer = null;
             _stackNavigationManager = null;
+            _navigationViewAdapter = null;
+            CancelPendingNavigation();
 
             // Disconnect the root page and all its child handlers when the ShellContent has been
             // removed from the Shell hierarchy (e.g. Shell.Items.Clear()).
@@ -543,6 +513,7 @@ namespace Microsoft.Maui.Controls.Handlers
                 }
                 _subscribedToNavigationRequested = false;
             }
+            _subscribedShellSection = null;
 
             base.OnDestroyView();
         }
@@ -568,7 +539,7 @@ namespace Microsoft.Maui.Controls.Handlers
                     _subscribedToNavigationRequested = false;
                 }
 
-                _pendingNavigationRequests.Clear();
+                CancelPendingNavigation();
                 _navigationViewAdapter = null;
                 _stackNavigationManager?.Disconnect();
                 _stackNavigationManager = null;
@@ -577,6 +548,12 @@ namespace Microsoft.Maui.Controls.Handlers
                 _rootPage = null;
             }
             base.Dispose(disposing);
+        }
+
+        void CancelPendingNavigation()
+        {
+            while (_pendingNavigationRequests.Count > 0)
+                _pendingNavigationRequests.Dequeue().Completion.TrySetCanceled();
         }
 
         static int GetMaterial3Background(Context context)

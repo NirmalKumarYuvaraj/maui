@@ -19,6 +19,26 @@ The following switches are toggled for applications running on Mono for `TrimMod
 | EnableMauiDiagnostics | Microsoft.Maui.RuntimeFeature.EnableMauiDiagnostics | Enables MAUI specific diagnostics, like VisualDiagnostics and BindingDiagnostics. Defaults to EnableDiagnostics |
 | _EnableMauiAspire | Microsoft.Maui.RuntimeFeature.EnableMauiAspire | When enabled, MAUI Aspire integration features are available. **Warning**: Using Aspire outside of Debug configuration may introduce performance and security risks in production. |
 
+## Android Shell handler rollout
+
+Set `<UseAndroidShellHandler>true</UseAndroidShellHandler>` in the app project to
+opt into the Android Shell, ShellItem, and ShellSection handlers. The default is
+`false`, which retains `ShellRenderer` and its renderer factory customizations.
+The equivalent AppContext switch is
+`Microsoft.Maui.RuntimeFeature.IsAndroidShellHandlerEnabled`; set it before
+building the MAUI app.
+
+Explicit application handler registrations take precedence in either mode.
+Renderer subclasses and renderer page-fragment factory customizations should
+continue using the legacy path; the handler path uses AndroidX navigation
+fragments rather than the legacy page-fragment factory.
+
+The handler path resolves the destination item's registered handler on each item
+switch. Android back commits use the activity lifecycle and managed Shell
+pipeline, with callback registration updated before a gesture from the current
+navigation/interception state. This does not provide interactive predictive
+gesture animations for in-app navigation.
+
 ## Runtime settings
 
 The following runtime settings accept values other than `true` or `false`.

@@ -383,6 +383,10 @@
                                       Condition="'$(UseiOSShellHandler)' != ''"
                                       Value="$(UseiOSShellHandler)"
                                       Trim="true" />
+      <RuntimeHostConfigurationOption Include="Microsoft.Maui.RuntimeFeature.IsAndroidShellHandlerEnabled"
+                                      Condition="'$(UseAndroidShellHandler)' != ''"
+                                      Value="$(UseAndroidShellHandler)"
+                                      Trim="true" />
       <RuntimeHostConfigurationOption Include="Microsoft.Maui.RuntimeFeature.IsIncrementalHotReloadEnabled"
                                       Condition="'$(EnableMauiIncrementalHotReload)' != ''"
                                       Value="$(EnableMauiIncrementalHotReload)"

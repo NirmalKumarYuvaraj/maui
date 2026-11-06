@@ -19,5 +19,6 @@ namespace Microsoft.Maui.Controls
 		public Page PagePushing { get; set; }
 		public ShellRouteParameters Parameters { get; set; }
 		public bool? CanCancel { get; set; }
+		internal Action NavigationStarting { get; set; }
 	}
 }

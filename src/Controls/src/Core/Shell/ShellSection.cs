@@ -1146,13 +1146,14 @@ namespace Microsoft.Maui.Controls
 					return (await _owner.OnPopAsync(animated));
 				}
 
+				var returnedPage = (_owner as IShellSectionController).PresentedPage;
 				var navigationParameters = new ShellNavigationParameters()
 				{
 					Animated = animated,
-					TargetState = new ShellNavigationState("..")
+					TargetState = new ShellNavigationState(".."),
+					NavigationStarting = () => returnedPage = ((IShellSectionController)_owner).PresentedPage
 				};
 
-				var returnedPage = (_owner as IShellSectionController).PresentedPage;
 				await _owner.Shell.NavigationManager.GoToAsync(navigationParameters);
 
 				// This means the page wasn't popped and navigation was cancelled

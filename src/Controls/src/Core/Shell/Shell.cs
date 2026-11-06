@@ -43,9 +43,19 @@ namespace Microsoft.Maui.Controls
 		static void OnBackButonBehaviorPropertyChanged(BindableObject bindable, object oldValue, object newValue)
 		{
 			if (oldValue is BackButtonBehavior oldHandlerProperties)
+			{
+				if (bindable is Page oldPage)
+					oldHandlerProperties.PropertyChanged -= oldPage.OnBackButtonBehaviorChanged;
 				SetInheritedBindingContext(oldHandlerProperties, null);
+			}
 			if (newValue is BackButtonBehavior newHandlerProperties)
+			{
+				if (bindable is Page newPage)
+					newHandlerProperties.PropertyChanged += newPage.OnBackButtonBehaviorChanged;
 				SetInheritedBindingContext(newHandlerProperties, bindable.BindingContext);
+			}
+			if (bindable is Page page)
+				(page.Window as Window)?.NotifyNavigationStateChanged();
 		}
 
 		/// <summary>
@@ -1583,7 +1593,21 @@ namespace Microsoft.Maui.Controls
 		}
 
 		public event EventHandler<ShellNavigatedEventArgs> Navigated;
-		public event EventHandler<ShellNavigatingEventArgs> Navigating;
+		public event EventHandler<ShellNavigatingEventArgs> Navigating
+		{
+			add
+			{
+				_navigating += value;
+				(this.Window as Window)?.NotifyNavigationStateChanged();
+			}
+			remove
+			{
+				_navigating -= value;
+				(this.Window as Window)?.NotifyNavigationStateChanged();
+			}
+		}
+
+		event EventHandler<ShellNavigatingEventArgs> _navigating;
 
 
 		/// <summary>
@@ -1826,14 +1850,25 @@ namespace Microsoft.Maui.Controls
 
 		protected override bool OnBackButtonPressed()
 		{
-#if WINDOWS || !PLATFORM
+#if ANDROID
+			if (FlyoutIsPresented && GetEffectiveFlyoutBehavior() == FlyoutBehavior.Flyout)
+			{
+				SetValueFromRenderer(FlyoutIsPresentedProperty, false);
+				return true;
+			}
+#endif
+#if WINDOWS || ANDROID || !PLATFORM
 			var backButtonBehavior = GetEffectiveBackButtonBehavior(GetVisiblePage());
 			if (backButtonBehavior != null)
 			{
 				var command = backButtonBehavior.GetPropertyIfSet<ICommand>(BackButtonBehavior.CommandProperty, null);
 				var commandParameter = backButtonBehavior.GetPropertyIfSet<object>(BackButtonBehavior.CommandParameterProperty, null);
 
-				if (command != null)
+				if (command != null
+#if ANDROID
+					&& backButtonBehavior.IsEnabled
+#endif
+					)
 				{
 					command.Execute(commandParameter);
 					return true;
@@ -1870,6 +1905,27 @@ namespace Microsoft.Maui.Controls
 				{
 					MauiLogger<Shell>.Log(LogLevel.Warning, exc, "Failed to Navigate Back");
 				}
+			}
+		}
+
+		internal bool HasBackNavigationInterception
+		{
+			get
+			{
+				if (new Action<ShellNavigatingEventArgs>(OnNavigating).Method.DeclaringType?.Assembly != typeof(Shell).Assembly)
+					return true;
+
+				if (_navigating is { } navigating)
+				{
+					foreach (var handler in navigating.GetInvocationList())
+					{
+						// Framework observers track navigation but cannot cancel a root back.
+						if (handler.Method.DeclaringType?.Assembly != typeof(Shell).Assembly)
+							return true;
+					}
+				}
+
+				return false;
 			}
 		}
 
@@ -1971,7 +2027,7 @@ namespace Microsoft.Maui.Controls
 
 		void SendNavigating(ShellNavigatingEventArgs args)
 		{
-			Navigating?.Invoke(this, args);
+			_navigating?.Invoke(this, args);
 			OnNavigating(args);
 
 			if (!args.Cancelled)

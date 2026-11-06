@@ -1,4 +1,6 @@
 #nullable enable
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AndroidX.Lifecycle;
@@ -151,6 +153,281 @@ namespace Microsoft.Maui.DeviceTests
 				Assert.Equal(0, contents[0][0].CreationCount);
 				Assert.Equal(1, selected.CreationCount);
 				Assert.Equal(1, next.CreationCount);
+			});
+		}
+
+		[Theory]
+		[InlineData(false)]
+		[InlineData(true)]
+		public async Task TopContentSelectionReconcilesTheSharedSectionStack(bool previouslyVisited)
+		{
+			SetupBuilder();
+			var (shell, tabs, contents) = await InvokeOnMainThreadAsync(() => CreateShell(1, 2));
+
+			await CreateHandlerAndAddToWindow(shell, async () =>
+			{
+				await WaitForFragments(tabs);
+				var section = tabs.Items[0];
+				var first = contents[0][0];
+				var second = contents[0][1];
+				await WaitForPage(first, first.CreatedPage!);
+
+				if (previouslyVisited)
+				{
+					section.CurrentItem = second;
+					await AssertEventually(() => second.CreatedPage is not null);
+					await WaitForPage(second, second.CreatedPage!);
+					section.CurrentItem = first;
+					await WaitForPage(first, first.CreatedPage!);
+				}
+
+				var detail = new ContentPage { Title = "Shared detail" };
+				await shell.Navigation.PushAsync(detail, false);
+				await WaitForPage(first, detail);
+
+				section.CurrentItem = second;
+				await WaitForPage(second, detail);
+				Assert.Same(detail, shell.CurrentPage);
+				Assert.Equal(new Page[] { null!, detail }, section.Stack);
+				Assert.Equal(new IView[] { second.CreatedPage!, detail },
+					GetNavigationManager(second).NavigationStack);
+				await AssertPageHostedBy(second, detail);
+
+				section.CurrentItem = first;
+				await WaitForPage(first, detail);
+				await AssertPageHostedBy(first, detail);
+				section.CurrentItem = second;
+				await WaitForPage(second, detail);
+				await AssertPageHostedBy(second, detail);
+
+				Assert.Same(detail, await shell.Navigation.PopAsync(false));
+				await WaitForPage(second, second.CreatedPage!);
+				Assert.Same(second.CreatedPage, shell.CurrentPage);
+				Assert.Single(section.Stack);
+				Assert.Single(GetNavigationManager(second).NavigationStack);
+
+				section.CurrentItem = first;
+				await WaitForPage(first, first.CreatedPage!);
+				Assert.Same(first.CreatedPage, shell.CurrentPage);
+				Assert.Single(GetNavigationManager(first).NavigationStack);
+				await AssertPageHostedBy(first, first.CreatedPage!);
+				Assert.Equal(1, first.CreationCount);
+				Assert.Equal(1, second.CreationCount);
+			});
+		}
+
+		static Task AssertPageHostedBy(ShellContent content, Page page) =>
+			AssertEventually(() =>
+				page.Handler?.PlatformView is global::Android.Views.View view &&
+				view.Parent == GetNavigationManager(content).NavHost.View,
+				timeout: 3000, message: "The selected content does not own the displayed native page.");
+
+		[Fact]
+		public async Task RapidPushAndPopRequestsEachAwaitTheirOwnNativeCompletion()
+		{
+			SetupBuilder();
+			var (shell, tabs, contents) = await InvokeOnMainThreadAsync(() => CreateShell(1, 1));
+			await CreateHandlerAndAddToWindow(shell, async () =>
+			{
+				await WaitForFragments(tabs);
+				var content = contents[0][0];
+				var root = content.CreatedPage!;
+				await WaitForPage(content, root);
+				var pages = new[]
+				{
+					new ContentPage { Title = "First queued page" },
+					new ContentPage { Title = "Second queued page" },
+					new ContentPage { Title = "Third queued page" }
+				};
+				var pushes = pages.Select(page => shell.Navigation.PushAsync(page, false)).ToArray();
+				Assert.All(pushes, task => Assert.False(task.IsCompleted));
+				await Task.WhenAll(pushes).WaitAsync(TimeSpan.FromSeconds(10));
+				await WaitForPage(content, pages[2]);
+				Assert.Equal(new IView[] { root, pages[0], pages[1], pages[2] },
+					GetNavigationManager(content).NavigationStack);
+
+				var pops = new[]
+				{
+					shell.Navigation.PopAsync(false),
+					shell.Navigation.PopAsync(false),
+					shell.Navigation.PopAsync(false)
+				};
+				Assert.All(pops, task => Assert.False(task.IsCompleted));
+				var popped = await Task.WhenAll(pops).WaitAsync(TimeSpan.FromSeconds(10));
+				Assert.Equal(new Page[] { pages[2], pages[1], pages[0] }, popped);
+				await WaitForPage(content, root);
+				Assert.False(GetNavigationManager(content).HasPendingNavigation);
+			});
+		}
+
+		[Fact]
+		public async Task AppearingCanQueueAnotherPushWithoutLosingEitherCompletion()
+		{
+			SetupBuilder();
+			var (shell, tabs, contents) = await InvokeOnMainThreadAsync(() => CreateShell(1, 1));
+			await CreateHandlerAndAddToWindow(shell, async () =>
+			{
+				await WaitForFragments(tabs);
+				var content = contents[0][0];
+				await WaitForPage(content, content.CreatedPage!);
+				var first = new ContentPage { Title = "Reentrant first" };
+				var second = new ContentPage { Title = "Reentrant second" };
+				Task? nestedPush = null;
+				first.Appearing += (_, _) => nestedPush ??= shell.Navigation.PushAsync(second, false);
+
+				var firstPush = shell.Navigation.PushAsync(first, false);
+				Assert.NotNull(nestedPush);
+				await Task.WhenAll(firstPush, nestedPush!).WaitAsync(TimeSpan.FromSeconds(10));
+				await WaitForPage(content, second);
+				Assert.Equal(new IView[] { content.CreatedPage!, first, second },
+					GetNavigationManager(content).NavigationStack);
+				Assert.False(GetNavigationManager(content).HasPendingNavigation);
+			});
+		}
+
+		[Fact]
+		public async Task SwitchingContentDuringPushCancelsTheOldHostAndReconcilesTheNewOne()
+		{
+			SetupBuilder();
+			var (shell, tabs, contents) = await InvokeOnMainThreadAsync(() => CreateShell(1, 2));
+			await CreateHandlerAndAddToWindow(shell, async () =>
+			{
+				await WaitForFragments(tabs);
+				var first = contents[0][0];
+				var second = contents[0][1];
+				await WaitForPage(first, first.CreatedPage!);
+				var detail = new ContentPage { Title = "Transferred pending detail" };
+				var push = shell.Navigation.PushAsync(detail, false);
+
+				tabs.Items[0].CurrentItem = second;
+
+				await Assert.ThrowsAnyAsync<OperationCanceledException>(() => push);
+				await WaitForPage(second, detail);
+				await AssertPageHostedBy(second, detail);
+				Assert.Same(detail, shell.CurrentPage);
+				await shell.Navigation.PopAsync(false);
+				await WaitForPage(second, second.CreatedPage!);
+			});
+		}
+
+		[Fact]
+		public async Task DisconnectCancelsActiveAndQueuedNavigationWithoutReportingSuccess()
+		{
+			SetupBuilder();
+			var (shell, tabs, contents) = await InvokeOnMainThreadAsync(() => CreateShell(1, 1));
+			await CreateHandlerAndAddToWindow(shell, async () =>
+			{
+				await WaitForFragments(tabs);
+				var content = contents[0][0];
+				var root = content.CreatedPage!;
+				await WaitForPage(content, root);
+				var manager = GetNavigationManager(content);
+				var first = new ContentPage { Title = "Interrupted first" };
+				var second = new ContentPage { Title = "Interrupted second" };
+				var active = manager.RequestNavigationAsync(new NavigationRequest(new IView[] { root, first }, false));
+				var queued = manager.RequestNavigationAsync(new NavigationRequest(new IView[] { root, first, second }, false));
+				Assert.False(active.IsCompleted);
+				Assert.False(queued.IsCompleted);
+
+				manager.Disconnect();
+
+				await Assert.ThrowsAnyAsync<OperationCanceledException>(() => active);
+				await Assert.ThrowsAnyAsync<OperationCanceledException>(() => queued);
+				Assert.False(manager.HasPendingNavigation);
+				Assert.Null(manager.OnResumeRequestedArgs);
+				Assert.Empty(manager.NavigationStack);
+			});
+		}
+
+		[Fact]
+		public async Task CompletionCallbacksCannotOvertakeAlreadyQueuedRequests()
+		{
+			SetupBuilder();
+			var (shell, tabs, contents) = await InvokeOnMainThreadAsync(() => CreateShell(1, 1));
+			await CreateHandlerAndAddToWindow(shell, async () =>
+			{
+				await WaitForFragments(tabs);
+				var content = contents[0][0];
+				await WaitForPage(content, content.CreatedPage!);
+				var manager = GetNavigationManager(content);
+				var container = Assert.IsType<AndroidX.Fragment.App.FragmentContainerView>(GetFragment(content).View);
+				var navigationView = new TrackingNavigationView { Title = "Queue root" };
+				manager.Disconnect();
+				manager.Connect(navigationView, container);
+				try
+				{
+					await manager.RequestNavigationAsync(new NavigationRequest(new IView[] { navigationView }, false))
+						.WaitAsync(TimeSpan.FromSeconds(10));
+					var first = new ContentPage { Title = "First operation" };
+					var second = new ContentPage { Title = "Already queued operation" };
+					var third = new ContentPage { Title = "Reentrant operation" };
+					var completed = new List<IView>();
+					Task? reentrant = null;
+					navigationView.Completed = stack =>
+					{
+						completed.Add(stack[stack.Count - 1]);
+						if (stack[stack.Count - 1] == first)
+							reentrant = manager.RequestNavigationAsync(
+								new NavigationRequest(new IView[] { navigationView, first, second, third }, false));
+					};
+
+					var firstTask = manager.RequestNavigationAsync(
+						new NavigationRequest(new IView[] { navigationView, first }, false));
+					var secondTask = manager.RequestNavigationAsync(
+						new NavigationRequest(new IView[] { navigationView, first, second }, false));
+					await Task.WhenAll(firstTask, secondTask).WaitAsync(TimeSpan.FromSeconds(10));
+					Assert.NotNull(reentrant);
+					await reentrant!.WaitAsync(TimeSpan.FromSeconds(10));
+
+					Assert.Equal(new IView[] { first, second, third }, completed);
+					Assert.Same(third, manager.CurrentPage);
+					Assert.False(manager.HasPendingNavigation);
+				}
+				finally
+				{
+					manager.Disconnect();
+					navigationView.DisconnectHandlers();
+				}
+			});
+		}
+
+		[Fact]
+		public async Task SectionViewRecreationReleasesAdaptersAndRetainsManagedPages()
+		{
+			SetupBuilder();
+			var (shell, tabs, contents) = await InvokeOnMainThreadAsync(() => CreateShell(1, 2));
+			await CreateHandlerAndAddToWindow(shell, async () =>
+			{
+				await WaitForFragments(tabs);
+				var content = contents[0][0];
+				var root = content.CreatedPage!;
+				await WaitForPage(content, root);
+				var sectionHandler = Assert.IsType<ShellSectionHandler>(tabs.Items[0].Handler);
+				var oldAdapter = sectionHandler.ViewPager!.Adapter;
+				var wrapper = GetFragment(content).ParentFragment!;
+				var fragmentManager = wrapper.ParentFragmentManager;
+
+				fragmentManager.BeginTransaction().Detach(wrapper).CommitNow();
+				Assert.Null(sectionHandler.ViewPager.Adapter);
+				Assert.Null(sectionHandler.ContentTabLayout);
+				fragmentManager.BeginTransaction().Attach(wrapper).CommitNow();
+
+				try
+				{
+					await WaitForFragments(tabs);
+				}
+				catch (Xunit.Sdk.XunitException)
+				{
+					Console.WriteLine($"Recreated section: added={wrapper.IsAdded}, detached={wrapper.IsDetached}, resumed={wrapper.IsResumed}, view={wrapper.View?.Id}, pagerAttached={sectionHandler.ViewPager.IsAttachedToWindow}, pagerSize={sectionHandler.ViewPager.Width}x{sectionHandler.ViewPager.Height}, items={sectionHandler.ViewPager.Adapter?.ItemCount}");
+					foreach (var fragment in wrapper.ChildFragmentManager.Fragments)
+						Console.WriteLine($"Content: tag={fragment.Tag}, added={fragment.IsAdded}, detached={fragment.IsDetached}, resumed={fragment.IsResumed}, view={fragment.View?.Id}");
+					throw;
+				}
+				await WaitForPage(content, root);
+				Assert.NotSame(oldAdapter, sectionHandler.ViewPager.Adapter);
+				Assert.Equal(1, content.CreationCount);
+				Assert.Equal(0, contents[0][1].CreationCount);
+				Assert.Same(root, shell.CurrentPage);
 			});
 		}
 
@@ -518,6 +795,17 @@ namespace Microsoft.Maui.DeviceTests
 				base.OnAppearing();
 				AppearingCount++;
 			}
+		}
+
+		sealed class TrackingNavigationView : ContentPage, IStackNavigationView
+		{
+			internal Action<IReadOnlyList<IView>>? Completed { get; set; }
+
+			void IStackNavigation.RequestNavigation(NavigationRequest request) =>
+				throw new NotSupportedException("Tests submit requests directly to the native manager.");
+
+			void IStackNavigation.NavigationFinished(IReadOnlyList<IView> newStack) =>
+				Completed?.Invoke(newStack);
 		}
 	}
 }

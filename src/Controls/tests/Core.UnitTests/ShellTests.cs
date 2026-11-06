@@ -28,6 +28,36 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 		}
 
 		[Fact]
+		public async Task ContentSelectionSharesTheSectionStackAndPopsToTheSelectedRoot()
+		{
+			var firstRoot = new ContentPage();
+			var secondRoot = new ContentPage();
+			var first = new ShellContent { Content = firstRoot };
+			var second = new ShellContent { Content = secondRoot };
+			var section = new Tab { Items = { first, second } };
+			var shell = new Shell { Items = { new TabBar { Items = { section } } } };
+			var controller = (IShellSectionController)section;
+			var detail = new ContentPage();
+
+			await section.Navigation.PushAsync(detail, false);
+			section.CurrentItem = second;
+
+			Assert.Same(detail, controller.PresentedPage);
+			Assert.Same(detail, shell.CurrentPage);
+			Assert.Equal(new Page[] { null, detail }, section.Stack);
+
+			Assert.Same(detail, await section.Navigation.PopAsync(false));
+			Assert.Single(section.Stack);
+			Assert.Same(secondRoot, controller.PresentedPage);
+			Assert.Same(secondRoot, shell.CurrentPage);
+
+			section.CurrentItem = first;
+			Assert.Single(section.Stack);
+			Assert.Same(firstRoot, controller.PresentedPage);
+			Assert.Same(firstRoot, shell.CurrentPage);
+		}
+
+		[Fact]
 		public void DisplayedPageObserversCanRemoveThemselvesDuringNotification()
 		{
 			var section = new ShellSection();

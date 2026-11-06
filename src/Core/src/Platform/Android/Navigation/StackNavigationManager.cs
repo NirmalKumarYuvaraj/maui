@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Android.Content;
 using Android.OS;
 using Android.Views;
@@ -26,6 +27,12 @@ namespace Microsoft.Maui.Platform
 		Queue<NavigationRequest> _navigationQueue = new Queue<NavigationRequest>();
 
 		bool _processingQueue;
+		bool _notifyingNavigationFinished;
+		int _connectionGeneration;
+		int? _expectedDestinationId;
+
+		internal int ConnectionGeneration => _connectionGeneration;
+		internal bool HasPendingNavigation => IsNavigating || _navigationQueue.Count > 0;
 
 		internal IView? VirtualView { get; private set; }
 		internal IStackNavigation? NavigationView { get; private set; }
@@ -85,13 +92,6 @@ namespace Microsoft.Maui.Platform
 		 * */
 		void ApplyNavigationRequest(NavigationRequest args)
 		{
-			if (IsNavigating && OnResumeRequestedArgs is null)
-			{
-				// Queue the navigation request to be processed after the current one completes
-				_navigationQueue.Enqueue(args);
-				return;
-			}
-
 			if (args.NavigationStack.Count == 0)
 			{
 				throw new InvalidOperationException("NavigationStack cannot be empty");
@@ -123,6 +123,7 @@ namespace Microsoft.Maui.Platform
 			{
 				IsInitialNavigation = true;
 				Initialize(args.NavigationStack);
+				_expectedDestinationId = NavController.CurrentDestination?.Id;
 				return;
 			}
 
@@ -220,6 +221,8 @@ namespace Microsoft.Maui.Platform
 				NavGraph.StartDestination = startId;
 #pragma warning restore CS0618 // Obsolete
 
+			_expectedDestinationId = navController.CurrentDestination?.Id;
+
 			// The NavigationIcon on the toolbar gets set inside the Navigate call so this is the earliest
 			// point in time that we can setup toolbar colors for the incoming page
 			TriggerBackButtonVisibleUpdate();
@@ -286,18 +289,39 @@ namespace Microsoft.Maui.Platform
 
 		internal void NavigationFinished(IStackNavigation? navigationView)
 		{
+			var completedRequest = ActiveRequestedArgs;
+			if (completedRequest is null)
+				return;
+
+			var generation = _connectionGeneration;
 			IsInitialNavigation = false;
 			IsPopping = null;
 			ActiveRequestedArgs = null;
-			navigationView?.NavigationFinished(NavigationStack);
+			_expectedDestinationId = null;
+			_notifyingNavigationFinished = true;
+			try
+			{
+				navigationView?.NavigationFinished(NavigationStack);
+				(completedRequest as AwaitableNavigationRequest)?.Completion.TrySetResult(true);
+			}
+			catch (Exception exception)
+			{
+				(completedRequest as AwaitableNavigationRequest)?.Completion.TrySetException(exception);
+				FailQueuedNavigation(exception);
+				throw;
+			}
+			finally
+			{
+				_notifyingNavigationFinished = false;
+			}
 
-			// Process queued navigation requests
-			ProcessNavigationQueue();
+			if (generation == _connectionGeneration)
+				ProcessNavigationQueue();
 		}
 
 		void ProcessNavigationQueue()
 		{
-			if (_processingQueue || _navigationQueue.Count == 0)
+			if (_processingQueue || _notifyingNavigationFinished || _navigationQueue.Count == 0)
 				return;
 
 			_processingQueue = true;
@@ -307,12 +331,68 @@ namespace Microsoft.Maui.Platform
 				while (_navigationQueue.Count > 0 && !IsNavigating)
 				{
 					var nextRequest = _navigationQueue.Dequeue();
-					ApplyNavigationRequest(nextRequest);
+					try
+					{
+						ApplyNavigationRequest(nextRequest);
+					}
+					catch (Exception exception)
+					{
+						(nextRequest as AwaitableNavigationRequest)?.Completion.TrySetException(exception);
+						NavigationFailed(exception);
+						throw;
+					}
 				}
 			}
 			finally
 			{
 				_processingQueue = false;
+			}
+		}
+
+		void FailQueuedNavigation(Exception exception)
+		{
+			while (_navigationQueue.Count > 0)
+				(_navigationQueue.Dequeue() as AwaitableNavigationRequest)?.Completion.TrySetException(exception);
+		}
+
+		internal void NavigationFailed(Exception exception)
+		{
+			(ActiveRequestedArgs as AwaitableNavigationRequest)?.Completion.TrySetException(exception);
+			ActiveRequestedArgs = null;
+			OnResumeRequestedArgs = null;
+			_expectedDestinationId = null;
+			IsInitialNavigation = false;
+			IsPopping = null;
+			FailQueuedNavigation(exception);
+		}
+
+		internal Task RequestNavigationAsync(NavigationRequest request)
+		{
+			var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+			RequestNavigation(request, completion);
+			return completion.Task;
+		}
+
+		internal void RequestNavigation(NavigationRequest request, TaskCompletionSource<bool> completion)
+		{
+			try
+			{
+				RequestNavigation(new AwaitableNavigationRequest(request, completion));
+			}
+			catch (Exception exception)
+			{
+				completion.TrySetException(exception);
+			}
+		}
+
+		sealed class AwaitableNavigationRequest : NavigationRequest
+		{
+			internal TaskCompletionSource<bool> Completion { get; }
+
+			internal AwaitableNavigationRequest(NavigationRequest request, TaskCompletionSource<bool> completion)
+				: base(new List<IView>(request.NavigationStack), request.Animated)
+			{
+				Completion = completion;
 			}
 		}
 
@@ -362,10 +442,16 @@ namespace Microsoft.Maui.Platform
 
 		public virtual void Disconnect()
 		{
-			_navigationQueue.Clear();
+			_connectionGeneration++;
+			(ActiveRequestedArgs as AwaitableNavigationRequest)?.Completion.TrySetCanceled();
+			while (_navigationQueue.Count > 0)
+				(_navigationQueue.Dequeue() as AwaitableNavigationRequest)?.Completion.TrySetCanceled();
 
-			if (IsNavigating)
-				NavigationFinished(NavigationView);
+			ActiveRequestedArgs = null;
+			OnResumeRequestedArgs = null;
+			_expectedDestinationId = null;
+			IsInitialNavigation = false;
+			IsPopping = null;
 
 			if (_fragmentContainerView is not null)
 			{
@@ -380,6 +466,7 @@ namespace Microsoft.Maui.Platform
 			NavigationView = null;
 			SetNavHost(null);
 			_fragmentNavigator = null;
+			_navGraph = null;
 			_currentPage = null;
 			NavigationStack = [];
 			_fragmentContainerView = null;
@@ -395,6 +482,7 @@ namespace Microsoft.Maui.Platform
 		// falling back to navigationView.Handler.PlatformView as the container.
 		public virtual void Connect(IView navigationView, FragmentContainerView? fragmentContainerView = null)
 		{
+			_connectionGeneration++;
 			VirtualView = navigationView;
 			NavigationView = (IStackNavigation)navigationView;
 
@@ -504,8 +592,11 @@ namespace Microsoft.Maui.Platform
 
 		public virtual void RequestNavigation(NavigationRequest e)
 		{
-			if (MauiContext == null)
-				return;
+			if (NavigationView is null || !HasNavHost)
+				throw new InvalidOperationException("The navigation manager is not connected.");
+
+			if (e.NavigationStack.Count == 0)
+				throw new InvalidOperationException("NavigationStack cannot be empty");
 
 			CheckForFragmentChange();
 
@@ -524,34 +615,42 @@ namespace Microsoft.Maui.Platform
 				_fragmentLifecycleCallbacks = new Callbacks(this, NavController, ChildFragmentManager);
 			}
 
-			ApplyNavigationRequest(e);
+			_navigationQueue.Enqueue(e);
+			ProcessNavigationQueue();
 		}
 
-		// Fragments are always destroyed if they aren't visible
-		// The Handler/PlatformView associated with the visible IView remain intact
-		// The performance hit of destroying/recreating fragments should be negligible
-		// Hopefully this behavior survives implementation
-		// This will need to be tested with Maps and WebViews to make sure they behave efficiently
-		// being removed and then added back to a different Fragment
-		// 
-		// I'm firing NavigationFinished from here instead of FragmentAnimationFinished because
-		// this event appears to fire slightly after `FragmentAnimationFinished` and it also fires
-		// if we aren't using animations
+		// View destruction is not evidence that the requested destination was presented.
 		protected virtual void OnNavigationViewFragmentDestroyed(AndroidX.Fragment.App.FragmentManager fm, NavigationViewFragment navHostPageFragment)
 		{
-			_ = NavigationView ?? throw new InvalidOperationException($"NavigationView cannot be null");
+		}
 
-			if (IsNavigating)
+		protected virtual void OnNavigationViewFragmentResumed(AndroidX.Fragment.App.FragmentManager fm, NavigationViewFragment navHostPageFragment)
+		{
+			if (IsNavigating &&
+				OnResumeRequestedArgs is null &&
+				navHostPageFragment.ConnectionGeneration == _connectionGeneration &&
+				navHostPageFragment.PresentedPage == _currentPage &&
+				fm.PrimaryNavigationFragment == navHostPageFragment &&
+				NavController.CurrentDestination?.Id == _expectedDestinationId &&
+				navHostPageFragment.View?.Parent is not null)
 			{
 				NavigationFinished(NavigationView);
 			}
 		}
 
-		protected virtual void OnNavigationViewFragmentResumed(AndroidX.Fragment.App.FragmentManager fm, NavigationViewFragment navHostPageFragment)
+		internal void ResumeNavigation()
 		{
-			if (IsInitialNavigation)
+			if (OnResumeRequestedArgs is NavigationRequest request && _fragmentManager?.IsStateSaved == false)
 			{
-				NavigationFinished(NavigationView);
+				try
+				{
+					ApplyNavigationRequest(request);
+				}
+				catch (Exception exception)
+				{
+					NavigationFailed(exception);
+					throw;
+				}
 			}
 		}
 
@@ -617,12 +716,14 @@ namespace Microsoft.Maui.Platform
 			StackNavigationManager? _stackNavigationManager;
 			NavController _navController;
 			FragmentManager? _childFragmentManager;
+			readonly int _connectionGeneration;
 
 			public Callbacks(StackNavigationManager navigationLayout, NavController navController, FragmentManager? childFragmentManager)
 			{
 				_stackNavigationManager = navigationLayout;
 				_navController = navController;
 				_childFragmentManager = childFragmentManager;
+				_connectionGeneration = navigationLayout.ConnectionGeneration;
 
 				_navController.AddOnDestinationChangedListener(this);
 				_childFragmentManager?.RegisterFragmentLifecycleCallbacks(this, false);
@@ -641,17 +742,22 @@ namespace Microsoft.Maui.Platform
 			#region FragmentLifecycleCallbacks
 			public override void OnFragmentResumed(AndroidX.Fragment.App.FragmentManager fm, AndroidX.Fragment.App.Fragment f)
 			{
-				if (_stackNavigationManager?.VirtualView == null)
+				if (_stackNavigationManager?.VirtualView == null ||
+					_stackNavigationManager.ConnectionGeneration != _connectionGeneration)
 					return;
 
 				if (_stackNavigationManager.OnResumeRequestedArgs is not null)
 				{
-					_stackNavigationManager.ApplyNavigationRequest(_stackNavigationManager.OnResumeRequestedArgs);
+					_stackNavigationManager.ResumeNavigation();
 					return;
 				}
 
 				if (f is NavigationViewFragment pf)
 					_stackNavigationManager.OnNavigationViewFragmentResumed(fm, pf);
+
+				if (_stackNavigationManager?.VirtualView is null ||
+					_stackNavigationManager.ConnectionGeneration != _connectionGeneration)
+					return;
 
 				AToolbar? platformToolbar = null;
 				IToolbar? toolbar = null;
@@ -741,6 +847,8 @@ namespace Microsoft.Maui.Platform
 					_navController.RemoveOnDestinationChangedListener(this);
 
 				_childFragmentManager?.UnregisterFragmentLifecycleCallbacks(this);
+				_childFragmentManager = null;
+				Dispose();
 			}
 		}
 	}

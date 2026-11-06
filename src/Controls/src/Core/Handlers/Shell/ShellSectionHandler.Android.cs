@@ -27,7 +27,7 @@ namespace Microsoft.Maui.Controls.Handlers
     /// UNIFIED Handler for ShellSection on Android.
     /// Always uses ViewPager2 for content switching - works for both single and multiple ShellContents.
     /// TabLayout visibility is controlled by item count (hidden if 1 item).
-    /// Each ShellContent gets its own StackNavigationManager for independent navigation.
+    /// Each ShellContent presents the shared ShellSection stack with its own root page.
     /// </summary>
     public partial class ShellSectionHandler : ElementHandler<ShellSection, AView>, IAppearanceObserver
     {
@@ -44,6 +44,9 @@ namespace Microsoft.Maui.Controls.Handlers
         ShellSectionTabbedViewAdapter? _shellSectionAdapter;
         ViewPagerPageChangeCallback? _pageChangedCallback;
         List<ShellContent>? _subscribedItems; // Tracks exactly which ShellContents currently have OnShellContentPropertyChanged wired up
+        int _viewGeneration;
+
+        internal int ViewGeneration => _viewGeneration;
 
         /// <summary>
         /// Internal accessor for the ViewPager2 instance. Used by ViewPagerPageChangeCallback
@@ -209,13 +212,26 @@ namespace Microsoft.Maui.Controls.Handlers
         /// </summary>
         internal void SetupViewPagerAdapter()
         {
-            if (_adapter is not null || _parentFragment is null || VirtualView is null || _viewPager is null || MauiContext is null || _shellContext is null)
+            if (_adapter is not null || _parentFragment is null || ((IElementHandler)this).VirtualView is null || _viewPager is null || MauiContext is null || _shellContext is null)
             {
                 return;
             }
 
+            var fragmentManager = _parentFragment.ChildFragmentManager;
+            if (fragmentManager.IsStateSaved)
+                return;
+
+            var retainedContents = fragmentManager.Fragments.OfType<ShellContentNavigationFragment>().ToArray();
+            if (retainedContents.Length > 0)
+            {
+                var transaction = fragmentManager.BeginTransaction();
+                foreach (var fragment in retainedContents)
+                    transaction.Remove(fragment);
+                transaction.CommitNow();
+            }
+
             // Create scoped context with parent fragment's ChildFragmentManager
-            var scopedContext = MauiContext.MakeScoped(fragmentManager: _parentFragment.ChildFragmentManager);
+            var scopedContext = MauiContext.MakeScoped(fragmentManager: fragmentManager);
 
             // Create adapter
             _adapter = new ShellContentFragmentAdapter(VirtualView, _parentFragment, scopedContext)
@@ -263,7 +279,7 @@ namespace Microsoft.Maui.Controls.Handlers
             var currentContent = VirtualView.CurrentItem;
             if (currentContent is not null && IsCurrentlyActiveSection())
             {
-                var page = ((IShellContentController)currentContent).GetOrCreateContent();
+                var page = SectionController.PresentedPage ?? ((IShellContentController)currentContent).GetOrCreateContent();
                 if (page is not null && shell is not null)
                 {
                     // Update toolbar tracker with current page
@@ -453,11 +469,17 @@ namespace Microsoft.Maui.Controls.Handlers
                 }
                 _subscribedItems.Clear();
             }
-            // Only remove top tabs from the shared container if this is the active section.
-            // When inactive sections are disconnected (e.g., VP2 adapter updates recreate
-            // fragments for bottom tabs that reappeared), their DisconnectHandler must NOT
-            // hide the shared navigationlayout_toptabs container — it would override the
-            // active section's PlaceTopTabs() that already made it visible.
+            ReleaseViewResources();
+            _viewPager = null;
+            _rootLayout = null;
+            _shellContext = null;
+
+            base.DisconnectHandler(platformView);
+        }
+
+        internal void ReleaseViewResources()
+        {
+            _viewGeneration++;
             if (IsCurrentlyActiveSection())
             {
                 RemoveTopTabs();
@@ -472,15 +494,17 @@ namespace Microsoft.Maui.Controls.Handlers
             if (_pageChangedCallback is not null && _viewPager is not null)
             {
                 _viewPager.UnregisterOnPageChangeCallback(_pageChangedCallback);
+                _pageChangedCallback.Dispose();
                 _pageChangedCallback = null;
             }
 
             // Cleanup adapter
-            _adapter = null;
             _viewPager?.Adapter = null;
-            _viewPager = null;
+            _adapter?.Dispose();
+            _adapter = null;
 
-            // Cleanup TabLayout
+            _contentTabLayout?.RemoveFromParent();
+            _contentTabLayout?.Dispose();
             _contentTabLayout = null;
 
             // Unregister appearance observer (use cached Shell reference for reliable removal
@@ -495,10 +519,7 @@ namespace Microsoft.Maui.Controls.Handlers
             _tabLayoutAppearanceTracker?.Dispose();
             _tabLayoutAppearanceTracker = null;
 
-            _rootLayout = null;
-            _shellContext = null;
-
-            base.DisconnectHandler(platformView);
+            _parentFragment = null;
         }
 
         /// <summary>
@@ -546,6 +567,11 @@ namespace Microsoft.Maui.Controls.Handlers
             var index = SectionController.GetItems().IndexOf(VirtualView.CurrentItem);
             if (index >= 0 && fragmentManager.FindFragmentByTag($"f{_adapter.GetItemId(index)}") is ShellContentNavigationFragment fragment)
             {
+                foreach (var otherFragment in fragmentManager.Fragments)
+                {
+                    if (otherFragment is ShellContentNavigationFragment otherContent && otherContent != fragment)
+                        otherContent.SuspendNavigation();
+                }
                 fragment.InitializeNavigation();
             }
         }
@@ -599,7 +625,12 @@ namespace Microsoft.Maui.Controls.Handlers
             }
             else
             {
-                viewPager.Post(() => adapter.NotifyDataSetChanged());
+                var generation = _viewGeneration;
+                viewPager.Post(() =>
+                {
+                    if (generation == _viewGeneration && _viewPager == viewPager && _adapter == adapter)
+                        adapter.NotifyDataSetChanged();
+                });
             }
         }
 
@@ -800,11 +831,11 @@ namespace Microsoft.Maui.Controls.Handlers
         /// </summary>
         internal bool IsCurrentlyActiveSection()
         {
-            if (VirtualView is null)
+            if (((IElementHandler)this).VirtualView is not ShellSection section)
                 return false;
 
-            var shellItem = VirtualView.FindParentOfType<ShellItem>();
-            if (shellItem is null || shellItem.CurrentItem != VirtualView)
+            var shellItem = section.FindParentOfType<ShellItem>();
+            if (shellItem is null || shellItem.CurrentItem != section)
                 return false;
 
             var shell = shellItem.FindParentOfType<Shell>();
@@ -978,7 +1009,7 @@ namespace Microsoft.Maui.Controls.Handlers
 
             var visibleItems = ((IShellSectionController)virtualView).GetItems();
 
-            if (position >= visibleItems.Count)
+            if (position < 0 || position >= visibleItems.Count)
             {
                 return;
             }
@@ -1019,27 +1050,41 @@ namespace Microsoft.Maui.Controls.Handlers
                     // prevents re-entrant OnPageSelected during the deferred revert.
                     if (virtualView.CurrentItem is not null)
                     {
-                        var currentPosition = visibleItems.IndexOf(virtualView.CurrentItem);
+                        var currentContent = virtualView.CurrentItem;
+                        var currentPosition = visibleItems.IndexOf(currentContent);
 
                         if (currentPosition >= 0)
                         {
                             _selecting = true;
 
-                            _handler.ViewPager?.Post(() =>
+                            var viewPager = _handler.ViewPager;
+                            var generation = _handler.ViewGeneration;
+                            viewPager?.Post(() =>
                             {
-                                _handler.ViewPager?.SetCurrentItem(currentPosition, false);
-
-                                // Revert TabLayout indicator and text color state.
-                                // SetScrollPosition forces a full visual state reset
-                                // (including tab text colors that get stuck during swipe).
-                                var tabLayout = _handler.ContentTabLayout;
-                                if (tabLayout is not null && currentPosition < tabLayout.TabCount)
+                                try
                                 {
-                                    tabLayout.SetScrollPosition(currentPosition, 0f, true);
-                                    tabLayout.SelectTab(tabLayout.GetTabAt(currentPosition));
-                                }
+                                    if (_handler.ViewGeneration != generation ||
+                                        _handler.ViewPager != viewPager ||
+                                        _handler.VirtualView != virtualView ||
+                                        virtualView.CurrentItem != currentContent)
+                                        return;
 
-                                _selecting = false;
+                                    var targetPosition = ((IShellSectionController)virtualView).GetItems().IndexOf(currentContent);
+                                    if (targetPosition < 0)
+                                        return;
+
+                                    viewPager.SetCurrentItem(targetPosition, false);
+                                    var tabLayout = _handler.ContentTabLayout;
+                                    if (tabLayout is not null && targetPosition < tabLayout.TabCount)
+                                    {
+                                        tabLayout.SetScrollPosition(targetPosition, 0f, true);
+                                        tabLayout.SelectTab(tabLayout.GetTabAt(targetPosition));
+                                    }
+                                }
+                                finally
+                                {
+                                    _selecting = false;
+                                }
                             });
                         }
                     }
@@ -1054,12 +1099,12 @@ namespace Microsoft.Maui.Controls.Handlers
                 return;
             }
 
-            // Update toolbar title
-            var toolbarTracker = _handler.ToolbarTracker;
-            toolbarTracker?.Page = page;
-
             // Update CurrentItem
             virtualView.SetValueFromRenderer(ShellSection.CurrentItemProperty, newCurrentItem);
+
+            page = ((IShellSectionController)virtualView).PresentedPage ?? page;
+            var toolbarTracker = _handler.ToolbarTracker;
+            toolbarTracker?.Page = page;
 
             // Trigger appearance update
             if (shell is not null)
