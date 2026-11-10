@@ -34,6 +34,7 @@ namespace Microsoft.Maui.Platform
 		ITitleBar? _titleBar;
 		FrameworkElement? _appTitleBar;
 		bool _hasTitleBarImage;
+		bool _isWindowActive = true;
 		ViewManagement.UISettings _viewSettings;
 		public event TypedEventHandler<NavigationView, NavigationViewBackRequestedEventArgs>? BackRequested;
 
@@ -508,6 +509,24 @@ namespace Microsoft.Maui.Platform
 			}
 		}
 
+		internal void SetWindowActive(bool isActive)
+		{
+			_isWindowActive = isActive;
+			UpdateWindowTitleForeground();
+		}
+
+		void UpdateWindowTitleForeground()
+		{
+			WindowTitleForeground = _isWindowActive
+				? WindowTitleActiveForeground
+				: WindowTitleInactiveForeground;
+		}
+
+		static void OnWindowTitleBrushChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+		{
+			((WindowRootView)d).UpdateWindowTitleForeground();
+		}
+
 		internal void SetTitleBarVisibility(UI.Xaml.Visibility visibility)
 		{
 			// Set default and custom titlebar container visibility
@@ -641,6 +660,32 @@ namespace Microsoft.Maui.Platform
 		{
 			get => (UI.Xaml.Media.Brush?)GetValue(WindowTitleForegroundProperty);
 			set => SetValue(WindowTitleForegroundProperty, value);
+		}
+
+		internal static readonly DependencyProperty WindowTitleActiveForegroundProperty =
+			DependencyProperty.Register(
+				nameof(WindowTitleActiveForeground),
+				typeof(UI.Xaml.Media.Brush),
+				typeof(WindowRootView),
+				new PropertyMetadata(null, OnWindowTitleBrushChanged));
+
+		internal UI.Xaml.Media.Brush? WindowTitleActiveForeground
+		{
+			get => (UI.Xaml.Media.Brush?)GetValue(WindowTitleActiveForegroundProperty);
+			set => SetValue(WindowTitleActiveForegroundProperty, value);
+		}
+
+		internal static readonly DependencyProperty WindowTitleInactiveForegroundProperty =
+			DependencyProperty.Register(
+				nameof(WindowTitleInactiveForeground),
+				typeof(UI.Xaml.Media.Brush),
+				typeof(WindowRootView),
+				new PropertyMetadata(null, OnWindowTitleBrushChanged));
+
+		internal UI.Xaml.Media.Brush? WindowTitleInactiveForeground
+		{
+			get => (UI.Xaml.Media.Brush?)GetValue(WindowTitleInactiveForegroundProperty);
+			set => SetValue(WindowTitleInactiveForegroundProperty, value);
 		}
 
 		internal static readonly DependencyProperty WindowTitleBarContainerMarginProperty =

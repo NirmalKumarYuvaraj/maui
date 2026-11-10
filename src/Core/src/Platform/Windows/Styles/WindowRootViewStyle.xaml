@@ -58,6 +58,8 @@
     </DataTemplate>
 
     <Style TargetType="maui:WindowRootView">
+        <Setter Property="WindowTitleActiveForeground" Value="{ThemeResource TextFillColorPrimaryBrush}"/>
+        <Setter Property="WindowTitleInactiveForeground" Value="{ThemeResource TextFillColorDisabledBrush}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="maui:WindowRootView">
