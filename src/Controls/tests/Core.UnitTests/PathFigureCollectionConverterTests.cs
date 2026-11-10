@@ -1,5 +1,8 @@
 using System;
+using System.Globalization;
+using System.Linq;
 using Microsoft.Maui.Controls.Shapes;
+using Microsoft.Maui.Graphics;
 using Xunit;
 
 namespace Microsoft.Maui.Controls.Core.UnitTests
@@ -7,6 +10,190 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 	public class PathFigureCollectionConverterTests
 	{
 		private readonly PathFigureCollectionConverter _converter = new();
+
+		[Theory]
+		[InlineData("m10,20 5,-5 -2,3 h4 v-6 l1,2")]
+		[InlineData("M10,20 15,15 13,18 H17 V12 L18,14")]
+		public void MoveImplicitLinesAndHorizontalVerticalCommandsResolveCoordinates(string markup)
+		{
+			var figure = Assert.Single(Assert.IsType<PathFigureCollection>(_converter.ConvertFromInvariantString(markup)));
+
+			Assert.Equal(new Point(10, 20), figure.StartPoint);
+			Assert.Equal(new[] { new Point(15, 15), new Point(13, 18), new Point(17, 18), new Point(17, 12), new Point(18, 14) },
+				figure.Segments.Select(segment => Assert.IsType<LineSegment>(segment).Point));
+		}
+
+		[Theory]
+		[InlineData("M10,20 c1,2 3,4 5,6 s7,8 9,10")]
+		[InlineData("M10,20 C11,22 13,24 15,26 S22,34 24,36")]
+		public void SmoothCubicReflectsPreviousControlPoint(string markup)
+		{
+			var figure = Assert.Single(Assert.IsType<PathFigureCollection>(_converter.ConvertFromInvariantString(markup)));
+			Assert.Equal(2, figure.Segments.Count);
+			var first = Assert.IsType<BezierSegment>(figure.Segments[0]);
+			Assert.Equal(new Point(11, 22), first.Point1);
+			Assert.Equal(new Point(13, 24), first.Point2);
+			Assert.Equal(new Point(15, 26), first.Point3);
+			var second = Assert.IsType<BezierSegment>(figure.Segments[1]);
+			Assert.Equal(new Point(17, 28), second.Point1);
+			Assert.Equal(new Point(22, 34), second.Point2);
+			Assert.Equal(new Point(24, 36), second.Point3);
+		}
+
+		[Theory]
+		[InlineData("M10,20 q1,2 5,6 t9,10")]
+		[InlineData("M10,20 Q11,22 15,26 T24,36")]
+		public void SmoothQuadraticReflectsPreviousControlPoint(string markup)
+		{
+			var figure = Assert.Single(Assert.IsType<PathFigureCollection>(_converter.ConvertFromInvariantString(markup)));
+			Assert.Equal(2, figure.Segments.Count);
+			var first = Assert.IsType<QuadraticBezierSegment>(figure.Segments[0]);
+			Assert.Equal(new Point(11, 22), first.Point1);
+			Assert.Equal(new Point(15, 26), first.Point2);
+			var second = Assert.IsType<QuadraticBezierSegment>(figure.Segments[1]);
+			Assert.Equal(new Point(19, 30), second.Point1);
+			Assert.Equal(new Point(24, 36), second.Point2);
+		}
+
+		[Theory]
+		[InlineData("M10,20 L15,26 S22,34 24,36", false)]
+		[InlineData("M10,20 L15,26 T24,36", true)]
+		[InlineData("M0,0 C1,2 3,4 5,6 M15,26 S22,34 24,36", false)]
+		[InlineData("M0,0 Q1,2 5,6 M15,26 T24,36", true)]
+		public void SmoothCurveWithoutMatchingPreviousCurveUsesCurrentPoint(string markup, bool quadratic)
+		{
+			var figures = Assert.IsType<PathFigureCollection>(_converter.ConvertFromInvariantString(markup));
+			var segment = figures.Last().Segments.Last();
+			var control = quadratic ? Assert.IsType<QuadraticBezierSegment>(segment).Point1 : Assert.IsType<BezierSegment>(segment).Point1;
+			Assert.Equal(new Point(15, 26), control);
+		}
+
+		[Theory]
+		[InlineData("M10,20 a7,9 30 1,0 5,6", true, SweepDirection.CounterClockwise)]
+		[InlineData("M10,20 A7,9 30 0,1 15,26", false, SweepDirection.Clockwise)]
+		public void ArcCommandPreservesRadiiRotationFlagsAndEndpoint(string markup, bool large, SweepDirection sweep)
+		{
+			var figure = Assert.Single(Assert.IsType<PathFigureCollection>(_converter.ConvertFromInvariantString(markup)));
+			var arc = Assert.IsType<ArcSegment>(Assert.Single(figure.Segments));
+
+			Assert.Equal(new Size(7, 9), arc.Size);
+			Assert.Equal(30, arc.RotationAngle);
+			Assert.Equal(large, arc.IsLargeArc);
+			Assert.Equal(sweep, arc.SweepDirection);
+			Assert.Equal(new Point(15, 26), arc.Point);
+		}
+
+		[Fact]
+		public void CloseResetsRelativeMoveToPreviousFigureStart()
+		{
+			var figures = Assert.IsType<PathFigureCollection>(_converter.ConvertFromInvariantString("M10,20 l5,6 z m2,3 l4,5"));
+
+			Assert.Equal(2, figures.Count);
+			Assert.True(figures[0].IsClosed);
+			Assert.False(figures[1].IsClosed);
+			Assert.Equal(new Point(12, 23), figures[1].StartPoint);
+			Assert.Equal(new Point(16, 28), Assert.IsType<LineSegment>(Assert.Single(figures[1].Segments)).Point);
+		}
+
+		[Fact]
+		public void NumbersAcceptSignsDecimalsExponentsAndAdjacentNegativeValues()
+		{
+			var figure = Assert.Single(Assert.IsType<PathFigureCollection>(_converter.ConvertFromInvariantString("\tM.5-.25 L+1e2,-2.5E-1  \n")));
+
+			Assert.Equal(new Point(0.5, -0.25), figure.StartPoint);
+			Assert.Equal(new Point(100, -0.25), Assert.IsType<LineSegment>(Assert.Single(figure.Segments)).Point);
+		}
+
+		[Theory]
+		[InlineData("M0")]
+		[InlineData("M0,0 L1")]
+		[InlineData("M0,0 C1,2 3,4")]
+		[InlineData("M0,0 Q1,2")]
+		[InlineData("M0,0 A1,2 30 2,0 4,5")]
+		[InlineData("M0,0 A1,2 30 0,2 4,5")]
+		[InlineData("M0,,0")]
+		[InlineData("M0,0,")]
+		[InlineData("M0,0 X1,2")]
+		[InlineData("F")]
+		[InlineData("F2 M0,0")]
+		[InlineData("M+,0")]
+		public void MalformedCommandsThrowFormatException(string markup)
+		{
+			Assert.Throws<FormatException>(() => _converter.ConvertFromInvariantString(markup));
+		}
+
+		[Fact]
+		public void SerializeAndReparsePreservesMixedSegmentsAndFigureClosure()
+		{
+			var original = Assert.IsType<PathFigureCollection>(_converter.ConvertFromInvariantString("M10,20 L15,26 C1,2 3,4 5,6 Q7,8 9,10 A12,14 30 1,0 20,22 Z M30,40 L50,60"));
+			var serialized = _converter.ConvertToInvariantString(original);
+			var reparsed = Assert.IsType<PathFigureCollection>(_converter.ConvertFromInvariantString(serialized));
+
+			Assert.Equal(2, reparsed.Count);
+			Assert.True(reparsed[0].IsClosed);
+			Assert.False(reparsed[1].IsClosed);
+			var expected = new PathF();
+			var actual = new PathF();
+			new PathGeometry(original).AppendPath(expected);
+			new PathGeometry(reparsed).AppendPath(actual);
+			Assert.Equal(expected.SegmentTypes, actual.SegmentTypes);
+			Assert.Equal(expected.Points, actual.Points);
+		}
+
+		[Theory]
+		[InlineData("Line")]
+		[InlineData("Bezier")]
+		[InlineData("Quadratic")]
+		public void SerializePolySegmentsPreservesTheirGeometry(string kind)
+		{
+			var points = new PointCollection { new Point(1, 2), new Point(3, 4), new Point(5, 6), new Point(7, 8), new Point(9, 10), new Point(11, 12) };
+			PathSegment segment = kind switch
+			{
+				"Line" => new PolyLineSegment(points),
+				"Bezier" => new PolyBezierSegment(points),
+				_ => new PolyQuadraticBezierSegment(points)
+			};
+			var figures = new PathFigureCollection { new PathFigure { StartPoint = new Point(10, 20), Segments = { segment } } };
+
+			var serialized = _converter.ConvertToInvariantString(figures);
+			var reparsed = Assert.IsType<PathFigureCollection>(_converter.ConvertFromInvariantString(serialized));
+
+			var expected = new PathF();
+			var actual = new PathF();
+			new PathGeometry(figures).AppendPath(expected);
+			new PathGeometry(reparsed).AppendPath(actual);
+			Assert.Equal(expected.SegmentTypes, actual.SegmentTypes);
+			Assert.Equal(expected.Points, actual.Points);
+		}
+
+		[Fact]
+		public void SerializeArcUsesInvariantCultureForAllNumericParameters()
+		{
+			var previousCulture = CultureInfo.CurrentCulture;
+			try
+			{
+				CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
+				var figures = new PathFigureCollection
+				{
+					new PathFigure
+					{
+						Segments = { new ArcSegment(new Point(20.5, 22.25), new Size(12.5, 14.75), 30.5, SweepDirection.Clockwise, true) }
+					}
+				};
+
+				var serialized = _converter.ConvertToInvariantString(figures);
+
+				Assert.Contains("A12.5,14.75 30.5", serialized, StringComparison.Ordinal);
+				var reparsed = Assert.IsType<PathFigureCollection>(_converter.ConvertFromInvariantString(serialized));
+				var arc = Assert.IsType<ArcSegment>(Assert.Single(Assert.Single(reparsed).Segments));
+				Assert.Equal(new Size(12.5, 14.75), arc.Size);
+				Assert.Equal(30.5, arc.RotationAngle);
+			}
+			finally
+			{
+				CultureInfo.CurrentCulture = previousCulture;
+			}
+		}
 
 		[Fact]
 		public void ConvertNullTest()
