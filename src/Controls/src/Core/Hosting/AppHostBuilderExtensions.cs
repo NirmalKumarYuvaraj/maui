@@ -247,7 +247,9 @@ public static partial class AppHostBuilderExtensions
 		handlersCollection.AddHandler<ShellSection>(static _ => new ShellSectionHandler());
 		handlersCollection.AddHandler<ShellContent>(static _ => new ShellContentHandler());
 #elif ANDROID
-		handlersCollection.AddAndroidShellHandlers(RuntimeFeature.IsAndroidShellHandlerEnabled);
+		handlersCollection.AddHandler<Shell>(static _ => new ShellHandler());
+		handlersCollection.AddHandler<ShellItem>(static _ => new ShellItemHandler());
+		handlersCollection.AddHandler<ShellSection>(static _ => new ShellSectionHandler());
 #endif
 
 #if WINDOWS || ANDROID
@@ -259,22 +261,6 @@ public static partial class AppHostBuilderExtensions
 
 		return handlersCollection;
 	}
-
-#if ANDROID
-	internal static void AddAndroidShellHandlers(this IMauiHandlersCollection handlersCollection, bool useHandler)
-	{
-		if (useHandler)
-		{
-			handlersCollection.TryAddHandler<Shell>(static _ => new ShellHandler());
-			handlersCollection.TryAddHandler<ShellItem>(static _ => new ShellItemHandler());
-			handlersCollection.TryAddHandler<ShellSection>(static _ => new ShellSectionHandler());
-		}
-		else
-		{
-			handlersCollection.TryAddHandler<Shell>(static _ => new ShellRenderer());
-		}
-	}
-#endif
 
 	static MauiAppBuilder SetupDefaults(this MauiAppBuilder builder)
 	{

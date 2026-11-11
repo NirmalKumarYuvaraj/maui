@@ -106,7 +106,7 @@ public partial class SandboxShell : Shell
 		Items.Add(_itemB);
 		CurrentItem = _itemA;
 		SetStatus("READY");
-		Record($"SETUP generation={_generation} explicitMode={(NavigationHarnessRegistration.UsesLegacy ? "legacy renderer" : "new handler")}");
+		Record($"SETUP generation={_generation}");
 	}
 
 	ShellContent LazyContent(string name) => new()
@@ -138,8 +138,7 @@ public partial class SandboxShell : Shell
 	{
 		var section = CurrentItem?.CurrentItem;
 		var stack = section?.Navigation.NavigationStack;
-		return $"mode={(NavigationHarnessRegistration.UsesLegacy ? "legacy" : "new")} | " +
-			$"page={CurrentPage?.Title} | section={section?.Title} content={section?.CurrentItem?.Title} drawer={FlyoutIsPresented}\n" +
+		return $"page={CurrentPage?.Title} | section={section?.Title} content={section?.CurrentItem?.Title} drawer={FlyoutIsPresented}\n" +
 			$"stack=[{(stack is null ? "" : string.Join(", ", stack.Select(p => p?.Title ?? "<root>")))}] | " +
 			$"itemHandler={CurrentItem?.Handler?.GetType().Name ?? "null"} | created={string.Join(",", _created.OrderBy(x => x))}";
 	}
@@ -443,13 +442,10 @@ public partial class SandboxShell : Shell
 			CurrentItem = item;
 			await ExpectRoot(item.CurrentItem.CurrentItem);
 #if ANDROID
-			if (!NavigationHarnessRegistration.UsesLegacy)
-			{
-				var expected = item is NavigationItemA ? typeof(NavigationItemHandlerA) : typeof(NavigationItemHandlerB);
-				Require(item.Handler?.GetType() == expected, $"Destination {item.Title}: expected {expected.Name}, got {item.Handler?.GetType().Name}");
-			}
+			var expected = item is NavigationItemA ? typeof(NavigationItemHandlerA) : typeof(NavigationItemHandlerB);
+			Require(item.Handler?.GetType() == expected, $"Destination {item.Title}: expected {expected.Name}, got {item.Handler?.GetType().Name}");
 #endif
-			Record($"ASSERT destination handler {item.Title}: {item.Handler?.GetType().Name ?? "legacy renderer-owned"}");
+			Record($"ASSERT destination handler {item.Title}: {item.Handler?.GetType().Name ?? "null"}");
 		}
 	}
 

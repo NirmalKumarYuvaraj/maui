@@ -1850,13 +1850,11 @@ namespace Microsoft.Maui.Controls
 
 		protected override bool OnBackButtonPressed()
 		{
-#if ANDROID
 			if (FlyoutIsPresented && GetEffectiveFlyoutBehavior() == FlyoutBehavior.Flyout)
 			{
 				SetValueFromRenderer(FlyoutIsPresentedProperty, false);
 				return true;
 			}
-#endif
 #if WINDOWS || ANDROID || !PLATFORM
 			var backButtonBehavior = GetEffectiveBackButtonBehavior(GetVisiblePage());
 			if (backButtonBehavior != null)
@@ -1864,11 +1862,7 @@ namespace Microsoft.Maui.Controls
 				var command = backButtonBehavior.GetPropertyIfSet<ICommand>(BackButtonBehavior.CommandProperty, null);
 				var commandParameter = backButtonBehavior.GetPropertyIfSet<object>(BackButtonBehavior.CommandParameterProperty, null);
 
-				if (command != null
-#if ANDROID
-					&& backButtonBehavior.IsEnabled
-#endif
-					)
+				if (command != null && backButtonBehavior.IsEnabled)
 				{
 					command.Execute(commandParameter);
 					return true;

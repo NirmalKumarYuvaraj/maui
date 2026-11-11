@@ -19,9 +19,8 @@ public partial class MainPage : ContentPage
 		actions.Add(new Label
 		{
 			AutomationId = "NavInstructions",
-			Text = "Source: AndroidNavigationArchitectureImprovements.md. Setup resets lazy roots; " +
+			Text = "Source: NavigationFlowArchitectureImprovements.md. Setup resets lazy roots; " +
 				"self-tests assert managed/native presentation and each operation's completion. " +
-				"Rebuild with SandboxUseLegacyShell=true for legacy parity. " +
 				"Root gesture preview, saved-state recreation and resource retention require manual checks.",
 			FontSize = 12
 		});

@@ -38,7 +38,6 @@ namespace Microsoft.Maui.DeviceTests
 			{
 				SetupShellHandlers(handlers);
 				handlers.AddHandler<Shell, PageFactoryTrackingShellRenderer>();
-				handlers.AddAndroidShellHandlers(true);
 			}));
 			var page = new ContentPage();
 			var shell = await CreateShellAsync(shell => shell.Items.Add(page));
@@ -127,32 +126,20 @@ namespace Microsoft.Maui.DeviceTests
 			});
 		}
 
-		[Theory]
-		[InlineData(false)]
-		[InlineData(true)]
-		public void RolloutSelectionPreservesExplicitRegistrations(bool useHandler)
+		[Fact]
+		public void DefaultShellHandlersAreRegisteredAndExplicitRegistrationsTakePrecedence()
 		{
 			var defaults = new MauiHandlersCollection();
-			defaults.AddAndroidShellHandlers(useHandler);
+			defaults.AddControlsHandlers();
 			var factory = new MauiHandlersFactory(defaults);
-			var shellHandler = factory.GetHandler(typeof(Shell));
-			if (useHandler)
-			{
-				Assert.IsType<ShellHandler>(shellHandler);
-				Assert.IsType<ShellItemHandler>(factory.GetHandler(typeof(ShellItem)));
-				Assert.IsType<ShellSectionHandler>(factory.GetHandler(typeof(ShellSection)));
-			}
-			else
-			{
-				Assert.IsType<Controls.Handlers.Compatibility.ShellRenderer>(shellHandler);
-				Assert.Null(factory.GetHandlerType(typeof(ShellItem)));
-				Assert.Null(factory.GetHandlerType(typeof(ShellSection)));
-			}
+			Assert.IsType<ShellHandler>(factory.GetHandler(typeof(Shell)));
+			Assert.IsType<ShellItemHandler>(factory.GetHandler(typeof(ShellItem)));
+			Assert.IsType<ShellSectionHandler>(factory.GetHandler(typeof(ShellSection)));
 
 			var explicitRegistrations = new MauiHandlersCollection();
+			explicitRegistrations.AddControlsHandlers();
 			explicitRegistrations.AddHandler<Shell, ItemFactoryTrackingShellHandler>();
 			explicitRegistrations.AddHandler<ShellItem, FirstItemHandler>();
-			explicitRegistrations.AddAndroidShellHandlers(useHandler);
 			factory = new MauiHandlersFactory(explicitRegistrations);
 			Assert.IsType<ItemFactoryTrackingShellHandler>(factory.GetHandler(typeof(Shell)));
 			Assert.IsType<FirstItemHandler>(factory.GetHandler(typeof(ShellItem)));

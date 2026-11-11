@@ -61,6 +61,45 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 		}
 
 		[Fact]
+		public async Task ConcurrentNavigationsWaitForThePreviousRequest()
+		{
+			var shell = new Shell();
+			var one = new ShellItem { Route = "one" };
+			var two = new ShellItem { Route = "two" };
+			one.Items.Add(MakeSimpleShellSection("tabone", "content"));
+			one.Items.Add(MakeSimpleShellSection("tabtwo", "content"));
+			two.Items.Add(MakeSimpleShellSection("tabthree", "content"));
+			two.Items.Add(MakeSimpleShellSection("tabfour", "content"));
+			shell.Items.Add(one);
+			shell.Items.Add(two);
+
+			var firstNavigationStarted = new TaskCompletionSource<Action>(TaskCreationOptions.RunContinuationsAsynchronously);
+			var navigatingCount = 0;
+			shell.Navigating += (_, args) =>
+			{
+				navigatingCount++;
+				if (navigatingCount == 1)
+				{
+					var deferral = args.GetDeferral();
+					firstNavigationStarted.TrySetResult(deferral.Complete);
+				}
+			};
+
+			var firstNavigation = shell.GoToAsync("//two/tabfour/content");
+			var completeFirstNavigation = await firstNavigationStarted.Task;
+			var secondNavigation = shell.GoToAsync("//one/tabtwo/content");
+
+			await Task.Yield();
+			Assert.Equal(1, navigatingCount);
+
+			completeFirstNavigation();
+			await Task.WhenAll(firstNavigation, secondNavigation);
+
+			Assert.Equal(2, navigatingCount);
+			Assert.Equal("//one/tabtwo/content", shell.CurrentState.Location.ToString());
+		}
+
+		[Fact]
 		public async Task CancelledPushRemovesOnlyPushedPageImplicitRoute()
 		{
 			var shell = new TestShell

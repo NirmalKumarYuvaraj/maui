@@ -1,12 +1,14 @@
-# Android Navigation Architecture Improvements
+# Navigation Flow Architecture Improvements
 
 ## Scope and evidence
 
-This document describes improvements to the Android Shell navigation architecture
-on the `composable-android` branch. It covers compatibility with existing MAUI
-navigation behavior, renderer customizations, and supported Android versions.
-The current implementation uses handlers, AndroidX fragments, and navigation
-components; it is not a Jetpack Compose implementation.
+This document describes improvements to MAUI Shell's navigation flow, using the
+Android implementation on the `composable-android` branch as the concrete
+implementation under review. The recommendations focus on managed navigation
+state, request ordering, completion, cancellation, and lifecycle behavior; they
+are not contingent on a runtime choice between handlers and renderers. AndroidX
+fragments and navigation components are the native presentation layer, not a
+Jetpack Compose implementation.
 
 The findings below come from source inspection. Failure scenarios are proposed
 regression cases, not device-reproduced failures. No application builds, device
@@ -23,7 +25,8 @@ are repository-relative; use member names because line numbers can change.
   view lifetime.
 - Continue sharing drawer, toolbar, and tab infrastructure where ownership is
   explicit.
-- Reuse existing renderer/handler variant tests to establish behavioral parity.
+- Use focused handler tests and explicit renderer-compatibility tests to verify
+  the navigation contract.
 
 ## 1. Align stack ownership with the managed contract
 
@@ -123,7 +126,8 @@ Recommendation:
   the handler service.
 - Reuse only when handler type, context, and ownership are compatible.
 - Test two derived ShellItem types with different registered handlers.
-- Preserve the legacy renderer path for existing renderer subclasses.
+- Preserve explicit renderer registrations for applications that customize the
+  legacy renderer.
 - Audit whether retained factory hooks are actually invoked by the new path.
   Keeping a method such as `CreateFragmentForPage` does not itself preserve its
   old customization behavior.
@@ -218,13 +222,14 @@ view resources, not independent navigation history or completion policy.
 4. Correct destination-specific handler resolution and customization parity.
 5. Coordinate back handling and predictive-back registration.
 6. Harden view recreation, deferred callbacks, and resource release.
-7. Provide an explicit legacy/new-handler selection for rollout, following the
-   existing iOS feature-switch pattern where appropriate.
+7. Keep managed navigation-flow behavior independent of native presentation
+   selection. Android uses Shell handlers by default; applications that need a
+   renderer customization must register it explicitly.
 
-Android currently registers the new Shell handler unconditionally in
-`src/Controls/src/Core/Hosting/AppHostBuilderExtensions.cs`. A rollout switch
-should select a coherent set of Shell handlers and must preserve explicit
-application registrations.
+Android registers Shell handlers in
+`src/Controls/src/Core/Hosting/AppHostBuilderExtensions.cs`. The navigation
+improvements should not introduce a runtime feature switch solely to select
+between that handler path and the legacy renderer.
 
 ## Focused validation matrix
 
@@ -240,12 +245,13 @@ application registrations.
 | Cancelled tab switch plus collection mutation | No stale-index selection or update of a replaced view. |
 | View recreation and Shell reconnection | Correct toolbar, stack, observers, and lazy initialization. |
 | Repeated tab visits and removal | Retained native resources stabilize and removed content is released. |
-| Legacy renderer customizations | Supported hooks remain effective through the legacy path. |
+| Explicit legacy renderer customizations | Supported hooks remain effective when an app registers a custom renderer. |
 
 Run relevant scenarios on the minimum supported Android version and on API
 33-36, with gesture and button navigation where available. Extend to newer API
-levels supported by the branch. Run parity cases with legacy renderers and new
-handlers.
+levels supported by the branch. Validate explicit legacy renderer
+customizations where compatibility requires them; do not treat renderer and
+handler selection as a navigation-flow rollout mode.
 
 Existing starting points:
 

@@ -48,19 +48,12 @@ namespace Microsoft.Maui.Controls
 			ShellNavigationParameters shellNavigationParameters,
 			ShellNavigationRequest navigationRequest)
 		{
-#if ANDROID
-			if (_shell.Handler is Handlers.ShellHandler handler)
-			{
-				var previousNavigation = _queuedNavigation;
-				var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-				_queuedNavigation = completion.Task;
-				return GoToQueuedAsync(previousNavigation, completion, handler, shellNavigationParameters, navigationRequest);
-			}
-#endif
-			return GoToCoreAsync(shellNavigationParameters, navigationRequest);
+			var previousNavigation = _queuedNavigation;
+			var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+			_queuedNavigation = completion.Task;
+			return GoToQueuedAsync(previousNavigation, completion, _shell.Handler, shellNavigationParameters, navigationRequest);
 		}
 
-#if ANDROID
 		Task _queuedNavigation = Task.CompletedTask;
 
 		async Task GoToQueuedAsync(
@@ -84,7 +77,6 @@ namespace Microsoft.Maui.Controls
 				completion.TrySetResult(true);
 			}
 		}
-#endif
 
 		async Task GoToCoreAsync(
 			ShellNavigationParameters shellNavigationParameters,

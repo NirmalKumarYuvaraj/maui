@@ -4,12 +4,6 @@ public static class MauiProgram
 {
 	public static MauiApp CreateMauiApp()
 	{
-#if ANDROID
-		// Configure before builder defaults read RuntimeFeature; rebuild with
-		// SandboxUseLegacyShell=true to compare the legacy renderer path.
-		AppContext.SetSwitch("Microsoft.Maui.RuntimeFeature.IsAndroidShellHandlerEnabled",
-			!NavigationHarnessRegistration.UsesLegacy);
-#endif
 		return MauiApp
 			.CreateBuilder()
 #if __ANDROID__ || __IOS__
