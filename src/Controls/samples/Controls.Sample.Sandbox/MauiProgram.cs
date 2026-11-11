@@ -2,15 +2,13 @@
 
 public static class MauiProgram
 {
-	public static MauiApp CreateMauiApp()
-	{
-		return MauiApp
+	public static MauiApp CreateMauiApp() =>
+		MauiApp
 			.CreateBuilder()
 #if __ANDROID__ || __IOS__
 			.UseMauiMaps()
 #endif
 			.UseMauiApp<App>()
-			.ConfigureMauiHandlers(NavigationHarnessRegistration.Configure)
 			.ConfigureFonts(fonts =>
 			{
 				fonts.AddFont("Dokdo-Regular.ttf", "Dokdo");
@@ -25,5 +23,4 @@ public static class MauiProgram
 				fonts.AddFont("SegoeUI-Bold-Italic.ttf", "Segoe UI Bold Italic");
 			})
 			.Build();
-	}
 }

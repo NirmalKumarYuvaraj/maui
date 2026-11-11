@@ -148,28 +148,19 @@ Write-Success "Prerequisites validated"
 
 #region Platform-Specific Configuration
 
-# Match Directory.Build.props' current sample TFM rather than pinning a prior SDK.
-[xml]$repoBuildProps = Get-Content (Join-Path $RepoRoot "Directory.Build.props") -Raw
-$mauiMajor = $repoBuildProps.SelectSingleNode("/Project/PropertyGroup/_MauiDotNetVersionMajor").InnerText
-$mauiMinor = $repoBuildProps.SelectSingleNode("/Project/PropertyGroup/_MauiDotNetVersionMinor").InnerText
-if ($mauiMajor -notmatch '^\d+$' -or $mauiMinor -notmatch '^\d+$') {
-    throw "Cannot determine the current MAUI target framework from Directory.Build.props."
-}
-$targetFrameworkPrefix = "net$mauiMajor.$mauiMinor"
-
 # Set target framework and app identifiers
 if ($Platform -eq "android") {
-    $TargetFramework = "$targetFrameworkPrefix-android"
+    $TargetFramework = "net10.0-android"
     $AppPackage = "com.microsoft.maui.sandbox"
     $AppActivity = "com.microsoft.maui.sandbox.MainActivity"
 } elseif ($Platform -eq "ios") {
-    $TargetFramework = "$targetFrameworkPrefix-ios"
+    $TargetFramework = "net10.0-ios"
     $AppBundleId = "com.microsoft.maui.sandbox"
 } elseif ($Platform -eq "catalyst") {
-    $TargetFramework = "$targetFrameworkPrefix-maccatalyst"
+    $TargetFramework = "net10.0-maccatalyst"
     $AppBundleId = "com.microsoft.maui.sandbox"
 } elseif ($Platform -eq "windows") {
-    $TargetFramework = "$targetFrameworkPrefix-windows10.0.19041.0"
+    $TargetFramework = "net10.0-windows10.0.19041.0"
     $AppPackage = "com.microsoft.maui.sandbox"
 }
 
@@ -215,19 +206,7 @@ if ($Platform -eq "ios" -or $Platform -eq "catalyst") {
     $buildDeployParams.BundleId = $AppBundleId
 }
 
-$savedAndroidSerial = $env:ANDROID_SERIAL
-$savedAdbTarget = $env:AdbTarget
-try {
-    if ($Platform -eq "android") {
-        # Also scope MSBuild/deploy-helper commands to the explicitly selected device.
-        $env:ANDROID_SERIAL = $DeviceUdid
-        $env:AdbTarget = "-s $DeviceUdid"
-    }
-    & "$PSScriptRoot/shared/Build-AndDeploy.ps1" @buildDeployParams
-} finally {
-    $env:ANDROID_SERIAL = $savedAndroidSerial
-    $env:AdbTarget = $savedAdbTarget
-}
+& "$PSScriptRoot/shared/Build-AndDeploy.ps1" @buildDeployParams
 
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Build or deployment failed"
@@ -367,10 +346,6 @@ Push-Location $SandboxAppiumDir
 try {
     # Set DEVICE_UDID environment variable for the test script
     $env:DEVICE_UDID = $DeviceUdid
-    if ($Platform -eq "android") {
-        # Supply the built, self-contained APK so Appium installs it on this device.
-        $env:SANDBOX_APK_PATH = Join-Path $RepoRoot "artifacts/bin/Maui.Controls.Sample.Sandbox/$Configuration/$TargetFramework/com.microsoft.maui.sandbox-Signed.apk"
-    }
     
     Write-Info "Executing: dotnet run RunWithAppiumTest.cs"
     Write-Info "Test will connect to device: $DeviceUdid"
