@@ -1,4 +1,5 @@
-﻿using Android.Views;
+﻿using System;
+using Android.Views;
 using Android.Widget;
 using AndroidX.AppCompat.Widget;
 using Google.Android.Material.CheckBox;
@@ -20,12 +21,30 @@ namespace Microsoft.Maui.Handlers
 
 		protected override void ConnectHandler(AppCompatCheckBox platformView)
 		{
-			platformView.CheckedChange += OnCheckedChange;
+			base.ConnectHandler(platformView);
+
+			if (platformView is MaterialCheckBox materialCheckBox)
+			{
+				materialCheckBox.CheckedStateChanged += OnCheckedStateChanged;
+			}
+			else
+			{
+				platformView.CheckedChange += OnCheckedChange;
+			}
 		}
 
 		protected override void DisconnectHandler(AppCompatCheckBox platformView)
 		{
-			platformView.CheckedChange -= OnCheckedChange;
+			if (platformView is MaterialCheckBox materialCheckBox)
+			{
+				materialCheckBox.CheckedStateChanged -= OnCheckedStateChanged;
+			}
+			else
+			{
+				platformView.CheckedChange -= OnCheckedChange;
+			}
+
+			base.DisconnectHandler(platformView);
 		}
 
 		// This is an Android-specific mapping
@@ -39,6 +58,12 @@ namespace Microsoft.Maui.Handlers
 			handler.PlatformView?.UpdateIsChecked(check);
 		}
 
+		internal static partial void MapIsThreeState(ICheckBoxHandler handler, ICheckBox check)
+		{
+			if (handler.VirtualView is not null)
+				handler.UpdateValue(nameof(ICheckBox.IsChecked));
+		}
+
 		public static partial void MapForeground(ICheckBoxHandler handler, ICheckBox check)
 		{
 			handler.PlatformView?.UpdateForeground(check);
@@ -46,8 +71,20 @@ namespace Microsoft.Maui.Handlers
 
 		void OnCheckedChange(object? sender, CompoundButton.CheckedChangeEventArgs e)
 		{
-			if (VirtualView != null)
-				VirtualView.IsChecked = e.IsChecked;
+			VirtualView?.IsChecked = e.IsChecked;
+		}
+
+		void OnCheckedStateChanged(object? sender, EventArgs e)
+		{
+			if (sender is MaterialCheckBox materialCheckBox && VirtualView is not null)
+			{
+				VirtualView.IsChecked = materialCheckBox.CheckedState switch
+				{
+					MaterialCheckBox.StateChecked => true,
+					MaterialCheckBox.StateUnchecked => false,
+					_ => null
+				};
+			}
 		}
 	}
 }

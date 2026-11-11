@@ -22,6 +22,7 @@ namespace Microsoft.Maui.Handlers
 #if MONOANDROID
 			[nameof(ICheckBox.Background)] = MapBackground,
 #endif
+			[nameof(ICheckBox.IsThreeState)] = MapIsThreeState,
 			[nameof(ICheckBox.IsChecked)] = MapIsChecked,
 			[nameof(ICheckBox.Foreground)] = MapForeground,
 		};
@@ -64,6 +65,8 @@ namespace Microsoft.Maui.Handlers
 		/// <param name="handler">The associated handler.</param>
 		/// <param name="check">The associated <see cref="ICheckBox"/> instance.</param>
 		public static partial void MapIsChecked(ICheckBoxHandler handler, ICheckBox check);
+
+		internal static partial void MapIsThreeState(ICheckBoxHandler handler, ICheckBox check);
 
 		/// <summary>
 		/// Maps the abstract <see cref="ICheckBox.Foreground"/> property to the platform-specific implementations.

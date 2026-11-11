@@ -59,6 +59,69 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 			Assert.False(eventArgs.Value);
 		}
 
+		[Theory]
+		[InlineData(true)]
+		[InlineData(false)]
+		public void IsChecked_CannotBeIndeterminateWhenThreeStateIsDisabled(bool initiallyChecked)
+		{
+			var checkBox = new CheckBox { IsChecked = initiallyChecked };
+
+			checkBox.IsChecked = null;
+
+			Assert.False(checkBox.IsChecked);
+		}
+
+		[Fact]
+		public void IsChecked_CanBeIndeterminateWhenThreeStateIsEnabled()
+		{
+			var checkBox = new CheckBox
+			{
+				IsThreeState = true
+			};
+			CheckBoxCheckedChangedEventArgs eventArgs = null;
+			checkBox.CheckedChanged += (sender, e) => eventArgs = e;
+
+			checkBox.IsChecked = null;
+
+			Assert.Null(checkBox.IsChecked);
+			Assert.NotNull(eventArgs);
+			Assert.Null(eventArgs.Value);
+			Assert.False(((CheckedChangedEventArgs)eventArgs).Value);
+		}
+
+		[Fact]
+		public void DisablingThreeStateCoercesIndeterminateToUnchecked()
+		{
+			var checkBox = new CheckBox
+			{
+				IsThreeState = true,
+				IsChecked = null
+			};
+
+			checkBox.IsThreeState = false;
+
+			Assert.False(checkBox.IsChecked);
+		}
+
+		[Fact]
+		public void DisablingThreeStatePreservesIsCheckedBinding()
+		{
+			var source = new CheckBox { IsThreeState = true, IsChecked = null };
+			var target = new CheckBox { IsThreeState = true };
+			target.SetBinding(CheckBox.IsCheckedProperty,
+				new Binding(nameof(CheckBox.IsChecked), mode: BindingMode.OneWay, source: source));
+
+			target.IsThreeState = false;
+			Assert.False(target.IsChecked);
+
+			target.IsThreeState = true;
+			source.IsChecked = true;
+			Assert.True(target.IsChecked);
+
+			source.IsChecked = null;
+			Assert.Null(target.IsChecked);
+		}
+
 		[Fact]
 		public void CheckedChangedEvent_ShouldFireOnlyWhenValueChanges()
 		{
@@ -101,6 +164,23 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 
 			element.IsChecked = false;
 			Assert.NotEqual(checkedStateName, stateGroup.CurrentState.Name);
+		}
+
+		[Fact]
+		public void IndeterminateVisualState()
+		{
+			var vsgList = CreateTestStateGroups();
+			var stateGroup = vsgList[0];
+			stateGroup.States.Add(new VisualState { Name = CheckBox.IsIndeterminateVisualState });
+			var checkBox = new CheckBox
+			{
+				IsThreeState = true
+			};
+			VisualStateManager.SetVisualStateGroups(checkBox, vsgList);
+
+			checkBox.IsChecked = null;
+
+			Assert.Equal(CheckBox.IsIndeterminateVisualState, stateGroup.CurrentState.Name);
 		}
 
 		[Fact]

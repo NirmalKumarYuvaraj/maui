@@ -1,1 +1,5 @@
-#nullable enable
+﻿#nullable enable
+*REMOVED*Microsoft.Maui.ICheckBox.IsChecked.get -> bool
+Microsoft.Maui.ICheckBox.IsChecked.get -> bool?
+Microsoft.Maui.ICheckBox.IsThreeState.get -> bool
+Microsoft.Maui.ICheckBox.IsThreeState.set -> void

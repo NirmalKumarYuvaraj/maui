@@ -11,24 +11,30 @@ namespace Microsoft.Maui.Controls
 	/// Represents a control that a user can select or clear.
 	/// </summary>
 	/// <remarks>
-	/// A <see cref="CheckBox"/> is a type of button that can either be checked or not. 
-	/// When a user taps a checkbox, it toggles between checked and unchecked states.
+	/// A <see cref="CheckBox"/> is a type of button that can be checked, unchecked, or indeterminate.
+	/// When three-state mode is disabled, it toggles between checked and unchecked states.
 	/// Use the <see cref="IsChecked"/> property to determine or set the state.
 	/// </remarks>
 	[DebuggerDisplay("{GetDebuggerDisplay(), nq}")]
 	public partial class CheckBox : View, IElementConfiguration<CheckBox>, IBorderElement, IColorElement, ICheckBox, ICommandElement
 	{
 		readonly Lazy<PlatformConfigurationRegistry<CheckBox>> _platformConfigurationRegistry;
-		
+
 		/// <summary>
 		/// The visual state name for the checked state of the <see cref="CheckBox"/>.
 		/// </summary>
 		/// <value>The string "IsChecked".</value>
 		public const string IsCheckedVisualState = "IsChecked";
 
+		/// <summary>
+		/// The visual state name for the indeterminate state of the <see cref="CheckBox"/>.
+		/// </summary>
+		/// <value>The string "IsIndeterminate".</value>
+		public const string IsIndeterminateVisualState = "IsIndeterminate";
+
 		/// <summary>Bindable property for <see cref="IsChecked"/>. This is a bindable property.</summary>
 		public static readonly BindableProperty IsCheckedProperty =
-			BindableProperty.Create(nameof(IsChecked), typeof(bool), typeof(CheckBox), BooleanBoxes.FalseBox,
+			BindableProperty.Create(nameof(IsChecked), typeof(bool?), typeof(CheckBox), BooleanBoxes.FalseBox,
 				propertyChanged: (bindable, oldValue, newValue) =>
 				{
 					if (bindable is not CheckBox checkBox)
@@ -36,14 +42,40 @@ namespace Microsoft.Maui.Controls
 						return;
 					}
 
+					checkBox.Handler?.UpdateValue(nameof(ICheckBox.IsChecked));
 					checkBox.Handler?.UpdateValue(nameof(ICheckBox.Foreground));
-					checkBox.CheckedChanged?.Invoke(bindable, new CheckedChangedEventArgs((bool)newValue));
+					checkBox.CheckedChanged?.Invoke(bindable, new CheckBoxCheckedChangedEventArgs((bool?)newValue));
 					if (checkBox.Command?.CanExecute(checkBox.CommandParameter) == true)
 					{
 						checkBox.Command.Execute(checkBox.CommandParameter);
 					}
 
 					checkBox.ChangeVisualState();
+				}, defaultBindingMode: BindingMode.TwoWay,
+				coerceValue: (bindable, value) =>
+				{
+					var checkBox = (CheckBox)bindable;
+					return !checkBox.IsThreeState && value is null ? BooleanBoxes.FalseBox : value;
+				});
+
+		/// <summary>Bindable property for <see cref="IsThreeState"/>. This is a bindable property.</summary>
+		public static readonly BindableProperty IsThreeStateProperty =
+			BindableProperty.Create(nameof(IsThreeState), typeof(bool), typeof(CheckBox), BooleanBoxes.FalseBox,
+				propertyChanged: (bindable, oldValue, newValue) =>
+				{
+					if (bindable is not CheckBox checkBox)
+					{
+						return;
+					}
+
+					if (!(bool)newValue && checkBox.IsChecked is null)
+					{
+						var context = checkBox.GetContext(IsCheckedProperty);
+						checkBox.SetValueCore(IsCheckedProperty, BooleanBoxes.FalseBox, SetValueFlags.None,
+							SetValuePrivateFlags.Default, context.Values.GetSpecificity());
+					}
+
+					checkBox.Handler?.UpdateValue(nameof(ICheckBox.IsThreeState));
 				}, defaultBindingMode: BindingMode.TwoWay);
 
 		/// <summary>Bindable property for the <see cref="Command"/> property.</summary>
@@ -93,16 +125,36 @@ namespace Microsoft.Maui.Controls
 		/// Gets or sets a value indicating whether the <see cref="CheckBox"/> is checked.
 		/// This is a bindable property.
 		/// </summary>
-		/// <value><see langword="true"/> if the checkbox is checked; otherwise, <see langword="false"/>. The default is <see langword="false"/>.</value>
-		public bool IsChecked
+		/// <value><see langword="true"/> if checked, <see langword="false"/> if unchecked, or <see langword="null"/> if indeterminate when <see cref="IsThreeState"/> is enabled.</value>
+		public bool? IsChecked
 		{
-			get => (bool)GetValue(IsCheckedProperty);
-			set => SetValue(IsCheckedProperty, BooleanBoxes.Box(value));
+			get => (bool?)GetValue(IsCheckedProperty);
+			set => SetValue(IsCheckedProperty, value);
+		}
+
+		/// <summary>
+		/// Gets or sets whether the <see cref="CheckBox"/> supports checked, unchecked, and indeterminate states.
+		/// </summary>
+		/// <remarks>
+		/// When disabled, assigning <see langword="null"/> to <see cref="IsChecked"/> is treated as <see langword="false"/>.
+		/// On Android and iOS, this property allows programmatic indeterminate states without changing the tap behavior.
+		/// </remarks>
+		public bool IsThreeState
+		{
+			get => (bool)GetValue(IsThreeStateProperty);
+			set => SetValue(IsThreeStateProperty, BooleanBoxes.Box(value));
 		}
 
 		protected internal override void ChangeVisualState()
 		{
-			if (IsEnabled && IsChecked)
+			if (IsEnabled && IsThreeState && IsChecked is null)
+			{
+				if (!VisualStateManager.GoToState(this, IsIndeterminateVisualState))
+				{
+					base.ChangeVisualState();
+				}
+			}
+			else if (IsEnabled && IsChecked is true)
 			{
 				bool isCheckedStateAvailable = false;
 				var visualStates = VisualStateManager.GetVisualStateGroups(this);
@@ -141,7 +193,7 @@ namespace Microsoft.Maui.Controls
 		/// <summary>
 		/// Occurs when the <see cref="IsChecked"/> property changes.
 		/// </summary>
-		public event EventHandler<CheckedChangedEventArgs> CheckedChanged;
+		public event EventHandler<CheckBoxCheckedChangedEventArgs> CheckedChanged;
 
 		/// <inheritdoc/>
 		public IPlatformElementConfiguration<T, CheckBox> On<T>() where T : IConfigPlatform
@@ -171,7 +223,7 @@ namespace Microsoft.Maui.Controls
 			base.IsEnabledCore && CommandElement.GetCanExecute(this, CommandProperty);
 		public Paint Foreground => Color?.AsPaint();
 
-		bool ICheckBox.IsChecked
+		bool? ICheckBox.IsChecked
 		{
 			get => IsChecked;
 			set => SetValue(IsCheckedProperty, BooleanBoxes.Box(value), SetterSpecificity.FromHandler);

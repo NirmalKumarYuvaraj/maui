@@ -19,7 +19,7 @@ namespace Microsoft.Maui.DeviceTests
 				IsChecked = isChecked
 			};
 
-			await ValidatePropertyInitValue(checkBoxStub, () => checkBoxStub.IsChecked, GetNativeIsChecked, checkBoxStub.IsChecked);
+			await ValidatePropertyInitValue(checkBoxStub, () => checkBoxStub.IsChecked == true, GetNativeIsChecked, isChecked);
 		}
 
 		[Fact(DisplayName = "Foreground Initializes Correctly")]

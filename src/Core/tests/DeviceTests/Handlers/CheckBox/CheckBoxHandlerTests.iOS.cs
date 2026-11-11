@@ -11,6 +11,44 @@ namespace Microsoft.Maui.DeviceTests
 {
 	public partial class CheckBoxHandlerTests
 	{
+		[Theory]
+		[InlineData(true)]
+		[InlineData(false)]
+		public async Task NullStateHonorsIsThreeStateWithoutChangingTapBehavior(bool isThreeState)
+		{
+			await InvokeOnMainThreadAsync(() =>
+			{
+				var checkBox = new CheckBoxStub { IsThreeState = isThreeState, IsChecked = null };
+				var handler = CreateHandler(checkBox);
+				var native = GetNativeCheckBox(handler);
+
+				Assert.Equal(isThreeState ? (bool?)null : false, native.CheckedState);
+
+				native.SendActionForControlEvents(UIControlEvent.TouchUpInside);
+				Assert.True(checkBox.IsChecked);
+
+				native.SendActionForControlEvents(UIControlEvent.TouchUpInside);
+				Assert.False(checkBox.IsChecked);
+			});
+		}
+
+		[Fact]
+		public async Task DisablingThreeStateClearsNativeIndeterminateState()
+		{
+			await InvokeOnMainThreadAsync(() =>
+			{
+				var checkBox = new CheckBoxStub { IsThreeState = true, IsChecked = null };
+				var handler = CreateHandler(checkBox);
+				var native = GetNativeCheckBox(handler);
+				Assert.Null(native.CheckedState);
+
+				checkBox.IsThreeState = false;
+				handler.UpdateValue(nameof(ICheckBox.IsThreeState));
+
+				Assert.False(native.CheckedState);
+			});
+		}
+
 		[Fact(DisplayName = "Accessibility Value Sets Correctly")]
 		public async Task AccessibilityValueSetsCorrectly()
 		{
