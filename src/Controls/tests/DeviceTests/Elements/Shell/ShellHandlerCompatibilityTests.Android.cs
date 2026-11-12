@@ -1,8 +1,10 @@
+using System;
 using System.Threading.Tasks;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Handlers;
 using Microsoft.Maui.Controls.Hosting;
 using Microsoft.Maui.Controls.Platform.Compatibility;
+using Microsoft.Maui.Handlers;
 using Microsoft.Maui.Hosting;
 using Microsoft.Maui.Hosting.Internal;
 using Xunit;
@@ -30,6 +32,116 @@ namespace Microsoft.Maui.DeviceTests
 				Assert.False(shell.SendBackButtonPressed());
 				Assert.Equal(1, calls);
 			});
+
+		void SetupAndroidShellHandlers() =>
+			EnsureHandlerCreated(builder => builder.ConfigureMauiHandlers(handlers =>
+			{
+				SetupShellHandlers(handlers);
+				handlers.AddHandler<Shell, ShellHandler>();
+				handlers.AddHandler<ShellItem, ShellItemHandler>();
+				handlers.AddHandler<ShellSection, ShellSectionHandler>();
+			}));
+
+		[Fact]
+		public async Task HandlerBackClosesPresentedFlyoutBeforePopping()
+		{
+			SetupAndroidShellHandlers();
+			var root = new ContentPage();
+			var shell = await CreateShellAsync(shell =>
+			{
+				shell.FlyoutBehavior = FlyoutBehavior.Flyout;
+				shell.Items.Add(root);
+			});
+
+			await CreateHandlerAndAddToWindow(shell, async () =>
+			{
+				await OnLoadedAsync(root);
+				var detail = new ContentPage();
+				await shell.Navigation.PushAsync(detail, false);
+				await OnLoadedAsync(detail);
+				shell.FlyoutIsPresented = true;
+				var itemHandler = Assert.IsType<ShellItemHandler>(shell.CurrentItem.Handler);
+
+				Assert.True(itemHandler.OnBackButtonPressed());
+				Assert.False(shell.FlyoutIsPresented);
+				await Task.Delay(250);
+				Assert.Same(detail, shell.CurrentPage);
+				Assert.Equal(2, shell.Navigation.NavigationStack.Count);
+
+				Assert.True(itemHandler.OnBackButtonPressed());
+				await AssertionExtensions.AssertEventually(() => shell.CurrentPage == root);
+			});
+		}
+
+		[Fact]
+		public async Task HandlerBackRunsEnabledCommandInsteadOfPopping()
+		{
+			SetupAndroidShellHandlers();
+			var root = new ContentPage();
+			var shell = await CreateShellAsync(shell => shell.Items.Add(root));
+
+			await CreateHandlerAndAddToWindow(shell, async () =>
+			{
+				await OnLoadedAsync(root);
+				var calls = 0;
+				var detail = new ContentPage();
+				var behavior = new BackButtonBehavior { Command = new Command(() => calls++) };
+				Shell.SetBackButtonBehavior(detail, behavior);
+				await shell.Navigation.PushAsync(detail, false);
+				await OnLoadedAsync(detail);
+				var itemHandler = Assert.IsType<ShellItemHandler>(shell.CurrentItem.Handler);
+
+				Assert.True(itemHandler.OnBackButtonPressed());
+				Assert.Equal(1, calls);
+				await Task.Delay(250);
+				Assert.Same(detail, shell.CurrentPage);
+
+				behavior.IsEnabled = false;
+				Assert.True(itemHandler.OnBackButtonPressed());
+				await AssertionExtensions.AssertEventually(() => shell.CurrentPage == root);
+				Assert.Equal(1, calls);
+			});
+		}
+
+		[Fact]
+		public async Task ItemRendererRejectsSharedOrIncompatibleRegisteredHandlers()
+		{
+			var shared = new FirstItemHandler();
+			EnsureHandlerCreated(builder => builder.ConfigureMauiHandlers(handlers =>
+			{
+				SetupShellHandlers(handlers);
+				handlers.AddHandler<Shell, RendererFactoryShellHandler>();
+				handlers.AddHandler<ShellItem, ShellItemHandler>();
+				handlers.AddHandler<ShellSection, ShellSectionHandler>();
+				handlers.AddHandler<FirstItem>(_ => shared);
+				handlers.AddHandler<SecondItem>(_ => shared);
+				handlers.AddHandler<ThirdItem>(_ => new LabelHandler());
+			}));
+
+			var firstPage = new ContentPage();
+			var first = new FirstItem { Items = { new ShellSection { Items = { new ShellContent { Content = firstPage } } } } };
+			var second = new SecondItem { Items = { new ShellSection { Items = { new ShellContent { Content = new ContentPage() } } } } };
+			var third = new ThirdItem { Items = { new ShellSection { Items = { new ShellContent { Content = new ContentPage() } } } } };
+			var shell = await CreateShellAsync(shell =>
+			{
+				shell.Items.Add(first);
+				shell.Items.Add(second);
+				shell.Items.Add(third);
+				shell.CurrentItem = first;
+			});
+
+			await CreateHandlerAndAddToWindow(shell, async () =>
+			{
+				await OnLoadedAsync(firstPage);
+				Assert.Same(shared, first.Handler);
+				var shellHandler = Assert.IsType<RendererFactoryShellHandler>(shell.Handler);
+
+				// Main silently re-targeted the connected handler or replaced the registration.
+				Assert.Throws<InvalidOperationException>(() => shellHandler.CreateItemRenderer(second));
+				Assert.Same(first, ((IElementHandler)shared).VirtualView);
+				Assert.Throws<InvalidOperationException>(() => shellHandler.CreateItemRenderer(third));
+			});
+		}
 
 		[Fact]
 		public async Task ExplicitLegacyRendererKeepsPageFragmentFactory()
@@ -149,6 +261,12 @@ namespace Microsoft.Maui.DeviceTests
 		public class SecondItem : FlyoutItem { }
 		public class FirstItemHandler : ShellItemHandler { }
 		public class SecondItemHandler : ShellItemHandler { }
+		public class ThirdItem : FlyoutItem { }
+
+		public class RendererFactoryShellHandler : ShellHandler
+		{
+			public IShellItemRenderer CreateItemRenderer(ShellItem shellItem) => CreateShellItemRenderer(shellItem);
+		}
 
 		public class ItemFactoryTrackingShellHandler : ShellHandler
 		{
