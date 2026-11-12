@@ -1,1 +1,15 @@
-#nullable enable
+﻿#nullable enable
+Microsoft.Maui.SharedTransitionInfo
+Microsoft.Maui.SharedTransitionInfo.DestinationPlatformView.get -> object?
+Microsoft.Maui.SharedTransitionInfo.Duration.get -> uint
+Microsoft.Maui.SharedTransitionInfo.Easing.get -> Microsoft.Maui.Easing!
+Microsoft.Maui.SharedTransitionInfo.IsPopping.get -> bool
+Microsoft.Maui.SharedTransitionInfo.Name.get -> string!
+Microsoft.Maui.SharedTransitionInfo.SourcePlatformView.get -> object?
+Microsoft.Maui.SharedTransitionInfo
+Microsoft.Maui.SharedTransitionInfo.DestinationPlatformView.get -> object?
+Microsoft.Maui.SharedTransitionInfo.Duration.get -> uint
+Microsoft.Maui.SharedTransitionInfo.Easing.get -> Microsoft.Maui.Easing!
+Microsoft.Maui.SharedTransitionInfo.IsPopping.get -> bool
+Microsoft.Maui.SharedTransitionInfo.Name.get -> string!
+Microsoft.Maui.SharedTransitionInfo.SourcePlatformView.get -> object?

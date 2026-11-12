@@ -5,37 +5,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.Maui.Controls
 {
-	/// <summary>A matched element on the outgoing and incoming pages of a navigation.</summary>
-	internal sealed class SharedElementPair
-	{
-		public SharedElementPair(VisualElement source, VisualElement destination, string name, string? group, uint duration, Easing easing)
-		{
-			Source = source;
-			Destination = destination;
-			Name = name;
-			Group = group;
-			Duration = duration;
-			Easing = easing;
-		}
-
-		/// <summary>The element on the page being navigated away from.</summary>
-		public VisualElement Source { get; }
-
-		/// <summary>The element on the page being navigated to.</summary>
-		public VisualElement Destination { get; }
-
-		public string Name { get; }
-
-		public string? Group { get; }
-
-		/// <summary>Unique key used as the platform transition name.</summary>
-		public string Key => SharedTransitionResolver.CreateKey(Name, Group);
-
-		public uint Duration { get; }
-
-		public Easing Easing { get; }
-	}
-
 	internal static class SharedTransitionResolver
 	{
 		static readonly SharedTransitionOptions s_defaultOptions = new();

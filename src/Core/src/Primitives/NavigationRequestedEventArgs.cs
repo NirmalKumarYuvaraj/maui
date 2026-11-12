@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Microsoft.Maui
@@ -13,5 +14,7 @@ namespace Microsoft.Maui
 		}
 
 		public bool Animated { get; }
+
+		internal IReadOnlyList<SharedElementPair> SharedElementPairs { get; set; } = Array.Empty<SharedElementPair>();
 	}
 }

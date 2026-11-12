@@ -54,6 +54,8 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 
 		public NavigationRequest CurrentNavigationRequest { get; private set; }
 
+		public NavigationRequest LastNavigationRequest { get; private set; }
+
 		TaskCompletionSource _navigationSource;
 
 		public Task NavigatingTask => _navigationSource?.Task ?? Task.CompletedTask;
@@ -82,7 +84,7 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 			if (CurrentNavigationRequest != null || _navigationSource != null)
 				throw new InvalidOperationException("Already Processing Navigation");
 
-
+			LastNavigationRequest = navigationRequest;
 			_navigationSource = new TaskCompletionSource();
 			CurrentNavigationRequest = navigationRequest;
 

@@ -729,6 +729,7 @@ namespace Microsoft.Maui.Controls
 				return;
 			}
 
+			var previousNavigationStack = new List<IView>(NavigationStack);
 			processStackChanges?.Invoke();
 
 			if (Handler == null)
@@ -767,6 +768,16 @@ namespace Microsoft.Maui.Controls
 
 					// Create the request for the handler
 					var request = new NavigationRequest(immutableNavigationStack, animated);
+					if (previousNavigationStack.Count > 0 &&
+						immutableNavigationStack.Count > 0 &&
+						previousNavigationStack.Count != immutableNavigationStack.Count)
+					{
+						var outgoingPage = previousNavigationStack[previousNavigationStack.Count - 1] as Page;
+						var incomingPage = immutableNavigationStack[immutableNavigationStack.Count - 1] as Page;
+						var isPopping = immutableNavigationStack.Count < previousNavigationStack.Count;
+						request.SharedElementPairs = SharedTransitionResolver.Resolve(outgoingPage, incomingPage, isPopping);
+					}
+
 					((IStackNavigation)this).RequestNavigation(request);
 
 					// Wait for the handler to finish processing the navigation

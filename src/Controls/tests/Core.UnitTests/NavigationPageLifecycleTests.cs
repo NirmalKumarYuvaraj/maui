@@ -55,6 +55,44 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 			Assert.Equal(pageAppearing, pushedPage);
 		}
 
+		[Fact]
+		public async Task HandlerNavigationRequestIncludesSharedElementPairsOnPushAndPop()
+		{
+			var source = new Image();
+			SharedTransition.SetName(source, "hero");
+			var root = new ContentPage { Content = source };
+			var nav = new TestNavigationPage(true, root);
+			_ = new TestWindow(nav);
+
+			var destination = new Image();
+			SharedTransition.SetName(destination, "hero");
+			var detail = new ContentPage { Content = destination };
+
+			await nav.PushAsync(detail);
+
+			var pushPair = Assert.Single(nav.Handler.LastNavigationRequest.SharedElementPairs);
+			Assert.Same(source, pushPair.Source);
+			Assert.Same(destination, pushPair.Destination);
+
+			await nav.PopAsync();
+
+			var popPair = Assert.Single(nav.Handler.LastNavigationRequest.SharedElementPairs);
+			Assert.Same(destination, popPair.Source);
+			Assert.Same(source, popPair.Destination);
+		}
+
+		[Fact]
+		public async Task HandlerNavigationRequestHasNoSharedElementPairsWithoutMatches()
+		{
+			var root = new ContentPage { Content = new Image() };
+			var nav = new TestNavigationPage(true, root);
+			_ = new TestWindow(nav);
+
+			await nav.PushAsync(new ContentPage { Content = new Image() });
+
+			Assert.Empty(nav.Handler.LastNavigationRequest.SharedElementPairs);
+		}
+
 		[Theory]
 		[InlineData(false)]
 		public async Task PopLifeCycle(bool useMaui)
