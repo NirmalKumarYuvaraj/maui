@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using Android.Content;
 using Android.OS;
+using Android.Transitions;
 using Android.Views;
 using Android.Views.Animations;
+using AndroidX.Core.View;
 using AndroidX.Fragment.App;
 using AndroidX.Navigation;
 using AndroidX.Navigation.Fragment;
@@ -33,6 +35,7 @@ namespace Microsoft.Maui.Platform
 		internal bool IsInitialNavigation { get; private set; }
 		internal bool? IsPopping { get; private set; }
 		internal bool IsAnimated { get; set; } = true;
+		internal bool HasSharedElementTransition { get; private set; }
 		internal NavigationRequest? ActiveRequestedArgs { get; private set; }
 		internal NavigationRequest? OnResumeRequestedArgs { get; private set; }
 		public IReadOnlyList<IView> NavigationStack { get; private set; } = [];
@@ -155,6 +158,7 @@ namespace Microsoft.Maui.Platform
 			}
 
 			IsAnimated = animated;
+			HasSharedElementTransition = false;
 
 			var fragmentNavDestinations = new List<FragmentNavigator.Destination>();
 			navController.IterateBackStack(d => fragmentNavDestinations.Add(d));
@@ -167,7 +171,12 @@ namespace Microsoft.Maui.Platform
 				for (int i = fragmentNavDestinations.Count; i < newPageStack.Count; i++)
 				{
 					var dest = AddFragmentDestination();
-					navController.Navigate(dest.Id);
+					var extras = i == newPageStack.Count - 1 ? CreateSharedElementExtras() : null;
+
+					if (extras is null)
+						navController.Navigate(dest.Id);
+					else
+						navController.Navigate(dest.Id, null, null, extras);
 				}
 			}
 			// User just wants to replace the currently visible page but the number
@@ -223,6 +232,35 @@ namespace Microsoft.Maui.Platform
 			// The NavigationIcon on the toolbar gets set inside the Navigate call so this is the earliest
 			// point in time that we can setup toolbar colors for the incoming page
 			TriggerBackButtonVisibleUpdate();
+		}
+
+		FragmentNavigator.Extras? CreateSharedElementExtras()
+		{
+			if (!IsAnimated || IsPopping != false || ActiveRequestedArgs is not { SharedElementPairs.Count: > 0 } request)
+				return null;
+
+			var extrasBuilder = new FragmentNavigator.Extras.Builder();
+			int sharedElementCount = 0;
+
+			foreach (var pair in request.SharedElementPairs)
+			{
+				if (pair.Source.Handler?.PlatformView is not AView sourceView)
+					continue;
+
+				ViewCompat.SetTransitionName(sourceView, pair.Key);
+				extrasBuilder.AddSharedElement(sourceView, pair.Key);
+				sharedElementCount++;
+			}
+
+			if (sharedElementCount == 0)
+				return null;
+
+			HasSharedElementTransition = true;
+
+			if (NavHost.ChildFragmentManager?.PrimaryNavigationFragment is NavigationViewFragment currentFragment)
+				currentFragment.ExitTransition = new Fade();
+
+			return extrasBuilder.Build();
 		}
 
 		void TriggerBackButtonVisibleUpdate()
@@ -288,6 +326,7 @@ namespace Microsoft.Maui.Platform
 		{
 			IsInitialNavigation = false;
 			IsPopping = null;
+			HasSharedElementTransition = false;
 			ActiveRequestedArgs = null;
 			navigationView?.NavigationFinished(NavigationStack);
 

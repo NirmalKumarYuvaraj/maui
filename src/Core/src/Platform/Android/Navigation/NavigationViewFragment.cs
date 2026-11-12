@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Threading;
 using Android.OS;
+using Android.Transitions;
 using Android.Runtime;
 using Android.Views;
 using Android.Views.Animations;
 using AndroidX.Fragment.App;
+using AndroidX.Core.View;
 using AView = Android.Views.View;
 
 namespace Microsoft.Maui.Platform
@@ -13,6 +16,11 @@ namespace Microsoft.Maui.Platform
 		AView? _currentView;
 		FragmentContainerView? _fragmentContainerView;
 		StackNavigationManager? _navigationManager;
+		ViewTreeObserver? _sharedTransitionObserver;
+		SharedTransitionPreDrawListener? _sharedTransitionPreDrawListener;
+		Handler? _sharedTransitionTimeoutHandler;
+		Action? _startSharedTransition;
+		int _sharedTransitionStarted;
 
 		FragmentContainerView FragmentContainerView =>
 			_fragmentContainerView ?? throw new InvalidOperationException($"FragmentContainerView cannot be null here");
@@ -32,6 +40,18 @@ namespace Microsoft.Maui.Platform
 
 		public NavigationViewFragment()
 		{
+		}
+
+		public override void OnCreate(Bundle? savedInstanceState)
+		{
+			base.OnCreate(savedInstanceState);
+
+			if (!NavigationManager.HasSharedElementTransition)
+				return;
+
+			PostponeEnterTransition();
+			SharedElementEnterTransition = CreateSharedElementTransition();
+			EnterTransition = new Fade();
 		}
 
 		public override AView OnCreateView(LayoutInflater inflater, ViewGroup? container, Bundle? savedInstanceState)
@@ -69,6 +89,12 @@ namespace Microsoft.Maui.Platform
 
 			_currentView.RemoveFromParent();
 
+			if (NavigationManager.HasSharedElementTransition)
+			{
+				SetDestinationTransitionNames();
+				StartPostponedTransitionAfterLayout(_currentView);
+			}
+
 			return _currentView;
 		}
 
@@ -92,6 +118,7 @@ namespace Microsoft.Maui.Platform
 
 		public override void OnDestroy()
 		{
+			CleanupSharedTransition();
 			_currentView = null;
 			_fragmentContainerView = null;
 			_navigationManager = null;
@@ -101,6 +128,9 @@ namespace Microsoft.Maui.Platform
 
 		public override Animation OnCreateAnimation(int transit, bool enter, int nextAnim)
 		{
+			if (NavigationManager.HasSharedElementTransition)
+				return null!;
+
 			// This means the operation currently being processed shouldn't be animated
 			// This will happen if a user inserts or removes a root page
 			if (NavigationManager.IsPopping == null || !NavigationManager.IsAnimated)
@@ -112,6 +142,107 @@ namespace Microsoft.Maui.Platform
 			var animation = NavigationManager.OnCreateNavigationAnimation(Context!, NavigationManager.IsPopping.Value, enter);
 
 			return (animation ?? base.OnCreateAnimation(transit, enter, 0))!;
+		}
+
+		void SetDestinationTransitionNames()
+		{
+			if (NavigationManager.ActiveRequestedArgs is not { } request)
+				return;
+
+			foreach (var pair in request.SharedElementPairs)
+			{
+				if (pair.Destination.Handler?.PlatformView is AView destinationView)
+					ViewCompat.SetTransitionName(destinationView, pair.Key);
+			}
+		}
+
+		static TransitionSet CreateSharedElementTransition()
+		{
+			var transition = new TransitionSet();
+			transition.AddTransition(new ChangeBounds());
+			transition.AddTransition(new ChangeTransform());
+			transition.AddTransition(new ChangeImageTransform());
+			transition.AddTransition(new ChangeClipBounds());
+			return transition;
+		}
+
+		void StartPostponedTransitionAfterLayout(AView view)
+		{
+			var observer = view.ViewTreeObserver;
+			if (observer is null)
+			{
+				StartSharedTransition();
+				return;
+			}
+
+			_sharedTransitionObserver = observer;
+			var preDrawListener = new SharedTransitionPreDrawListener(this);
+			_sharedTransitionPreDrawListener = preDrawListener;
+			observer.AddOnPreDrawListener(preDrawListener);
+
+			_sharedTransitionTimeoutHandler = new Handler(Looper.MainLooper!);
+			Action startTransition = StartSharedTransition;
+			_startSharedTransition = startTransition;
+			_sharedTransitionTimeoutHandler.PostDelayed(startTransition, 1000);
+		}
+
+		void StartSharedTransition()
+		{
+			if (Interlocked.Exchange(ref _sharedTransitionStarted, 1) != 0)
+				return;
+
+			if (_sharedTransitionTimeoutHandler is not null && _startSharedTransition is not null)
+				_sharedTransitionTimeoutHandler.RemoveCallbacks(_startSharedTransition);
+
+			_sharedTransitionTimeoutHandler?.Dispose();
+			_sharedTransitionTimeoutHandler = null;
+			_startSharedTransition = null;
+
+			if (_sharedTransitionPreDrawListener is { } listener)
+			{
+				if (_sharedTransitionObserver?.IsAlive == true)
+					_sharedTransitionObserver.RemoveOnPreDrawListener(listener);
+
+				listener.Dispose();
+				_sharedTransitionPreDrawListener = null;
+			}
+
+			_sharedTransitionObserver = null;
+			StartPostponedEnterTransition();
+		}
+
+		void CleanupSharedTransition()
+		{
+			if (_sharedTransitionTimeoutHandler is not null && _startSharedTransition is not null)
+				_sharedTransitionTimeoutHandler.RemoveCallbacks(_startSharedTransition);
+
+			_sharedTransitionTimeoutHandler?.Dispose();
+			_sharedTransitionTimeoutHandler = null;
+			_startSharedTransition = null;
+
+			if (_sharedTransitionPreDrawListener is { } listener)
+			{
+				if (_sharedTransitionObserver?.IsAlive == true)
+					_sharedTransitionObserver.RemoveOnPreDrawListener(listener);
+
+				listener.Dispose();
+				_sharedTransitionPreDrawListener = null;
+			}
+
+			_sharedTransitionObserver = null;
+		}
+
+		sealed class SharedTransitionPreDrawListener : Java.Lang.Object, ViewTreeObserver.IOnPreDrawListener
+		{
+			readonly NavigationViewFragment _fragment;
+
+			public SharedTransitionPreDrawListener(NavigationViewFragment fragment) => _fragment = fragment;
+
+			public bool OnPreDraw()
+			{
+				_fragment.StartSharedTransition();
+				return true;
+			}
 		}
 	}
 }
