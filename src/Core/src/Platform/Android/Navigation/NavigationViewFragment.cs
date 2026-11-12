@@ -90,7 +90,9 @@ namespace Microsoft.Maui.Platform
 			if (manager.HasSharedElementTransition && _sharedTransitionPostponed)
 			{
 				SetDestinationTransitionNames(manager);
-				StartPostponedTransitionAfterLayout(_currentView);
+				manager.ConfigureIncomingSharedElementTransition(this);
+				if (_sharedTransitionPostponed)
+					StartPostponedTransitionAfterLayout(_currentView);
 			}
 			else if (_sharedTransitionPostponed)
 			{
@@ -155,7 +157,6 @@ namespace Microsoft.Maui.Platform
 			_sharedTransitionStarted = 0;
 			_sharedTransitionPostponed = true;
 			PostponeEnterTransition();
-			manager.ConfigureIncomingSharedElementTransition(this);
 		}
 
 		static void SetDestinationTransitionNames(StackNavigationManager manager)

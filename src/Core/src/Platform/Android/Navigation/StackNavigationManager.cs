@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Android.Animation;
 using Android.Content;
 using Android.OS;
 using Android.Transitions;
@@ -29,6 +30,7 @@ namespace Microsoft.Maui.Platform
 		readonly Dictionary<IView, SharedElementNavigation> _sharedElementNavigations = new();
 		readonly Dictionary<AView, string?> _originalTransitionNames = new();
 		readonly List<Action> _restoreFragmentTransitions = new();
+		readonly List<EasingTimeInterpolator> _sharedTransitionInterpolators = new();
 		NavigationViewFragment? _incomingSharedElementFragment;
 
 		bool _processingQueue;
@@ -410,7 +412,9 @@ namespace Microsoft.Maui.Platform
 
 			if (isPopping)
 			{
-				ConfigureEnterTransition(currentFragment);
+				if (!ConfigureEnterTransition(currentFragment))
+					return;
+
 				if (!Equals(currentFragment.ReturnTransition, currentFragment.EnterTransition) ||
 					!Equals(currentFragment.SharedElementReturnTransition, currentFragment.SharedElementEnterTransition))
 				{
@@ -439,8 +443,15 @@ namespace Microsoft.Maui.Platform
 				ConfigureEnterTransition(fragment);
 		}
 
-		void ConfigureEnterTransition(NavigationViewFragment fragment)
+		bool ConfigureEnterTransition(NavigationViewFragment fragment)
 		{
+			var sharedElementTransition = CreateSharedElementTransition();
+			if (sharedElementTransition is null)
+			{
+				CleanupSharedElementTransition();
+				return false;
+			}
+
 			var previousEnter = fragment.EnterTransition;
 			var previousSharedEnter = fragment.SharedElementEnterTransition;
 			_restoreFragmentTransitions.Add(() =>
@@ -453,7 +464,63 @@ namespace Microsoft.Maui.Platform
 			});
 
 			fragment.EnterTransition = new Fade();
-			fragment.SharedElementEnterTransition = NavigationViewFragment.CreateSharedElementTransition();
+			fragment.SharedElementEnterTransition = sharedElementTransition;
+			return true;
+		}
+
+		TransitionSet? CreateSharedElementTransition()
+		{
+			var transitions = new TransitionSet();
+			int transitionCount = 0;
+
+			foreach (var pair in ActiveSharedElementPairs)
+			{
+				if (pair.Source.Handler?.PlatformView is not AView sourceView ||
+					pair.Destination.Handler?.PlatformView is not AView destinationView)
+					continue;
+
+				var info = new SharedTransitionInfo(
+					pair.Name,
+					IsPopping == true,
+					pair.Duration,
+					pair.Easing,
+					sourceView,
+					destinationView);
+
+				var transition = OnCreateSharedElementTransition(info);
+				if (transition is null)
+					continue;
+
+				var interpolator = new EasingTimeInterpolator(pair.Easing);
+				transition.SetDuration(pair.Duration);
+				transition.SetInterpolator(interpolator);
+				_sharedTransitionInterpolators.Add(interpolator);
+				transition.AddTarget(sourceView);
+				transition.AddTarget(destinationView);
+				transitions.AddTransition(transition);
+				transitionCount++;
+			}
+
+			return transitionCount > 0 ? transitions : null;
+		}
+
+		/// <summary>
+		/// Creates the native transition for a shared element. Override to customize its animation.
+		/// The returned transition is scoped to the source and destination views in <paramref name="info"/>.
+		/// </summary>
+		/// <remarks>Return a new transition for each invocation. Duration, easing, and view targets are applied automatically.</remarks>
+		/// <param name="info">The shared element and resolved duration and easing.</param>
+		/// <returns>The transition to use, or <see langword="null"/> to omit this shared element.</returns>
+		protected virtual Transition? OnCreateSharedElementTransition(SharedTransitionInfo info) =>
+			NavigationViewFragment.CreateSharedElementTransition();
+
+		sealed class EasingTimeInterpolator : Java.Lang.Object, ITimeInterpolator
+		{
+			readonly Easing _easing;
+
+			public EasingTimeInterpolator(Easing easing) => _easing = easing;
+
+			public float GetInterpolation(float input) => (float)_easing.Ease(input);
 		}
 
 		void ConfigureExitTransition(NavigationViewFragment fragment)
@@ -487,6 +554,7 @@ namespace Microsoft.Maui.Platform
 				_restoreFragmentTransitions[i]();
 
 			_restoreFragmentTransitions.Clear();
+			_sharedTransitionInterpolators.Clear();
 
 			foreach (var (view, originalName) in _originalTransitionNames)
 			{

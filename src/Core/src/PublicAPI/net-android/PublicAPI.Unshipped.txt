@@ -7,3 +7,4 @@ Microsoft.Maui.SharedTransitionInfo.IsPopping.get -> bool
 Microsoft.Maui.SharedTransitionInfo.Name.get -> string!
 Microsoft.Maui.SharedTransitionInfo.SourcePlatformView.get -> object?
 override Microsoft.Maui.Platform.NavigationViewFragment.OnCreate(Android.OS.Bundle? savedInstanceState) -> void
+virtual Microsoft.Maui.Platform.StackNavigationManager.OnCreateSharedElementTransition(Microsoft.Maui.SharedTransitionInfo! info) -> Android.Transitions.Transition?
