@@ -1,1 +1,27 @@
 #nullable enable
+Microsoft.Maui.Controls.Hosting.SharedTransitionAppHostBuilderExtensions
+Microsoft.Maui.Controls.SharedTransition
+Microsoft.Maui.Controls.SharedTransitionOptions
+Microsoft.Maui.Controls.SharedTransitionOptions.DefaultDuration.get -> uint
+Microsoft.Maui.Controls.SharedTransitionOptions.DefaultDuration.set -> void
+Microsoft.Maui.Controls.SharedTransitionOptions.DefaultEasing.get -> Microsoft.Maui.Easing!
+Microsoft.Maui.Controls.SharedTransitionOptions.DefaultEasing.set -> void
+Microsoft.Maui.Controls.SharedTransitionOptions.IsEnabled.get -> bool
+Microsoft.Maui.Controls.SharedTransitionOptions.IsEnabled.set -> void
+Microsoft.Maui.Controls.SharedTransitionOptions.SharedTransitionOptions() -> void
+static Microsoft.Maui.Controls.Hosting.SharedTransitionAppHostBuilderExtensions.ConfigureSharedTransitions(this Microsoft.Maui.Hosting.MauiAppBuilder! builder, System.Action<Microsoft.Maui.Controls.SharedTransitionOptions!>! configure) -> Microsoft.Maui.Hosting.MauiAppBuilder!
+static Microsoft.Maui.Controls.SharedTransition.GetDuration(Microsoft.Maui.Controls.BindableObject! bindable) -> uint
+static Microsoft.Maui.Controls.SharedTransition.GetEasing(Microsoft.Maui.Controls.BindableObject! bindable) -> Microsoft.Maui.Easing?
+static Microsoft.Maui.Controls.SharedTransition.GetGroup(Microsoft.Maui.Controls.BindableObject! bindable) -> string?
+static Microsoft.Maui.Controls.SharedTransition.GetIsEnabled(Microsoft.Maui.Controls.BindableObject! bindable) -> bool
+static Microsoft.Maui.Controls.SharedTransition.GetName(Microsoft.Maui.Controls.BindableObject! bindable) -> string?
+static Microsoft.Maui.Controls.SharedTransition.SetDuration(Microsoft.Maui.Controls.BindableObject! bindable, uint value) -> void
+static Microsoft.Maui.Controls.SharedTransition.SetEasing(Microsoft.Maui.Controls.BindableObject! bindable, Microsoft.Maui.Easing? value) -> void
+static Microsoft.Maui.Controls.SharedTransition.SetGroup(Microsoft.Maui.Controls.BindableObject! bindable, string? value) -> void
+static Microsoft.Maui.Controls.SharedTransition.SetIsEnabled(Microsoft.Maui.Controls.BindableObject! bindable, bool value) -> void
+static Microsoft.Maui.Controls.SharedTransition.SetName(Microsoft.Maui.Controls.BindableObject! bindable, string? value) -> void
+static readonly Microsoft.Maui.Controls.SharedTransition.DurationProperty -> Microsoft.Maui.Controls.BindableProperty!
+static readonly Microsoft.Maui.Controls.SharedTransition.EasingProperty -> Microsoft.Maui.Controls.BindableProperty!
+static readonly Microsoft.Maui.Controls.SharedTransition.GroupProperty -> Microsoft.Maui.Controls.BindableProperty!
+static readonly Microsoft.Maui.Controls.SharedTransition.IsEnabledProperty -> Microsoft.Maui.Controls.BindableProperty!
+static readonly Microsoft.Maui.Controls.SharedTransition.NameProperty -> Microsoft.Maui.Controls.BindableProperty!
