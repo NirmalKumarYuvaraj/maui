@@ -114,13 +114,22 @@ namespace Microsoft.Maui
 
 		public override bool OnKeyUp(Keycode keyCode, KeyEvent? e)
 		{
-			var handled = false;
-			IPlatformApplication.Current?.Services?.InvokeLifecycleEvents<AndroidLifecycle.OnKeyUp>(del =>
+			bool wasHandlingBackKey = _handlingBackKey;
+			_handlingBackKey |= keyCode == Keycode.Back;
+			try
 			{
-				handled = del(this, keyCode, e) || handled;
-			});
+				var handled = false;
+				IPlatformApplication.Current?.Services?.InvokeLifecycleEvents<AndroidLifecycle.OnKeyUp>(del =>
+				{
+					handled = del(this, keyCode, e) || handled;
+				});
 
-			return handled || base.OnKeyUp(keyCode, e);
+				return handled || base.OnKeyUp(keyCode, e);
+			}
+			finally
+			{
+				_handlingBackKey = wasHandlingBackKey;
+			}
 		}
 
 		/// <summary>

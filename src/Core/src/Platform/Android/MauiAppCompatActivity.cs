@@ -67,6 +67,9 @@ namespace Microsoft.Maui
 		}
 
 		MauiOnBackPressedCallback? _mauiOnBackPressedCallback;
+		bool _handlingBackKey;
+
+		internal bool IsPredictiveBackNavigation { get; private set; }
 
 		// Must be called at every navigation state change so that Enabled reflects the current back
 		// stack before the predictive back drag preview starts (Android reads Enabled before commit).
@@ -102,14 +105,35 @@ namespace Microsoft.Maui
 		sealed class MauiOnBackPressedCallback : OnBackPressedCallback
 		{
 			readonly MauiAppCompatActivity _activity;
+			bool _gestureStarted;
 			public MauiOnBackPressedCallback(MauiAppCompatActivity activity) : base(false)
 			{
 				_activity = activity;
 			}
 
+			public override void HandleOnBackStarted(BackEventCompat backEvent) => _gestureStarted = true;
+
+			public override void HandleOnBackCancelled() => _gestureStarted = false;
+
 			public override void HandleOnBackPressed()
 			{
-				_activity.HandleBackNavigation();
+				// Android 13 does not report gesture progress, so a back callback outside a key event
+				// must conservatively use the regular navigation animation.
+				bool isPredictiveBack = _gestureStarted ||
+					(System.OperatingSystem.IsAndroidVersionAtLeast(33) &&
+					!System.OperatingSystem.IsAndroidVersionAtLeast(34) &&
+					!_activity._handlingBackKey);
+				_gestureStarted = false;
+				bool previous = _activity.IsPredictiveBackNavigation;
+				_activity.IsPredictiveBackNavigation = isPredictiveBack;
+				try
+				{
+					_activity.HandleBackNavigation();
+				}
+				finally
+				{
+					_activity.IsPredictiveBackNavigation = previous;
+				}
 			}
 		}
 	}

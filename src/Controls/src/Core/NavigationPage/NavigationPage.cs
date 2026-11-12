@@ -729,6 +729,12 @@ namespace Microsoft.Maui.Controls
 				return;
 			}
 
+#if ANDROID
+			// Capture this before awaiting because the activity's back-dispatch scope is synchronous.
+			bool isPredictiveBack = (Window?.Handler?.PlatformView as MauiAppCompatActivity)?.IsPredictiveBackNavigation == true;
+#else
+			const bool isPredictiveBack = false;
+#endif
 			var previousNavigationStack = new List<IView>(NavigationStack);
 			processStackChanges?.Invoke();
 
@@ -775,7 +781,8 @@ namespace Microsoft.Maui.Controls
 						var outgoingPage = previousNavigationStack[previousNavigationStack.Count - 1] as Page;
 						var incomingPage = immutableNavigationStack[immutableNavigationStack.Count - 1] as Page;
 						var isPopping = immutableNavigationStack.Count < previousNavigationStack.Count;
-						request.SharedElementPairs = SharedTransitionResolver.Resolve(outgoingPage, incomingPage, isPopping);
+						if (!isPopping || !isPredictiveBack)
+							request.SharedElementPairs = SharedTransitionResolver.Resolve(outgoingPage, incomingPage, isPopping);
 					}
 
 					((IStackNavigation)this).RequestNavigation(request);

@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Threading;
 using Android.OS;
-using Android.Transitions;
 using Android.Runtime;
+using Android.Transitions;
 using Android.Views;
 using Android.Views.Animations;
-using AndroidX.Fragment.App;
 using AndroidX.Core.View;
+using AndroidX.Fragment.App;
 using AView = Android.Views.View;
 
 namespace Microsoft.Maui.Platform
@@ -16,11 +16,12 @@ namespace Microsoft.Maui.Platform
 		AView? _currentView;
 		FragmentContainerView? _fragmentContainerView;
 		StackNavigationManager? _navigationManager;
-		ViewTreeObserver? _sharedTransitionObserver;
-		SharedTransitionPreDrawListener? _sharedTransitionPreDrawListener;
+		OneShotPreDrawListener? _sharedTransitionPreDrawListener;
+		Java.Lang.Runnable? _sharedTransitionPreDrawRunnable;
 		Handler? _sharedTransitionTimeoutHandler;
 		Action? _startSharedTransition;
 		int _sharedTransitionStarted;
+		bool _sharedTransitionPostponed;
 
 		FragmentContainerView FragmentContainerView =>
 			_fragmentContainerView ?? throw new InvalidOperationException($"FragmentContainerView cannot be null here");
@@ -46,21 +47,18 @@ namespace Microsoft.Maui.Platform
 		{
 			base.OnCreate(savedInstanceState);
 
-			if (!NavigationManager.HasSharedElementTransition)
-				return;
-
-			PostponeEnterTransition();
-			SharedElementEnterTransition = CreateSharedElementTransition();
-			EnterTransition = new Fade();
+			if ((_navigationManager ?? NavHostFragment?.StackNavigationManager) is { } manager)
+				PrepareSharedTransition(manager);
 		}
 
 		public override AView OnCreateView(LayoutInflater inflater, ViewGroup? container, Bundle? savedInstanceState)
 		{
 			// A pending fragment transaction can run after the navigation manager has been disconnected,
 			// for example when a modal NavigationPage is dismissed while it's still navigating
-			if ((_navigationManager ?? NavHostFragment?.StackNavigationManager) is not { HasNavHost: true })
+			if ((_navigationManager ?? NavHostFragment?.StackNavigationManager) is not { HasNavHost: true } manager)
 				return null!;
 
+			PrepareSharedTransition(manager);
 			_fragmentContainerView ??= container as FragmentContainerView;
 
 			// When shuffling around the back stack sometimes we'll need a page to detach and then reattach.
@@ -89,10 +87,14 @@ namespace Microsoft.Maui.Platform
 
 			_currentView.RemoveFromParent();
 
-			if (NavigationManager.HasSharedElementTransition)
+			if (manager.HasSharedElementTransition && _sharedTransitionPostponed)
 			{
-				SetDestinationTransitionNames();
+				SetDestinationTransitionNames(manager);
 				StartPostponedTransitionAfterLayout(_currentView);
+			}
+			else if (_sharedTransitionPostponed)
+			{
+				StartSharedTransition();
 			}
 
 			return _currentView;
@@ -128,35 +130,44 @@ namespace Microsoft.Maui.Platform
 
 		public override Animation OnCreateAnimation(int transit, bool enter, int nextAnim)
 		{
-			if (NavigationManager.HasSharedElementTransition)
+			var manager = _navigationManager ?? NavHostFragment?.StackNavigationManager;
+			if (manager is not { HasNavHost: true } || manager.HasSharedElementTransition)
 				return null!;
 
 			// This means the operation currently being processed shouldn't be animated
 			// This will happen if a user inserts or removes a root page
-			if (NavigationManager.IsPopping == null || !NavigationManager.IsAnimated)
+			if (manager.IsPopping == null || !manager.IsAnimated)
 			{
 				return null!;
 			}
 
 			// Delegate to StackNavigationManager which can be overridden for custom animations
-			var animation = NavigationManager.OnCreateNavigationAnimation(Context!, NavigationManager.IsPopping.Value, enter);
+			var animation = manager.OnCreateNavigationAnimation(Context!, manager.IsPopping.Value, enter);
 
 			return (animation ?? base.OnCreateAnimation(transit, enter, 0))!;
 		}
 
-		void SetDestinationTransitionNames()
+		void PrepareSharedTransition(StackNavigationManager manager)
 		{
-			if (NavigationManager.ActiveRequestedArgs is not { } request)
+			if (!manager.HasSharedElementTransition || _sharedTransitionPostponed)
 				return;
 
-			foreach (var pair in request.SharedElementPairs)
+			_sharedTransitionStarted = 0;
+			_sharedTransitionPostponed = true;
+			PostponeEnterTransition();
+			manager.ConfigureIncomingSharedElementTransition(this);
+		}
+
+		static void SetDestinationTransitionNames(StackNavigationManager manager)
+		{
+			foreach (var pair in manager.ActiveSharedElementPairs)
 			{
 				if (pair.Destination.Handler?.PlatformView is AView destinationView)
-					ViewCompat.SetTransitionName(destinationView, pair.Key);
+					manager.SetSharedElementTransitionName(destinationView, pair.Key);
 			}
 		}
 
-		static TransitionSet CreateSharedElementTransition()
+		internal static TransitionSet CreateSharedElementTransition()
 		{
 			var transition = new TransitionSet();
 			transition.AddTransition(new ChangeBounds());
@@ -168,17 +179,8 @@ namespace Microsoft.Maui.Platform
 
 		void StartPostponedTransitionAfterLayout(AView view)
 		{
-			var observer = view.ViewTreeObserver;
-			if (observer is null)
-			{
-				StartSharedTransition();
-				return;
-			}
-
-			_sharedTransitionObserver = observer;
-			var preDrawListener = new SharedTransitionPreDrawListener(this);
-			_sharedTransitionPreDrawListener = preDrawListener;
-			observer.AddOnPreDrawListener(preDrawListener);
+			_sharedTransitionPreDrawRunnable = new Java.Lang.Runnable(StartSharedTransition);
+			_sharedTransitionPreDrawListener = OneShotPreDrawListener.Add(view, _sharedTransitionPreDrawRunnable);
 
 			_sharedTransitionTimeoutHandler = new Handler(Looper.MainLooper!);
 			Action startTransition = StartSharedTransition;
@@ -191,27 +193,10 @@ namespace Microsoft.Maui.Platform
 			if (Interlocked.Exchange(ref _sharedTransitionStarted, 1) != 0)
 				return;
 
-			if (_sharedTransitionTimeoutHandler is not null && _startSharedTransition is not null)
-				_sharedTransitionTimeoutHandler.RemoveCallbacks(_startSharedTransition);
-
-			_sharedTransitionTimeoutHandler?.Dispose();
-			_sharedTransitionTimeoutHandler = null;
-			_startSharedTransition = null;
-
-			if (_sharedTransitionPreDrawListener is { } listener)
-			{
-				if (_sharedTransitionObserver?.IsAlive == true)
-					_sharedTransitionObserver.RemoveOnPreDrawListener(listener);
-
-				listener.Dispose();
-				_sharedTransitionPreDrawListener = null;
-			}
-
-			_sharedTransitionObserver = null;
-			StartPostponedEnterTransition();
+			CleanupSharedTransition();
 		}
 
-		void CleanupSharedTransition()
+		internal void CleanupSharedTransition()
 		{
 			if (_sharedTransitionTimeoutHandler is not null && _startSharedTransition is not null)
 				_sharedTransitionTimeoutHandler.RemoveCallbacks(_startSharedTransition);
@@ -222,26 +207,18 @@ namespace Microsoft.Maui.Platform
 
 			if (_sharedTransitionPreDrawListener is { } listener)
 			{
-				if (_sharedTransitionObserver?.IsAlive == true)
-					_sharedTransitionObserver.RemoveOnPreDrawListener(listener);
-
+				listener.RemoveListener();
 				listener.Dispose();
 				_sharedTransitionPreDrawListener = null;
 			}
 
-			_sharedTransitionObserver = null;
-		}
+			_sharedTransitionPreDrawRunnable?.Dispose();
+			_sharedTransitionPreDrawRunnable = null;
 
-		sealed class SharedTransitionPreDrawListener : Java.Lang.Object, ViewTreeObserver.IOnPreDrawListener
-		{
-			readonly NavigationViewFragment _fragment;
-
-			public SharedTransitionPreDrawListener(NavigationViewFragment fragment) => _fragment = fragment;
-
-			public bool OnPreDraw()
+			if (_sharedTransitionPostponed)
 			{
-				_fragment.StartSharedTransition();
-				return true;
+				_sharedTransitionPostponed = false;
+				StartPostponedEnterTransition();
 			}
 		}
 	}

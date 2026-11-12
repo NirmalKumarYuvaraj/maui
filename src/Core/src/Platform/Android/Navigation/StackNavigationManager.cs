@@ -26,6 +26,10 @@ namespace Microsoft.Maui.Platform
 		FragmentContainerView? _fragmentContainerView;
 		Type _navigationViewFragmentType = typeof(NavigationViewFragment);
 		Queue<NavigationRequest> _navigationQueue = new Queue<NavigationRequest>();
+		readonly Dictionary<IView, SharedElementNavigation> _sharedElementNavigations = new();
+		readonly Dictionary<AView, string?> _originalTransitionNames = new();
+		readonly List<Action> _restoreFragmentTransitions = new();
+		NavigationViewFragment? _incomingSharedElementFragment;
 
 		bool _processingQueue;
 
@@ -36,6 +40,7 @@ namespace Microsoft.Maui.Platform
 		internal bool? IsPopping { get; private set; }
 		internal bool IsAnimated { get; set; } = true;
 		internal bool HasSharedElementTransition { get; private set; }
+		internal IReadOnlyList<SharedElementPair> ActiveSharedElementPairs { get; private set; } = Array.Empty<SharedElementPair>();
 		internal NavigationRequest? ActiveRequestedArgs { get; private set; }
 		internal NavigationRequest? OnResumeRequestedArgs { get; private set; }
 		public IReadOnlyList<IView> NavigationStack { get; private set; } = [];
@@ -135,6 +140,11 @@ namespace Microsoft.Maui.Platform
 			// will change (gain a back button)
 			if (newPageStack[newPageStack.Count - 1] == previousNavigationStack[previousNavigationStackCount - 1])
 			{
+				if (newPageStack.Count != previousNavigationStackCount ||
+					!HasMatchingPrefix(previousNavigationStack, newPageStack, newPageStack.Count))
+					_sharedElementNavigations.Clear();
+
+				PruneSharedElementNavigations(newPageStack);
 				NavigationFinished(NavigationView);
 
 				// There's only one page on the stack then we trigger back button visibility logic
@@ -168,15 +178,43 @@ namespace Microsoft.Maui.Platform
 			// match up
 			if (fragmentNavDestinations.Count < newPageStack.Count)
 			{
+				var sourcePage = previousNavigationStack[previousNavigationStackCount - 1];
+				var destinationPage = newPageStack[newPageStack.Count - 1];
+				_sharedElementNavigations.Remove(destinationPage);
+				bool isSimplePush = IsPopping == false &&
+					newPageStack.Count == previousNavigationStackCount + 1 &&
+					fragmentNavDestinations.Count == previousNavigationStackCount &&
+					HasMatchingPrefix(previousNavigationStack, newPageStack, previousNavigationStackCount);
+
+				if (!isSimplePush)
+					_sharedElementNavigations.Clear();
+
 				for (int i = fragmentNavDestinations.Count; i < newPageStack.Count; i++)
 				{
 					var dest = AddFragmentDestination();
-					var extras = i == newPageStack.Count - 1 ? CreateSharedElementExtras() : null;
+					var extras = isSimplePush && i == newPageStack.Count - 1
+						? CreateSharedElementExtras(sourcePage, destinationPage)
+						: null;
 
 					if (extras is null)
 						navController.Navigate(dest.Id);
 					else
-						navController.Navigate(dest.Id, null, null, extras);
+					{
+						bool navigated = false;
+						try
+						{
+							navController.Navigate(dest.Id, null, null, extras);
+							navigated = true;
+						}
+						finally
+						{
+							if (!navigated)
+							{
+								_sharedElementNavigations.Remove(destinationPage);
+								CleanupSharedElementTransition();
+							}
+						}
+					}
 				}
 			}
 			// User just wants to replace the currently visible page but the number
@@ -185,6 +223,7 @@ namespace Microsoft.Maui.Platform
 			// But this way we get an animation
 			else if (newPageStack.Count == fragmentNavDestinations.Count)
 			{
+				_sharedElementNavigations.Clear();
 				int lastFragId = fragmentNavDestinations[newPageStack.Count - 1].Id;
 				navController.PopBackStack();
 				navController.Navigate(lastFragId);
@@ -193,15 +232,37 @@ namespace Microsoft.Maui.Platform
 			else
 			{
 				int popToId = fragmentNavDestinations[newPageStack.Count - 1].Id;
+				bool isSimplePop = IsPopping == true &&
+					previousNavigationStackCount == newPageStack.Count + 1 &&
+					fragmentNavDestinations.Count == previousNavigationStackCount &&
+					HasMatchingPrefix(previousNavigationStack, newPageStack, newPageStack.Count);
+
+				if (isSimplePop)
+					PrepareSharedElementReturn(previousNavigationStack[previousNavigationStackCount - 1], newPageStack[newPageStack.Count - 1]);
+				else
+					_sharedElementNavigations.Clear();
 
 				// Remove the popped destinations from the graph right away. IterateBackStack below looks up every
 				// destination of the graph on the back stack, which throws an IllegalArgumentException for a popped one
-				if (navController.PopBackStack(popToId, false))
+				bool popped = false;
+				try
+				{
+					popped = navController.PopBackStack(popToId, false);
+				}
+				finally
+				{
+					if (!popped)
+						CleanupSharedElementTransition();
+				}
+
+				if (popped)
 				{
 					for (int i = newPageStack.Count; i < fragmentNavDestinations.Count; i++)
 						NavGraph.Remove(fragmentNavDestinations[i]);
 				}
 			}
+
+			PruneSharedElementNavigations(newPageStack);
 
 			// We only keep destinations around that are on the backstack
 			// This iterates over the new backstack and removes any destinations
@@ -234,33 +295,246 @@ namespace Microsoft.Maui.Platform
 			TriggerBackButtonVisibleUpdate();
 		}
 
-		FragmentNavigator.Extras? CreateSharedElementExtras()
+		static bool HasMatchingPrefix(IReadOnlyList<IView> first, IReadOnlyList<IView> second, int count)
 		{
-			if (!IsAnimated || IsPopping != false || ActiveRequestedArgs is not { SharedElementPairs.Count: > 0 } request)
+			for (int i = 0; i < count; i++)
+			{
+				if (!ReferenceEquals(first[i], second[i]))
+					return false;
+			}
+
+			return true;
+		}
+
+		FragmentNavigator.Extras? CreateSharedElementExtras(IView sourcePage, IView destinationPage)
+		{
+			if (!IsAnimated || IsPopping != false ||
+				ActiveRequestedArgs is not { SharedElementPairs.Count: > 0 } request ||
+				ChildFragmentManager?.PrimaryNavigationFragment is not NavigationViewFragment currentFragment)
+				return null;
+
+			var selected = SelectSharedElements(request.SharedElementPairs, null);
+			if (selected.Count == 0)
 				return null;
 
 			var extrasBuilder = new FragmentNavigator.Extras.Builder();
-			int sharedElementCount = 0;
+			var keys = new HashSet<string>(StringComparer.Ordinal);
+			bool prepared = false;
 
-			foreach (var pair in request.SharedElementPairs)
+			try
 			{
-				if (pair.Source.Handler?.PlatformView is not AView sourceView)
+				foreach (var (pair, sourceView) in selected)
+				{
+					SetSharedElementTransitionName(sourceView, pair.Key);
+					extrasBuilder.AddSharedElement(sourceView, pair.Key);
+					keys.Add(pair.Key);
+				}
+
+				var extras = extrasBuilder.Build();
+				ActivateSharedElementTransition(selected, currentFragment, isPopping: false);
+				_sharedElementNavigations[destinationPage] = new SharedElementNavigation(sourcePage, keys);
+				prepared = true;
+				return extras;
+			}
+			finally
+			{
+				if (!prepared)
+					CleanupSharedElementTransition();
+			}
+		}
+
+		void PrepareSharedElementReturn(IView sourcePage, IView destinationPage)
+		{
+			if (!IsAnimated ||
+				ActiveRequestedArgs is not { SharedElementPairs.Count: > 0 } request ||
+				!_sharedElementNavigations.TryGetValue(sourcePage, out var navigation) ||
+				!ReferenceEquals(navigation.SourcePage, destinationPage) ||
+				ChildFragmentManager?.PrimaryNavigationFragment is not NavigationViewFragment currentFragment)
+				return;
+
+			var selected = SelectSharedElements(request.SharedElementPairs, navigation.Keys);
+			if (selected.Count == 0)
+				return;
+
+			bool prepared = false;
+			try
+			{
+				foreach (var (pair, sourceView) in selected)
+					SetSharedElementTransitionName(sourceView, pair.Key);
+
+				ActivateSharedElementTransition(selected, currentFragment, isPopping: true);
+				prepared = true;
+			}
+			finally
+			{
+				if (!prepared)
+					CleanupSharedElementTransition();
+			}
+		}
+
+		static List<(SharedElementPair Pair, AView SourceView)> SelectSharedElements(
+			IReadOnlyList<SharedElementPair> pairs, HashSet<string>? allowedKeys)
+		{
+			var selected = new List<(SharedElementPair, AView)>();
+			var keys = new HashSet<string>(StringComparer.Ordinal);
+			var views = new HashSet<AView>();
+
+			foreach (var pair in pairs)
+			{
+				if (allowedKeys is not null && !allowedKeys.Contains(pair.Key))
 					continue;
 
-				ViewCompat.SetTransitionName(sourceView, pair.Key);
-				extrasBuilder.AddSharedElement(sourceView, pair.Key);
-				sharedElementCount++;
+				if (pair.Source.Handler?.PlatformView is not AView sourceView || !sourceView.IsAttachedToWindow || !sourceView.IsShown)
+					continue;
+
+				if (!keys.Add(pair.Key) || !views.Add(sourceView))
+				{
+					System.Diagnostics.Debug.WriteLine($"SharedTransition: duplicate native shared element '{pair.Key}' was skipped.");
+					continue;
+				}
+
+				selected.Add((pair, sourceView));
 			}
 
-			if (sharedElementCount == 0)
-				return null;
+			return selected;
+		}
 
+		void ActivateSharedElementTransition(List<(SharedElementPair Pair, AView SourceView)> selected, NavigationViewFragment currentFragment, bool isPopping)
+		{
+			var pairs = new List<SharedElementPair>(selected.Count);
+			foreach (var (pair, _) in selected)
+				pairs.Add(pair);
+
+			ActiveSharedElementPairs = pairs;
 			HasSharedElementTransition = true;
 
-			if (NavHost.ChildFragmentManager?.PrimaryNavigationFragment is NavigationViewFragment currentFragment)
-				currentFragment.ExitTransition = new Fade();
+			if (isPopping)
+			{
+				ConfigureEnterTransition(currentFragment);
+				if (!Equals(currentFragment.ReturnTransition, currentFragment.EnterTransition) ||
+					!Equals(currentFragment.SharedElementReturnTransition, currentFragment.SharedElementEnterTransition))
+				{
+					System.Diagnostics.Debug.WriteLine("SharedTransition: custom return transitions take precedence; using regular navigation.");
+					CleanupSharedElementTransition();
+				}
+			}
+			else
+				ConfigureExitTransition(currentFragment);
+		}
 
-			return extrasBuilder.Build();
+		internal void ConfigureIncomingSharedElementTransition(NavigationViewFragment fragment)
+		{
+			_incomingSharedElementFragment = fragment;
+
+			if (IsPopping == true)
+			{
+				ConfigureExitTransition(fragment);
+				if (!Equals(fragment.ReenterTransition, fragment.ExitTransition))
+				{
+					System.Diagnostics.Debug.WriteLine("SharedTransition: a custom reenter transition takes precedence; using regular navigation.");
+					CleanupSharedElementTransition();
+				}
+			}
+			else
+				ConfigureEnterTransition(fragment);
+		}
+
+		void ConfigureEnterTransition(NavigationViewFragment fragment)
+		{
+			var previousEnter = fragment.EnterTransition;
+			var previousSharedEnter = fragment.SharedElementEnterTransition;
+			_restoreFragmentTransitions.Add(() =>
+			{
+				if (fragment.IsAlive())
+				{
+					fragment.EnterTransition = previousEnter;
+					fragment.SharedElementEnterTransition = previousSharedEnter;
+				}
+			});
+
+			fragment.EnterTransition = new Fade();
+			fragment.SharedElementEnterTransition = NavigationViewFragment.CreateSharedElementTransition();
+		}
+
+		void ConfigureExitTransition(NavigationViewFragment fragment)
+		{
+			var previousExit = fragment.ExitTransition;
+			_restoreFragmentTransitions.Add(() =>
+			{
+				if (fragment.IsAlive())
+					fragment.ExitTransition = previousExit;
+			});
+
+			fragment.ExitTransition = new Fade();
+		}
+
+		internal void SetSharedElementTransitionName(AView view, string name)
+		{
+			if (!_originalTransitionNames.ContainsKey(view))
+				_originalTransitionNames.Add(view, ViewCompat.GetTransitionName(view));
+
+			ViewCompat.SetTransitionName(view, name);
+		}
+
+		void CleanupSharedElementTransition()
+		{
+			var incomingFragment = _incomingSharedElementFragment;
+			_incomingSharedElementFragment = null;
+			if (incomingFragment is not null && incomingFragment.IsAlive())
+				incomingFragment.CleanupSharedTransition();
+
+			for (int i = _restoreFragmentTransitions.Count - 1; i >= 0; i--)
+				_restoreFragmentTransitions[i]();
+
+			_restoreFragmentTransitions.Clear();
+
+			foreach (var (view, originalName) in _originalTransitionNames)
+			{
+				if (view.IsAlive())
+					ViewCompat.SetTransitionName(view, originalName);
+			}
+
+			_originalTransitionNames.Clear();
+			ActiveSharedElementPairs = Array.Empty<SharedElementPair>();
+			HasSharedElementTransition = false;
+		}
+
+		void PruneSharedElementNavigations(IReadOnlyList<IView> pages)
+		{
+			List<IView>? removed = null;
+			foreach (var entry in _sharedElementNavigations)
+			{
+				bool present = false;
+				foreach (var page in pages)
+				{
+					if (ReferenceEquals(entry.Key, page))
+					{
+						present = true;
+						break;
+					}
+				}
+
+				if (!present)
+					(removed ??= new List<IView>()).Add(entry.Key);
+			}
+
+			if (removed is not null)
+			{
+				foreach (var page in removed)
+					_sharedElementNavigations.Remove(page);
+			}
+		}
+
+		sealed class SharedElementNavigation
+		{
+			public SharedElementNavigation(IView sourcePage, HashSet<string> keys)
+			{
+				SourcePage = sourcePage;
+				Keys = keys;
+			}
+
+			public IView SourcePage { get; }
+			public HashSet<string> Keys { get; }
 		}
 
 		void TriggerBackButtonVisibleUpdate()
@@ -325,8 +599,8 @@ namespace Microsoft.Maui.Platform
 		internal void NavigationFinished(IStackNavigation? navigationView)
 		{
 			IsInitialNavigation = false;
+			CleanupSharedElementTransition();
 			IsPopping = null;
-			HasSharedElementTransition = false;
 			ActiveRequestedArgs = null;
 			navigationView?.NavigationFinished(NavigationStack);
 
@@ -405,6 +679,10 @@ namespace Microsoft.Maui.Platform
 
 			if (IsNavigating)
 				NavigationFinished(NavigationView);
+			else
+				CleanupSharedElementTransition();
+
+			_sharedElementNavigations.Clear();
 
 			if (_fragmentContainerView is not null)
 			{
@@ -724,7 +1002,10 @@ namespace Microsoft.Maui.Platform
 					return;
 
 				if (f is NavigationViewFragment pf)
+				{
+					pf.CleanupSharedTransition();
 					_stackNavigationManager.OnNavigationViewFragmentDestroyed(fm, pf);
+				}
 
 				base.OnFragmentViewDestroyed(fm, f);
 			}
