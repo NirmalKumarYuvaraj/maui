@@ -6,6 +6,7 @@ using Android.OS;
 using Android.Transitions;
 using Android.Views;
 using Android.Views.Animations;
+using Android.Widget;
 using AndroidX.Core.View;
 using AndroidX.Fragment.App;
 using AndroidX.Navigation;
@@ -476,7 +477,9 @@ namespace Microsoft.Maui.Platform
 			foreach (var pair in ActiveSharedElementPairs)
 			{
 				if (pair.Source.Handler?.PlatformView is not AView sourceView ||
-					pair.Destination.Handler?.PlatformView is not AView destinationView)
+					pair.Destination.Handler?.PlatformView is not AView destinationView ||
+					!HasImageContent(sourceView) ||
+					!HasImageContent(destinationView))
 					continue;
 
 				var info = new SharedTransitionInfo(
@@ -503,6 +506,9 @@ namespace Microsoft.Maui.Platform
 
 			return transitionCount > 0 ? transitions : null;
 		}
+
+		static bool HasImageContent(AView view) =>
+			view is not ImageView imageView || imageView.Drawable is not null;
 
 		/// <summary>
 		/// Creates the native transition for a shared element. Override to customize its animation.

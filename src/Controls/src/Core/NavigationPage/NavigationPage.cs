@@ -737,6 +737,7 @@ namespace Microsoft.Maui.Controls
 #endif
 			var previousNavigationStack = new List<IView>(NavigationStack);
 			processStackChanges?.Invoke();
+			var navigationType = NavigationType;
 
 			if (Handler == null)
 			{
@@ -780,9 +781,12 @@ namespace Microsoft.Maui.Controls
 					{
 						var outgoingPage = previousNavigationStack[previousNavigationStack.Count - 1] as Page;
 						var incomingPage = immutableNavigationStack[immutableNavigationStack.Count - 1] as Page;
-						var isPopping = immutableNavigationStack.Count < previousNavigationStack.Count;
-						if (!isPopping || !isPredictiveBack)
-							request.SharedElementPairs = SharedTransitionResolver.Resolve(outgoingPage, incomingPage, isPopping);
+						bool isPush = (navigationType is NavigationType.Push or NavigationType.Replace) &&
+							immutableNavigationStack.Count == previousNavigationStack.Count + 1;
+						bool isSinglePop = (navigationType is NavigationType.Pop or NavigationType.PopToRoot) &&
+							previousNavigationStack.Count == immutableNavigationStack.Count + 1;
+						if (animated && (isPush || isSinglePop) && (!isSinglePop || !isPredictiveBack))
+							request.SharedElementPairs = SharedTransitionResolver.Resolve(outgoingPage, incomingPage, isSinglePop);
 					}
 
 					((IStackNavigation)this).RequestNavigation(request);
@@ -951,6 +955,7 @@ namespace Microsoft.Maui.Controls
 				await Owner.SendHandlerUpdateAsync(animated,
 					() =>
 					{
+						Owner.NavigationType = NavigationType.Pop;
 						Owner.SendNavigating(NavigationType.Pop, currentPage, newCurrentPage);
 						Owner.FireDisappearing(currentPage);
 						Owner.RemoveFromInnerChildren(currentPage);
@@ -985,6 +990,7 @@ namespace Microsoft.Maui.Controls
 				return Owner.SendHandlerUpdateAsync(animated,
 					() =>
 					{
+						Owner.NavigationType = NavigationType.PopToRoot;
 						Owner.SendNavigating(NavigationType.PopToRoot, previousPage, newPage);
 						Owner.FireDisappearing(previousPage);
 						var lastIndex = NavigationStack.Count - 1;

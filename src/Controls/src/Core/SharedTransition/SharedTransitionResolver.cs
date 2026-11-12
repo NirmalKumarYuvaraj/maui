@@ -62,7 +62,7 @@ namespace Microsoft.Maui.Controls
 		}
 
 		internal static string CreateKey(string name, string? group) =>
-			string.IsNullOrEmpty(group) ? name : $"{name}|{group}";
+			SharedElementPair.CreateKey(name, NormalizeGroup(group));
 
 		static SharedTransitionOptions? GetOptions(Page page) =>
 			page.FindMauiContext()?.Services.GetService<SharedTransitionOptions>();

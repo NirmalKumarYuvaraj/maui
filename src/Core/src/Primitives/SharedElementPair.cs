@@ -20,7 +20,10 @@ namespace Microsoft.Maui
 
 		public string? Group { get; }
 
-		public string Key => string.IsNullOrEmpty(Group) ? Name : $"{Name}|{Group}";
+		public string Key => CreateKey(Name, Group);
+
+		internal static string CreateKey(string name, string? group) =>
+			group is null ? $"{name.Length}:{name}" : $"{name.Length}:{name}{group.Length}:{group}";
 
 		public uint Duration { get; }
 
