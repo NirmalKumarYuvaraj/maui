@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Linq;
 using Android.Content;
 using Android.OS;
+using Android.Transitions;
 using Android.Views;
 using Android.Views.Animations;
 using Android.Widget;
@@ -169,6 +170,17 @@ namespace Microsoft.Maui.Controls.Handlers
         // Internal accessor for ShellStackNavigationManager to invoke the protected virtual
         internal AAnimation? InvokeOnCreateNavigationAnimation(Context context, bool isPopping, bool enter)
             => OnCreateNavigationAnimation(context, isPopping, enter);
+
+        /// <summary>
+        /// Creates the native transition for a shared element within this Shell section.
+        /// Override to customize shared-element animations. Return null to use the default transition.
+        /// </summary>
+        /// <param name="info">The shared element and resolved duration and easing.</param>
+        /// <returns>The transition to use, or null to use the default transition.</returns>
+        protected virtual Transition? OnCreateSharedElementTransition(SharedTransitionInfo info) => null;
+
+        internal Transition? InvokeOnCreateSharedElementTransition(SharedTransitionInfo info)
+            => OnCreateSharedElementTransition(info);
 
         protected override void ConnectHandler(AView platformView)
         {
@@ -1174,6 +1186,12 @@ namespace Microsoft.Maui.Controls.Handlers
         {
             return _handler.InvokeOnCreateNavigationAnimation(context, isPopping, enter)
                 ?? base.OnCreateNavigationAnimation(context, isPopping, enter);
+        }
+
+        protected override Transition? OnCreateSharedElementTransition(SharedTransitionInfo info)
+        {
+            return _handler.InvokeOnCreateSharedElementTransition(info)
+                ?? base.OnCreateSharedElementTransition(info);
         }
     }
 }

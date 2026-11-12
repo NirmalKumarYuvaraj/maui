@@ -313,7 +313,11 @@ namespace Microsoft.Maui.Controls.Handlers
             {
                 // Update logical stack so subsequent rapid pushes build from the correct state
                 _logicalNavigationStack = requestedStack;
-                _stackNavigationManager.RequestNavigation(new NavigationRequest(requestedStack, e.Animated));
+                var request = new NavigationRequest(requestedStack, e.Animated)
+                {
+                    SharedElementPairs = e.SharedElementPairs
+                };
+                _stackNavigationManager.RequestNavigation(request);
             }
             else
             {

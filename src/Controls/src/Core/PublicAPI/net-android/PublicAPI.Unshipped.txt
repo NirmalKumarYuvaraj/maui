@@ -25,3 +25,4 @@ static readonly Microsoft.Maui.Controls.SharedTransition.EasingProperty -> Micro
 static readonly Microsoft.Maui.Controls.SharedTransition.GroupProperty -> Microsoft.Maui.Controls.BindableProperty!
 static readonly Microsoft.Maui.Controls.SharedTransition.IsEnabledProperty -> Microsoft.Maui.Controls.BindableProperty!
 static readonly Microsoft.Maui.Controls.SharedTransition.NameProperty -> Microsoft.Maui.Controls.BindableProperty!
+virtual Microsoft.Maui.Controls.Handlers.ShellSectionHandler.OnCreateSharedElementTransition(Microsoft.Maui.SharedTransitionInfo! info) -> Android.Transitions.Transition?

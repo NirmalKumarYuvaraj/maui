@@ -771,6 +771,27 @@ namespace Microsoft.Maui.Controls
 
 		void InvokeNavigationRequest(NavigationRequestedEventArgs args)
 		{
+#if ANDROID
+			if (args.Animated && Navigation.ModalStack.Count == 0)
+			{
+				if (args.RequestType == NavigationRequestType.Push &&
+					_navStack.Count > 1 &&
+					args.Page is { } incomingPage)
+				{
+					var outgoingPage = _navStack[_navStack.Count - 2];
+					outgoingPage ??= (CurrentItem as IShellContentController)?.Page;
+					if (outgoingPage is not null)
+						args.SharedElementPairs = SharedTransitionResolver.Resolve(outgoingPage, incomingPage, isPopping: false);
+				}
+				else if (args.RequestType == NavigationRequestType.Pop &&
+					args.Page is { } outgoingPage &&
+					((IShellSectionController)this).PresentedPage is { } revealedPage)
+				{
+					args.SharedElementPairs = SharedTransitionResolver.Resolve(outgoingPage, revealedPage, isPopping: true);
+				}
+			}
+#endif
+
 			_navigationRequested?.Invoke(this, args);
 		}
 

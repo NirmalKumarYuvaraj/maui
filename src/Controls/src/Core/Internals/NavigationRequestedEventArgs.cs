@@ -1,4 +1,6 @@
 #nullable disable
+using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading.Tasks;
 
@@ -32,5 +34,7 @@ namespace Microsoft.Maui.Controls.Internals
 		/// <summary>Internal API for Microsoft.Maui.Controls platform use.</summary>
 		/// <remarks>For internal use only. This API can be changed or removed without notice at any time.</remarks>
 		public NavigationRequestType RequestType { get; set; } = NavigationRequestType.Unknown;
+
+		internal IReadOnlyList<SharedElementPair> SharedElementPairs { get; set; } = Array.Empty<SharedElementPair>();
 	}
 }
