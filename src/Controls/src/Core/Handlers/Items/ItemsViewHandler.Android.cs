@@ -5,6 +5,9 @@ using System.Text;
 using AndroidX.RecyclerView.Widget;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Handlers;
+using Microsoft.Maui.Platform;
+using AView = Android.Views.View;
+using MeasureSpecMode = Android.Views.MeasureSpecMode;
 
 namespace Microsoft.Maui.Controls.Handlers.Items
 {
@@ -35,24 +38,27 @@ namespace Microsoft.Maui.Controls.Handlers.Items
 
 		public override Size GetDesiredSize(double widthConstraint, double heightConstraint)
 		{
-			var width = widthConstraint;
-			var height = heightConstraint;
+			if (PlatformView.GetAdapter() is EmptyViewAdapter)
+			{
+				var view = (IView)VirtualView;
+				var widthSpec = Context.CreateMeasureSpec(widthConstraint, view.Width, view.MinimumWidth, view.MaximumWidth);
+				var heightSpec = Context.CreateMeasureSpec(heightConstraint, view.Height, view.MinimumHeight, view.MaximumHeight);
 
-			if (!double.IsInfinity(width))
-				width = Context.ToPixels(width);
-
-			if (!double.IsInfinity(height))
-				height = Context.ToPixels(height);
-
-			UpdateEmptyViewSize(width, height);
+				UpdateEmptyViewSize(GetMeasureSpecSize(widthSpec), GetMeasureSpecSize(heightSpec));
+			}
 
 			return base.GetDesiredSize(widthConstraint, heightConstraint);
 		}
 
+		static double GetMeasureSpecSize(int measureSpec) =>
+			AView.MeasureSpec.GetMode(measureSpec) == MeasureSpecMode.Unspecified
+				? double.PositiveInfinity
+				: AView.MeasureSpec.GetSize(measureSpec);
+
 		public override void PlatformArrange(Rect frame)
 		{
-			var width = Context.ToPixels(frame.Width);
-			var height = Context.ToPixels(frame.Height);
+			var width = (int)Context.ToPixels(frame.Width);
+			var height = (int)Context.ToPixels(frame.Height);
 
 			UpdateEmptyViewSize(width, height);
 
@@ -110,12 +116,16 @@ namespace Microsoft.Maui.Controls.Handlers.Items
 
 			if (adapter is EmptyViewAdapter emptyViewAdapter)
 			{
-				double tolerance = 0.001;
-				var widthChanged = Math.Abs(emptyViewAdapter.RecyclerViewWidth - width) > tolerance;
-				var heightChanged = Math.Abs(emptyViewAdapter.RecyclerViewHeight - height) > tolerance;
-
 				emptyViewAdapter.RecyclerViewWidth = width;
 				emptyViewAdapter.RecyclerViewHeight = height;
+
+				// Unbounded constraints fall back to the RecyclerView's measured size.
+				var effectiveWidth = emptyViewAdapter.GetWidth(platformView);
+				var effectiveHeight = emptyViewAdapter.GetHeight(platformView);
+				var widthChanged = emptyViewAdapter.LastEmptyViewWidth != effectiveWidth;
+				var heightChanged = emptyViewAdapter.LastEmptyViewHeight != effectiveHeight;
+				emptyViewAdapter.LastEmptyViewWidth = effectiveWidth;
+				emptyViewAdapter.LastEmptyViewHeight = effectiveHeight;
 
 				if (widthChanged || heightChanged)
 				{
@@ -128,8 +138,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items
 					var viewHolder = platformView.FindViewHolderForAdapterPosition(emptyViewPosition);
 					if (viewHolder is not null)
 					{
-						// ViewHolder exists, request layout immediately to avoid frame delay
-						viewHolder.ItemView.RequestLayout();
+						PlatformInterop.RequestLayoutIfNeeded(viewHolder.ItemView);
 					}
 					else
 					{

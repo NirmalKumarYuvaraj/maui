@@ -214,6 +214,37 @@ namespace Microsoft.Maui.DeviceTests
 		}
 
 		[Fact]
+		public async Task EmptyViewUsesExplicitHeightDuringUnboundedMeasure()
+		{
+			SetupBuilder();
+
+			await InvokeOnMainThreadAsync(() =>
+			{
+				var collectionView = new CollectionView
+				{
+					ItemsSource = System.Array.Empty<string>(),
+					EmptyView = new Label { Text = "Empty" },
+					HeightRequest = 180,
+					ItemsLayout = new LinearItemsLayout(ItemsLayoutOrientation.Horizontal)
+				};
+				var handler = CreateHandler<CollectionViewHandler>(collectionView);
+				var adapter = Assert.IsType<EmptyViewAdapter>(handler.PlatformView.GetAdapter());
+
+				handler.GetDesiredSize(317, double.PositiveInfinity);
+				var expectedHeight = (int)MauiContext.Context.ToPixels(180);
+				Assert.Equal(expectedHeight, adapter.RecyclerViewHeight);
+
+				handler.PlatformArrange(new Rect(0, 0, 317, 180));
+				handler.GetDesiredSize(317, double.PositiveInfinity);
+				Assert.Equal(expectedHeight, adapter.RecyclerViewHeight);
+
+				collectionView.HeightRequest = 240;
+				handler.GetDesiredSize(317, double.PositiveInfinity);
+				Assert.Equal((int)MauiContext.Context.ToPixels(240), adapter.RecyclerViewHeight);
+			});
+		}
+
+		[Fact]
 		public async Task GroupedCollectionViewEmptyViewTracksOuterGroupCount()
 		{
 			SetupBuilder();

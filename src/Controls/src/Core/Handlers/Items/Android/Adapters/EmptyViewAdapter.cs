@@ -104,6 +104,10 @@ namespace Microsoft.Maui.Controls.Handlers.Items
 
 		internal double RecyclerViewWidth { get; set; }
 
+		internal int LastEmptyViewHeight { get; set; } = -1;
+
+		internal int LastEmptyViewWidth { get; set; } = -1;
+
 		public EmptyViewAdapter(ItemsView itemsView)
 		{
 			ItemsView = itemsView;
@@ -282,7 +286,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items
 			return (Header == null && HeaderTemplate == null) ? position == 0 : position == 1;
 		}
 
-		int GetHeight(ViewGroup parent)
+		internal int GetHeight(ViewGroup parent)
 		{
 			int height = (int)RecyclerViewHeight;
 
@@ -293,7 +297,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items
 			return Math.Abs((int)(height - headerFooterHeight));
 		}
 
-		int GetWidth(ViewGroup parent)
+		internal int GetWidth(ViewGroup parent)
 		{
 			int width = (int)RecyclerViewWidth;
 
