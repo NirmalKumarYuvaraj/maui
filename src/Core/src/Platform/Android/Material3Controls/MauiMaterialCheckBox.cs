@@ -11,6 +11,8 @@ public class MauiMaterialCheckBox : MaterialCheckBox
 
 	}
 
+	internal bool IsThreeState { get; set; }
+
 	public override bool PerformClick()
 	{
 		if (Enabled == false)
@@ -21,6 +23,7 @@ public class MauiMaterialCheckBox : MaterialCheckBox
 		var nextState = CheckedState switch
 		{
 			MaterialCheckBox.StateUnchecked => MaterialCheckBox.StateChecked,
+			MaterialCheckBox.StateChecked when IsThreeState => MaterialCheckBox.StateIndeterminate,
 			MaterialCheckBox.StateChecked => MaterialCheckBox.StateUnchecked,
 			MaterialCheckBox.StateIndeterminate => MaterialCheckBox.StateUnchecked,
 			_ => MaterialCheckBox.StateUnchecked

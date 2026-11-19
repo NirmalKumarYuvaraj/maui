@@ -11,17 +11,20 @@ namespace Microsoft.Maui.DeviceTests
 {
 	public partial class CheckBoxHandlerTests
 	{
-		[Theory(DisplayName = "Tapping Uses Binary State Transitions")]
-		[InlineData(false, true)]
-		[InlineData(true, false)]
-		[InlineData(null, false)]
-		public async Task TappingUsesBinaryStateTransitions(bool? initialState, bool expectedState)
+		[Theory(DisplayName = "Tapping Uses Configured State Transitions")]
+		[InlineData(false, false, true)]
+		[InlineData(false, true, false)]
+		[InlineData(false, null, false)]
+		[InlineData(true, false, true)]
+		[InlineData(true, true, null)]
+		[InlineData(true, null, false)]
+		public async Task TappingUsesConfiguredStateTransitions(bool isThreeState, bool? initialState, bool? expectedState)
 		{
 			await InvokeOnMainThreadAsync(() =>
 			{
 				using var checkBox = new MauiCheckBox
 				{
-					IsThreeState = true,
+					IsThreeState = isThreeState,
 					IsChecked = initialState
 				};
 				var checkedChangedCount = 0;
@@ -29,7 +32,7 @@ namespace Microsoft.Maui.DeviceTests
 
 				checkBox.SendActionForControlEvents(UIControlEvent.TouchUpInside);
 
-				Assert.Equal((bool?)expectedState, checkBox.IsChecked);
+				Assert.Equal(expectedState, checkBox.IsChecked);
 				Assert.Equal(1, checkedChangedCount);
 			});
 		}

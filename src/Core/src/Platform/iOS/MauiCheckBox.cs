@@ -53,7 +53,12 @@ namespace Microsoft.Maui.Platform
 
 		void OnTouchUpInside(object? sender, EventArgs e)
 		{
-			IsChecked = IsChecked == false;
+			IsChecked = IsChecked switch
+			{
+				false => true,
+				true when IsThreeState => null,
+				_ => false
+			};
 			_weakEventManager.HandleEvent(this, e, nameof(CheckedChanged));
 		}
 
@@ -69,11 +74,22 @@ namespace Microsoft.Maui.Platform
 					return;
 
 				_isChecked = value;
-				UpdateDisplay();
+				if (Window != null && !UIAccessibility.IsReduceMotionEnabled)
+				{
+					UIView.Transition(this, 0.2,
+						UIViewAnimationOptions.TransitionCrossDissolve |
+						UIViewAnimationOptions.BeginFromCurrentState |
+						UIViewAnimationOptions.AllowUserInteraction,
+						UpdateDisplay, static () => { });
+				}
+				else
+				{
+					UpdateDisplay();
+				}
 			}
 		}
 
-		/// <summary>Gets or sets the three-state configuration. User activation remains binary.</summary>
+		/// <summary>Gets or sets whether user activation cycles through checked, indeterminate, and unchecked states.</summary>
 		public bool IsThreeState { get; set; }
 
 		public bool IsEnabled
