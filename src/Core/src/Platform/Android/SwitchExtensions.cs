@@ -44,7 +44,7 @@ namespace Microsoft.Maui.Platform
 
 		public static void UpdateTrackColor(this MSwitch materialSwitch, ISwitch view)
 		{
-			// Cache the original theme tint before first modification 
+			// Cache the original theme tint before first modification
 			// so it can be restored when TrackColor is cleared.
 			if (!_defaultTrackTintCache.TryGetValue(materialSwitch, out var defaultTrackTintList))
 			{
@@ -56,16 +56,63 @@ namespace Microsoft.Maui.Platform
 				}
 			}
 
-			var trackColor = view.TrackColor;
+			var currentTintList = materialSwitch.TrackTintList;
+			var isOn = view.IsOn;
+			var trackColor = view.TrackColor?.ToPlatform();
+			var defaultFallback = defaultTrackTintList?.DefaultColor ?? 0;
 
-			if (trackColor is not null)
-			{
-				materialSwitch.TrackTintList = ColorStateList.ValueOf(trackColor.ToPlatform());
-			}
-			else
+			var enabledOnDefault = GetTrackTintColor(defaultTrackTintList, true, true, defaultFallback);
+			var enabledOffDefault = GetTrackTintColor(defaultTrackTintList, true, false, defaultFallback);
+			var disabledOnDefault = GetTrackTintColor(defaultTrackTintList, false, true, defaultFallback);
+			var disabledOffDefault = GetTrackTintColor(defaultTrackTintList, false, false, defaultFallback);
+
+			// MaterialSwitch interpolates between checked and unchecked colors as the thumb moves.
+			// Keep the outgoing tint while updating the color for the new state.
+			var enabledOn = isOn && trackColor is not null
+				? trackColor.Value
+				: GetTrackTintColor(currentTintList, true, true, enabledOnDefault);
+			var enabledOff = !isOn && trackColor is not null
+				? trackColor.Value
+				: GetTrackTintColor(currentTintList, true, false, enabledOffDefault);
+			var disabledOn = isOn && trackColor is not null
+				? trackColor.Value
+				: GetTrackTintColor(currentTintList, false, true, disabledOnDefault);
+			var disabledOff = !isOn && trackColor is not null
+				? trackColor.Value
+				: GetTrackTintColor(currentTintList, false, false, disabledOffDefault);
+
+			if (enabledOn == enabledOnDefault &&
+				enabledOff == enabledOffDefault &&
+				disabledOn == disabledOnDefault &&
+				disabledOff == disabledOffDefault)
 			{
 				materialSwitch.TrackTintList = defaultTrackTintList;
+				return;
 			}
+
+			materialSwitch.TrackTintList = ColorStateListExtensions.CreateSwitchTrack(
+				disabledOn,
+				disabledOff,
+				enabledOn,
+				enabledOff);
+		}
+
+		static int GetTrackTintColor(ColorStateList? tintList, bool isEnabled, bool isOn, int fallback = 0)
+		{
+			if (tintList is null)
+				return fallback;
+
+			int[] state =
+			[
+				isEnabled
+					? global::Android.Resource.Attribute.StateEnabled
+					: -global::Android.Resource.Attribute.StateEnabled,
+				isOn
+					? global::Android.Resource.Attribute.StateChecked
+					: -global::Android.Resource.Attribute.StateChecked,
+			];
+
+			return tintList.GetColorForState(state, new global::Android.Graphics.Color(fallback));
 		}
 
 		public static void UpdateThumbColor(this MSwitch materialSwitch, ISwitch view)

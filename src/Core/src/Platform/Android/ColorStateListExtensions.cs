@@ -23,6 +23,9 @@ namespace Microsoft.Maui.Platform
 		public static ColorStateList CreateSwitch(int disabled, int on, int normal) =>
 			PlatformInterop.GetSwitchColorStateList(disabled, on, normal);
 
+		public static ColorStateList CreateSwitchTrack(int disabledOn, int disabledOff, int on, int off) =>
+			PlatformInterop.GetSwitchTrackColorStateList(disabledOn, disabledOff, on, off);
+
 		public static ColorStateList CreateButton(int all) =>
 			CreateButton(all, all, all, all);
 
