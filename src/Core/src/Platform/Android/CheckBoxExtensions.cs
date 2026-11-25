@@ -3,6 +3,7 @@ using Android.Content.Res;
 using Android.Graphics;
 using AndroidX.AppCompat.Widget;
 using AndroidX.Core.Widget;
+using Google.Android.Material.CheckBox;
 using Microsoft.Maui.Graphics;
 using AColor = Android.Graphics.Color;
 
@@ -28,7 +29,24 @@ namespace Microsoft.Maui.Platform
 
 		public static void UpdateIsChecked(this AppCompatCheckBox platformCheckBox, ICheckBox check)
 		{
-			platformCheckBox.Checked = check.IsChecked;
+			var state = Handlers.CheckBoxHandler.GetCheckState(check);
+
+			if (platformCheckBox is MaterialCheckBox materialCheckBox)
+			{
+				var nativeState = state switch
+				{
+					CheckBoxState.Checked => MaterialCheckBox.StateChecked,
+					CheckBoxState.Indeterminate => MaterialCheckBox.StateIndeterminate,
+					_ => MaterialCheckBox.StateUnchecked
+				};
+
+				if (materialCheckBox.CheckedState != nativeState)
+					materialCheckBox.CheckedState = nativeState;
+			}
+			else
+			{
+				platformCheckBox.Checked = state == CheckBoxState.Checked;
+			}
 		}
 
 		public static void UpdateForeground(this AppCompatCheckBox platformCheckBox, ICheckBox check)

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -614,6 +614,8 @@ namespace Microsoft.Maui.Controls
 				text = tp.Time.ToString();
 			else if (element is IDatePicker dp)
 				text = dp.Date.ToString();
+			else if (element is ICheckBox2 { CheckState: CheckBoxState.Indeterminate })
+				text = nameof(CheckBoxState.Indeterminate);
 			else if (element is ICheckBox cb)
 				text = cb.IsChecked.ToString();
 			else if (element is ISwitch sw)

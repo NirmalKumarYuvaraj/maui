@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using CoreGraphics;
+using Foundation;
 using Microsoft.Maui.Graphics;
 using ObjCRuntime;
 using UIKit;
@@ -15,13 +16,15 @@ namespace Microsoft.Maui.Platform
 
 		static UIImage? Checked;
 		static UIImage? Unchecked;
+		static UIImage? Indeterminate;
 		UIImage? CheckedDisabledAndTinted;
 		UIImage? UncheckedDisabledAndTinted;
+		UIImage? IndeterminateDisabledAndTinted;
 
 		UIAccessibilityTrait _accessibilityTraits;
 
 		Color? _tintColor;
-		bool _isChecked;
+		CheckBoxState _checkState;
 		bool _isEnabled;
 		bool _disposed;
 
@@ -50,24 +53,47 @@ namespace Microsoft.Maui.Platform
 
 		void OnTouchUpInside(object? sender, EventArgs e)
 		{
-			IsChecked = !IsChecked;
+			CheckState = CheckState switch
+			{
+				CheckBoxState.Unchecked => CheckBoxState.Checked,
+				CheckBoxState.Checked when IsThreeState => CheckBoxState.Indeterminate,
+				_ => CheckBoxState.Unchecked
+			};
 			_weakEventManager.HandleEvent(this, e, nameof(CheckedChanged));
 		}
 
 		internal float MinimumViewSize { get; set; }
 
+		/// <summary>
+		/// Gets or sets whether the checkbox is checked. Returns <see langword="false"/> when <see cref="CheckState"/> is
+		/// <see cref="CheckBoxState.Indeterminate"/>; setting <see langword="false"/> clears the indeterminate state.
+		/// </summary>
 		public bool IsChecked
 		{
-			get => _isChecked;
+			get => _checkState == CheckBoxState.Checked;
+			set => CheckState = value ? CheckBoxState.Checked : CheckBoxState.Unchecked;
+		}
+
+		/// <summary>
+		/// Gets or sets the complete state of the checkbox, including <see cref="CheckBoxState.Indeterminate"/>.
+		/// </summary>
+		public CheckBoxState CheckState
+		{
+			get => _checkState;
 			set
 			{
-				if (value == _isChecked)
+				if (value == _checkState)
 					return;
 
-				_isChecked = value;
+				_checkState = value;
 				UpdateDisplay();
 			}
 		}
+
+		/// <summary>
+		/// Gets or sets whether user activation cycles through unchecked, checked, and indeterminate.
+		/// </summary>
+		public bool IsThreeState { get; set; }
 
 		public bool IsEnabled
 		{
@@ -93,6 +119,7 @@ namespace Microsoft.Maui.Platform
 
 				CheckedDisabledAndTinted = null;
 				UncheckedDisabledAndTinted = null;
+				IndeterminateDisabledAndTinted = null;
 				_tintColor = value;
 				CheckBoxTintUIColor = CheckBoxTintColor?.ToPlatform();
 			}
@@ -144,7 +171,13 @@ namespace Microsoft.Maui.Platform
 			// and I don't know how to make it not tint them gray
 			if (!Enabled && CheckBoxTintColor != null)
 			{
-				if (IsChecked)
+				if (CheckState == CheckBoxState.Indeterminate)
+				{
+					return IndeterminateDisabledAndTinted ??=
+						CreateCheckBox(CreateIndeterminateMark()).ImageWithRenderingMode(UIImageRenderingMode.AlwaysOriginal);
+				}
+
+				if (CheckState == CheckBoxState.Checked)
 				{
 					return CheckedDisabledAndTinted ??=
 						CreateCheckBox(CreateCheckMark()).ImageWithRenderingMode(UIImageRenderingMode.AlwaysOriginal);
@@ -157,7 +190,13 @@ namespace Microsoft.Maui.Platform
 			Checked ??= CreateCheckBox(CreateCheckMark()).ImageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate);
 			Unchecked ??= CreateCheckBox(null).ImageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate);
 
-			return IsChecked ? Checked : Unchecked;
+			return CheckState switch
+			{
+				CheckBoxState.Checked => Checked,
+				CheckBoxState.Indeterminate => Indeterminate ??=
+					CreateCheckBox(CreateIndeterminateMark()).ImageWithRenderingMode(UIImageRenderingMode.AlwaysTemplate),
+				_ => Unchecked
+			};
 		}
 
 		static UIBezierPath CreateBoxPath(CGRect backgroundRect) => UIBezierPath.FromOval(backgroundRect);
@@ -221,6 +260,33 @@ namespace Microsoft.Maui.Platform
 				RenderCheckMark(context);
 			});
 			return image;
+		}
+
+		static UIImage CreateIndeterminateMark()
+		{
+			using var renderer = new UIGraphicsImageRenderer(new CGSize(DefaultSize, DefaultSize));
+			return renderer.CreateImage((UIGraphicsImageRendererContext ctx) =>
+			{
+				RenderIndeterminateMark(ctx.CGContext);
+			});
+		}
+
+		static void RenderIndeterminateMark(CGContext context)
+		{
+			context.SaveState();
+
+			var padding = LineWidth / 2;
+			var diameter = DefaultSize - LineWidth;
+			using var markPath = CreateCheckPath();
+
+			context.TranslateCTM(padding, padding);
+			context.ScaleCTM(diameter, diameter);
+			markPath.MoveTo(new CGPoint(0.25f, 0.5f));
+			markPath.AddLineTo(new CGPoint(0.75f, 0.5f));
+			UIColor.White.SetStroke();
+			markPath.Stroke();
+
+			context.RestoreState();
 		}
 
 		static void RenderCheckMark(CGContext context)
@@ -304,7 +370,12 @@ namespace Microsoft.Maui.Platform
 
 		public override string? AccessibilityValue
 		{
-			get => (IsChecked) ? "1" : "0";
+			get => CheckState switch
+			{
+				CheckBoxState.Checked => "1",
+				CheckBoxState.Indeterminate => NSBundle.FromIdentifier("com.apple.UIKit")?.GetLocalizedString("Mixed") ?? "Mixed",
+				_ => "0"
+			};
 			set { }
 		}
 

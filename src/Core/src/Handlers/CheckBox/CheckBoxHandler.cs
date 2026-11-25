@@ -22,7 +22,9 @@ namespace Microsoft.Maui.Handlers
 #if MONOANDROID
 			[nameof(ICheckBox.Background)] = MapBackground,
 #endif
+			[nameof(ICheckBox2.IsThreeState)] = MapIsThreeState,
 			[nameof(ICheckBox.IsChecked)] = MapIsChecked,
+			[nameof(ICheckBox2.CheckState)] = MapCheckState,
 			[nameof(ICheckBox.Foreground)] = MapForeground,
 		};
 
@@ -48,6 +50,45 @@ namespace Microsoft.Maui.Handlers
 		ICheckBox ICheckBoxHandler.VirtualView => VirtualView;
 
 		PlatformView ICheckBoxHandler.PlatformView => PlatformView;
+
+		/// <summary>
+		/// Maps the <see cref="ICheckBox2.CheckState"/> property to the platform-specific implementations.
+		/// </summary>
+		/// <param name="handler">The associated handler.</param>
+		/// <param name="check">The associated <see cref="ICheckBox"/> instance.</param>
+		public static void MapCheckState(ICheckBoxHandler handler, ICheckBox check) =>
+			MapIsChecked(handler, check);
+
+		/// <summary>
+		/// Maps the <see cref="ICheckBox2.IsThreeState"/> property to the platform-specific implementations.
+		/// </summary>
+		/// <param name="handler">The associated handler.</param>
+		/// <param name="check">The associated <see cref="ICheckBox"/> instance.</param>
+		public static partial void MapIsThreeState(ICheckBoxHandler handler, ICheckBox check);
+
+		internal static CheckBoxState GetCheckState(ICheckBox checkBox) =>
+			checkBox is ICheckBox2 checkBox2
+				? checkBox2.CheckState
+				: checkBox.IsChecked ? CheckBoxState.Checked : CheckBoxState.Unchecked;
+
+		internal static bool GetIsThreeState(ICheckBox checkBox) =>
+			checkBox is ICheckBox2 { IsThreeState: true };
+
+		// Writes a native state back to the virtual view. Legacy Boolean-only views ignore Indeterminate.
+		internal static void SetCheckState(ICheckBox checkBox, CheckBoxState state)
+		{
+			if (checkBox is ICheckBox2 checkBox2)
+			{
+				if (checkBox2.CheckState != state)
+				{
+					checkBox2.CheckState = state;
+				}
+			}
+			else if (state != CheckBoxState.Indeterminate)
+			{
+				checkBox.IsChecked = state == CheckBoxState.Checked;
+			}
+		}
 
 #if MONOANDROID
 		/// <summary>

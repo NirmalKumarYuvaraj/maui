@@ -6,7 +6,7 @@ namespace Microsoft.Maui.Platform
 	{
 		public static void UpdateIsChecked(this MauiCheckBox platformCheckBox, ICheckBox check)
 		{
-			platformCheckBox.IsChecked = check.IsChecked;
+			platformCheckBox.CheckState = Handlers.CheckBoxHandler.GetCheckState(check);
 		}
 
 		public static void UpdateForeground(this MauiCheckBox platformCheckBox, ICheckBox check)
