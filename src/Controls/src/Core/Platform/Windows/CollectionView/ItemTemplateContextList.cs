@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace Microsoft.Maui.Controls.Platform
 {
-	internal class ItemTemplateContextList : IReadOnlyList<ItemTemplateContext>
+	internal partial class ItemTemplateContextList : IReadOnlyList<ItemTemplateContext>
 	{
 		readonly IList _itemsSource;
 		readonly DataTemplate _itemTemplate;

@@ -3,7 +3,8 @@ using Microsoft.UI.Xaml;
 
 namespace Microsoft.Maui.Controls.Platform
 {
-	internal class GroupFooterItemTemplateContext : ItemTemplateContext
+	[WinRT.GeneratedBindableCustomProperty]
+	internal partial class GroupFooterItemTemplateContext : ItemTemplateContext
 	{
 		public GroupFooterItemTemplateContext(DataTemplate formsDataTemplate, object item,
 			BindableObject container, double? height = null, double? width = null, Thickness? itemSpacing = null, IMauiContext mauiContext = null)

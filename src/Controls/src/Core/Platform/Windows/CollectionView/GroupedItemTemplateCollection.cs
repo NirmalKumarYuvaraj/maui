@@ -6,7 +6,7 @@ using System.Collections.Specialized;
 
 namespace Microsoft.Maui.Controls.Platform
 {
-	internal class GroupedItemTemplateCollection : ObservableCollection<GroupTemplateContext>, IDisposable
+	internal partial class GroupedItemTemplateCollection : ObservableCollection<GroupTemplateContext>, IDisposable
 	{
 		readonly IEnumerable _itemsSource;
 		readonly DataTemplate _itemTemplate;

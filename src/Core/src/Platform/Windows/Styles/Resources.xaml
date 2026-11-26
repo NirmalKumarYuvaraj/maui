@@ -15,6 +15,7 @@
 
   <windows:ColorConverter x:Key="ColorConverter" />
   <windows:CharacterSpacingConverter x:Key="CharacterSpacingConverter"/>
+  <windows:PickerHeaderConverter x:Key="PickerHeaderConverter"/>
 
   <x:Double x:Key="FlyoutMinWidth">350</x:Double>
 

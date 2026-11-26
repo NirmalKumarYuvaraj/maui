@@ -3,7 +3,8 @@ using System;
 
 namespace Microsoft.Maui.Controls.Platform
 {
-	public class ItemTemplateContext
+	[WinRT.GeneratedBindableCustomProperty]
+	public partial class ItemTemplateContext
 	{
 		readonly WeakReference<BindableObject> _container;
 

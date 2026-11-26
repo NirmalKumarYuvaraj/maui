@@ -20,6 +20,112 @@ namespace Microsoft.Maui.DeviceTests
 {
 	public partial class CollectionViewTests
 	{
+		[Fact]
+		public async Task CollectionView2SynchronizesSelectionModeWithoutWinUIBinding()
+		{
+			SetupBuilderCollectionView2();
+
+			var collectionView = new CollectionView { SelectionMode = SelectionMode.Single };
+
+			await CreateHandlerAndAddToWindow<CollectionViewHandler2>(collectionView, handler =>
+			{
+				var platformView = handler.PlatformView;
+				Assert.Null(platformView.GetBindingExpression(UI.Xaml.Controls.ItemsView.SelectionModeProperty));
+				Assert.Equal(UI.Xaml.Controls.ItemsViewSelectionMode.Single, platformView.SelectionMode);
+
+				collectionView.SelectionMode = SelectionMode.Multiple;
+				Assert.Equal(UI.Xaml.Controls.ItemsViewSelectionMode.Multiple, platformView.SelectionMode);
+
+				collectionView.SelectedItems = new List<object> { new object() };
+				bool selectionChanged = false;
+				collectionView.SelectionChanged += OnSelectionChanged;
+				collectionView.SelectionMode = SelectionMode.None;
+				collectionView.SelectionChanged -= OnSelectionChanged;
+				Assert.True(selectionChanged);
+
+				void OnSelectionChanged(object sender, SelectionChangedEventArgs args)
+				{
+					selectionChanged = true;
+					Assert.Equal(UI.Xaml.Controls.ItemsViewSelectionMode.None, platformView.SelectionMode);
+				}
+
+				platformView.SelectionMode = UI.Xaml.Controls.ItemsViewSelectionMode.Multiple;
+				Assert.Equal(SelectionMode.Multiple, collectionView.SelectionMode);
+				platformView.SelectionMode = UI.Xaml.Controls.ItemsViewSelectionMode.None;
+				Assert.Equal(SelectionMode.None, collectionView.SelectionMode);
+
+				((IElementHandler)handler).DisconnectHandler();
+				platformView.SelectionMode = UI.Xaml.Controls.ItemsViewSelectionMode.Single;
+				Assert.Equal(SelectionMode.None, collectionView.SelectionMode);
+				collectionView.SelectionMode = SelectionMode.Multiple;
+				Assert.Equal(UI.Xaml.Controls.ItemsViewSelectionMode.Single, platformView.SelectionMode);
+				return Task.CompletedTask;
+			});
+		}
+
+		[Fact]
+		public async Task LegacyCollectionViewSynchronizesSelectionModeWithoutWinUIBinding()
+		{
+			SetupBuilder();
+
+			var collectionView = new CollectionView { SelectionMode = SelectionMode.Single };
+
+			await CreateHandlerAndAddToWindow<CollectionViewHandler>(collectionView, handler =>
+			{
+				var platformView = handler.PlatformView;
+				Assert.Null(platformView.GetBindingExpression(UI.Xaml.Controls.ListViewBase.SelectionModeProperty));
+				Assert.Equal(UI.Xaml.Controls.ListViewSelectionMode.Single, platformView.SelectionMode);
+
+				collectionView.SelectionMode = SelectionMode.Multiple;
+				Assert.Equal(UI.Xaml.Controls.ListViewSelectionMode.Multiple, platformView.SelectionMode);
+
+				collectionView.SelectedItems = new List<object> { new object() };
+				bool selectionChanged = false;
+				collectionView.SelectionChanged += OnSelectionChanged;
+				collectionView.SelectionMode = SelectionMode.None;
+				collectionView.SelectionChanged -= OnSelectionChanged;
+				Assert.True(selectionChanged);
+
+				void OnSelectionChanged(object sender, SelectionChangedEventArgs args)
+				{
+					selectionChanged = true;
+					Assert.Equal(UI.Xaml.Controls.ListViewSelectionMode.None, platformView.SelectionMode);
+				}
+
+				platformView.SelectionMode = UI.Xaml.Controls.ListViewSelectionMode.Multiple;
+				Assert.Equal(SelectionMode.Multiple, collectionView.SelectionMode);
+				platformView.SelectionMode = UI.Xaml.Controls.ListViewSelectionMode.None;
+				Assert.Equal(SelectionMode.None, collectionView.SelectionMode);
+
+				((IElementHandler)handler).DisconnectHandler();
+				platformView.SelectionMode = UI.Xaml.Controls.ListViewSelectionMode.Single;
+				Assert.Equal(SelectionMode.None, collectionView.SelectionMode);
+				collectionView.SelectionMode = SelectionMode.Multiple;
+				Assert.Equal(UI.Xaml.Controls.ListViewSelectionMode.Single, platformView.SelectionMode);
+				return Task.CompletedTask;
+			});
+		}
+
+		[Fact]
+		public void LegacyTemplateContextsExposeBindingProperties()
+		{
+			var template = new Controls.DataTemplate(() => new Label());
+			var container = new CollectionView();
+			var item = new ItemTemplateContext(template, "Item", container);
+			var footer = new GroupFooterItemTemplateContext(template, "Footer", container);
+			var group = new GroupTemplateContext(item, null, Array.Empty<object>());
+
+			var itemProperties = Assert.IsAssignableFrom<UI.Xaml.Data.IBindableCustomPropertyImplementation>(item);
+			var footerProperties = Assert.IsAssignableFrom<UI.Xaml.Data.IBindableCustomPropertyImplementation>(footer);
+			var groupProperties = Assert.IsAssignableFrom<UI.Xaml.Data.IBindableCustomPropertyImplementation>(group);
+
+			Assert.NotNull(itemProperties.GetProperty(nameof(ItemTemplateContext.Item)));
+			Assert.NotNull(itemProperties.GetProperty(nameof(ItemTemplateContext.ItemSpacing)));
+			Assert.NotNull(footerProperties.GetProperty(nameof(ItemTemplateContext.FormsDataTemplate)));
+			Assert.NotNull(groupProperties.GetProperty(nameof(GroupTemplateContext.HeaderItemTemplateContext)));
+			Assert.NotNull(groupProperties.GetProperty(nameof(GroupTemplateContext.Items)));
+		}
+
 		[Theory]
 		[InlineData(false)]
 		[InlineData(true)]

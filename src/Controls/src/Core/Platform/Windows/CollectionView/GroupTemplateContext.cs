@@ -4,7 +4,8 @@ using System.Collections.Generic;
 
 namespace Microsoft.Maui.Controls.Platform
 {
-	internal class GroupTemplateContext
+	[WinRT.GeneratedBindableCustomProperty]
+	internal partial class GroupTemplateContext
 	{
 		public ItemTemplateContext HeaderItemTemplateContext { get; }
 		public ItemTemplateContext FooterItemTemplateContext { get; }

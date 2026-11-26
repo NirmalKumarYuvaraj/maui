@@ -24,6 +24,31 @@ namespace Microsoft.Maui.DeviceTests
 	{
 		const string TestPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAANSURBVBhXY/jPwPAfAAUAAf+mXJtdAAAAAElFTkSuQmCC";
 
+		[Fact]
+		public async Task ToolbarItemTextUpdatesWithoutWinUIBinding()
+		{
+			SetupBuilder();
+			var item = new ToolbarItem { Text = "Initial", BadgeText = "1" };
+			var page = new ContentPage();
+			page.ToolbarItems.Add(item);
+			var navigationPage = new NavigationPage(page);
+
+			await CreateHandlerAndAddToWindow<WindowHandlerStub>(new Window(navigationPage), handler =>
+			{
+				var toolbar = (Toolbar)((IToolbarElement)navigationPage.Window).Toolbar;
+				var commandBar = ((MauiToolbar)toolbar.Handler.PlatformView).CommandBar;
+				var button = Assert.IsType<AppBarButton>(commandBar.PrimaryCommands[0]);
+
+				Assert.Null(button.GetBindingExpression(AppBarButton.LabelProperty));
+				Assert.Equal("Initial", button.Label);
+				item.Text = "Updated";
+				Assert.Equal("Updated", button.Label);
+				var badgeContent = Assert.IsType<Microsoft.UI.Xaml.Controls.Grid>(button.Content);
+				Assert.Equal("Updated", Assert.Single(badgeContent.Children.OfType<TextBlock>()).Text);
+				return Task.CompletedTask;
+			});
+		}
+
 		[Theory]
 		[InlineData(false)]
 		[InlineData(true)]

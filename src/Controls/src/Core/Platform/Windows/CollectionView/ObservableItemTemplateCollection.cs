@@ -7,7 +7,7 @@ using System.Threading;
 
 namespace Microsoft.Maui.Controls.Platform
 {
-	internal class ObservableItemTemplateCollection : ObservableCollection<ItemTemplateContext>, IDisposable
+	internal partial class ObservableItemTemplateCollection : ObservableCollection<ItemTemplateContext>, IDisposable
 	{
 		readonly IList _itemsSource;
 		readonly DataTemplate _itemTemplate;

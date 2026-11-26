@@ -9,7 +9,8 @@ namespace Microsoft.Maui.Controls.Handlers.Items2;
 /// Used for non-observable list sources.
 /// References the owner weakly, including contexts created after initial enumeration.
 /// </summary>
-internal class ItemTemplateContextList2 : IReadOnlyList<ItemTemplateContext2>
+/// <remarks>This type is partial so C#/WinRT can generate its AOT projection.</remarks>
+internal partial class ItemTemplateContextList2 : IReadOnlyList<ItemTemplateContext2>
 {
 	readonly IList _itemsSource;
 	readonly DataTemplate _itemTemplate;

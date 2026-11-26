@@ -77,7 +77,8 @@ namespace Microsoft.Maui.Platform
 		}
 	}
 
-	internal class NavigationViewItemViewModel : INotifyPropertyChanged
+	[WinRT.GeneratedBindableCustomProperty]
+	internal partial class NavigationViewItemViewModel : INotifyPropertyChanged
 	{
 		public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -323,5 +324,9 @@ namespace Microsoft.Maui.Platform
 
 		void OnPropertyChanged(PropertyChangedEventArgs args) =>
 			PropertyChanged?.Invoke(this, args);
+	}
+
+	internal sealed partial class NavigationViewItemViewModelCollection : ObservableCollection<NavigationViewItemViewModel>
+	{
 	}
 }

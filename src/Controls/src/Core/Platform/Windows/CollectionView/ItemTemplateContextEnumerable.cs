@@ -3,7 +3,7 @@ using System.Collections;
 
 namespace Microsoft.Maui.Controls.Platform
 {
-	internal class ItemTemplateContextEnumerable : IEnumerable
+	internal partial class ItemTemplateContextEnumerable : IEnumerable
 	{
 		readonly IEnumerable _itemsSource;
 		readonly DataTemplate _formsDataTemplate;

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using Microsoft.Maui.Controls.Platform;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
@@ -42,6 +43,8 @@ public partial class CollectionViewHandler2 : ReorderableItemsViewHandler2<Reord
 	bool _selectionDirty;
 	bool _selectionUpdateQueued;
 	bool _platformSelectionUpdateQueued;
+	long? _selectionModeChangedToken;
+	SelectableItemsView? _selectionModeView;
 	Action<int>? _containerPreparedHandler;
 
 
@@ -102,12 +105,26 @@ public partial class CollectionViewHandler2 : ReorderableItemsViewHandler2<Reord
 
 	public static void MapSelectionMode(CollectionViewHandler2 handler, SelectableItemsView itemsView)
 	{
+		handler.ObserveSelectionMode(itemsView);
+		if (handler.PlatformView is not null)
+		{
+			handler.PlatformView.SelectionMode = ToPlatformSelectionMode(itemsView.SelectionMode);
+		}
+
 		handler.UpdatePlatformSelection();
 		handler.UpdateMultiSelectContentMargin();
 		// The margin change affects item sizes, so invalidate the MeasureFirstItem cache
 		// to avoid stale sizes being applied to items realized after the mode switch.
 		handler.InvalidateFirstItemSize();
 	}
+
+	static ItemsViewSelectionMode ToPlatformSelectionMode(SelectionMode selectionMode) =>
+		selectionMode switch
+		{
+			SelectionMode.Single => ItemsViewSelectionMode.Single,
+			SelectionMode.Multiple => ItemsViewSelectionMode.Multiple,
+			_ => ItemsViewSelectionMode.None
+		};
 
 	/// <summary>
 	/// When in multi-select mode the WinUI ItemContainer renders a checkbox overlay
@@ -169,18 +186,14 @@ public partial class CollectionViewHandler2 : ReorderableItemsViewHandler2<Reord
 		base.ConnectHandler(platformView);
 
 		ItemsView.SelectionChanged += VirtualSelectionChanged;
+		ObserveSelectionMode(ItemsView);
 
 		if (PlatformView is not null)
 		{
 			PlatformView.IsTabStop = false;
-			PlatformView.SetBinding(WItemsView.SelectionModeProperty,
-					new UI.Xaml.Data.Binding
-					{
-						Source = ItemsView,
-						Path = new UI.Xaml.PropertyPath("SelectionMode"),
-						Converter = new SelectionModeConverter(),
-						Mode = UI.Xaml.Data.BindingMode.TwoWay
-					});
+			PlatformView.SelectionMode = ToPlatformSelectionMode(ItemsView.SelectionMode);
+			_selectionModeChangedToken = PlatformView.RegisterPropertyChangedCallback(
+				WItemsView.SelectionModeProperty, OnPlatformSelectionModeChanged);
 
 			PlatformView.SelectionChanged += PlatformSelectionChanged;
 			PlatformView.Loaded += OnPlatformViewLoaded;
@@ -190,6 +203,48 @@ public partial class CollectionViewHandler2 : ReorderableItemsViewHandler2<Reord
 				mauiItemsViewConnect.ReattachAccessibilityHelper();
 			}
 		}
+	}
+
+	void ObserveSelectionMode(SelectableItemsView itemsView)
+	{
+		// SelectionChanged can fire before the property mapper runs.
+		if (ReferenceEquals(_selectionModeView, itemsView))
+			return;
+
+		if (_selectionModeView is not null)
+			_selectionModeView.PropertyChanged -= OnVirtualViewPropertyChanged;
+
+		_selectionModeView = itemsView;
+		_selectionModeView.PropertyChanged += OnVirtualViewPropertyChanged;
+	}
+
+	void OnVirtualViewPropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName == nameof(SelectableItemsView.SelectionMode) &&
+			ReferenceEquals(sender, ((IElementHandler)this).VirtualView) &&
+			((IElementHandler)this).PlatformView is WItemsView platformView &&
+			sender is SelectableItemsView itemsView)
+		{
+			platformView.SelectionMode = ToPlatformSelectionMode(itemsView.SelectionMode);
+		}
+	}
+
+	void OnPlatformSelectionModeChanged(UI.Xaml.DependencyObject sender, UI.Xaml.DependencyProperty property)
+	{
+		if (sender is not WItemsView platformView ||
+			!ReferenceEquals(((IElementHandler)this).PlatformView, platformView) ||
+			((IElementHandler)this).VirtualView is not SelectableItemsView itemsView)
+			return;
+
+		var selectionMode = platformView.SelectionMode switch
+		{
+			ItemsViewSelectionMode.Single => SelectionMode.Single,
+			ItemsViewSelectionMode.Multiple => SelectionMode.Multiple,
+			_ => SelectionMode.None
+		};
+
+		if (itemsView.SelectionMode != selectionMode)
+			itemsView.SelectionMode = selectionMode;
 	}
 
 	void OnPlatformViewLoaded(object? sender, UI.Xaml.RoutedEventArgs e)
@@ -239,6 +294,11 @@ public partial class CollectionViewHandler2 : ReorderableItemsViewHandler2<Reord
 
 		platformView.SelectionChanged -= PlatformSelectionChanged;
 		platformView.Loaded -= OnPlatformViewLoaded;
+		if (_selectionModeChangedToken is long token)
+		{
+			platformView.UnregisterPropertyChangedCallback(WItemsView.SelectionModeProperty, token);
+			_selectionModeChangedToken = null;
+		}
 		platformView.ClearValue(WItemsView.SelectionModeProperty);
 		if (platformView is MauiItemsView mauiItemsView)
 		{
@@ -257,6 +317,12 @@ public partial class CollectionViewHandler2 : ReorderableItemsViewHandler2<Reord
 		if (ItemsView is not null)
 		{
 			ItemsView.SelectionChanged -= VirtualSelectionChanged;
+		}
+
+		if (_selectionModeView is not null)
+		{
+			_selectionModeView.PropertyChanged -= OnVirtualViewPropertyChanged;
+			_selectionModeView = null;
 		}
 
 
@@ -580,36 +646,5 @@ public partial class CollectionViewHandler2 : ReorderableItemsViewHandler2<Reord
 			}
 		}
 		return -1;
-	}
-}
-
-/// <summary>
-/// Converts between MAUI <see cref="SelectionMode"/> and WinUI <see cref="ItemsViewSelectionMode"/> values.
-/// </summary>
-partial class SelectionModeConverter : UI.Xaml.Data.IValueConverter
-{
-	/// <inheritdoc />
-	public object Convert(object value, Type targetType, object parameter, string language)
-	{
-		var selectionMode = (SelectionMode)value;
-		return selectionMode switch
-		{
-			SelectionMode.Single => ItemsViewSelectionMode.Single,
-			SelectionMode.Multiple => ItemsViewSelectionMode.Multiple,
-			_ => ItemsViewSelectionMode.None,
-		};
-	}
-
-	/// <inheritdoc />
-	public object ConvertBack(object value, Type targetType, object parameter, string language)
-	{
-		var winUISelectionMode = (ItemsViewSelectionMode)value;
-		return winUISelectionMode switch
-		{
-			ItemsViewSelectionMode.None => SelectionMode.None,
-			ItemsViewSelectionMode.Single => SelectionMode.Single,
-			ItemsViewSelectionMode.Multiple => SelectionMode.Multiple,
-			_ => SelectionMode.None,
-		};
 	}
 }
